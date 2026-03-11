@@ -1,0 +1,27 @@
+publiccodeYmlVersion: "2.4.0"
+name: Menshen 
+url: https://github.com/suitenumerique/menshen
+landingURL: https://github.com/suitenumerique/menshen
+creationDate: 2023-12-10
+logo: https://raw.githubusercontent.com/suitenumerique/menshen/main/menshen/assets/menshen-logo.png
+usedBy:
+  - Direction interministériel du numérique (DINUM)
+fundedBy:
+  - name: Direction interministériel du numérique (DINUM)
+    url: https://www.numerique.gouv.fr
+roadmap: "https://github.com/orgs/suitenumerique/projects/"
+softwareType: "standalone/other"
+description:
+  en:
+    shortDescription: "An OAuth 2.0 Token Exchange autorization server build with Django."
+  fr:
+    shortDescription: "Un serveur d'authorisation pour (OAuth 2.0) Token Exchange propulsé par Django."
+legal:
+  license: MIT
+maintenance:
+  type: internal
+  contacts:
+    - name: "quentin.bey"
+      email: "quentin.bey@numerique.gouv.fr"
+    - name: "samuel.paccoud"
+      email: "samuel.paccoud@numerique.gouv.fr"
