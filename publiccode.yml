@@ -13,7 +13,7 @@ roadmap: "https://github.com/orgs/suitenumerique/projects/"
 softwareType: "standalone/other"
 description:
   en:
-    shortDescription: "An OAuth 2.0 Token Exchange autorization server build with Django."
+    shortDescription: "An OAuth 2.0 Token Exchange authorization server build with Django."
   fr:
     shortDescription: "Un serveur d'authorisation pour (OAuth 2.0) Token Exchange propulsé par Django."
 legal:

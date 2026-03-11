@@ -1,6 +1,6 @@
 # La Suite Menshen: the Token Exchange server.
 
-⚠️ We are bootstraping this project. Nothing is really usable in a production context at this time.
+⚠️ We are bootstrapping this project. Nothing is really usable in a production context at this time.
 
 ## License 📝
 
