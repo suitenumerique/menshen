@@ -1,0 +1,82 @@
+#
+# menshen package
+#
+[build-system]
+requires = ["uv_build>=0.10.7,<0.11.0"]
+build-backend = "uv_build"
+
+[project]
+name = "menshen"
+version = "0.1.0"
+authors = [{ "name" = "DINUM", "email" = "dev@mail.numerique.gouv.fr" }]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Framework :: Django",
+    "Framework :: Django :: 6",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+]
+description = "An OAuth 2.0 Token Exchange autorization server build with Django."
+keywords = ["Django", "OAuth"]
+license = "MIT"
+requires-python = "~=3.14.3"
+dependencies = [
+    "dj-database-url==3.1.2",
+    "django==6.0.3",
+    "django-configurations==2.5.1",
+    "django-cors-headers==4.9.0",
+    "django-lasuite[all]==0.0.24",
+    "django-redis==6.0.0",
+    "djangorestframework==3.16.1",
+    "dockerflow==2026.1.26",
+    "drf-spectacular==0.29.0",
+    "drf-standardized-errors==0.15.0",
+    "psycopg[binary]==3.3.3",
+    "sentry-sdk==2.53.0",
+    "whitenoise==6.12.0",
+]
+
+[project.urls]
+"Bug Tracker" = "https://github.com/suitenumerique/menshen/issues/new"
+"Changelog" = "https://github.com/suitenumerique/menshen/blob/main/CHANGELOG.md"
+"Homepage" = "https://github.com/suitenumerique/menshen"
+"Repository" = "https://github.com/suitenumerique/menshen"
+
+[dependency-groups]
+dev = [
+    "django-debug-toolbar==6.2.0",
+    "django-extensions==4.1",
+    "ipdb==0.13.13",
+    "ipython==9.10.0",
+    "pytest==9.0.2",
+    "pytest-cov==7.0.0",
+    "pytest-django==4.12.0",
+    "pytest-xdist==3.8.0",
+    "ruff==0.15.4",
+]
+
+[tool.uv.build-backend]
+module-root = ""
+source-exclude = [
+    "**/tests/**",
+    "**/test_*.py",
+    "**/tests.py",
+]
+
+[tool.pytest.ini_options]
+addopts = [
+    "-v",
+    "--cov-report",
+    "term-missing",
+    "--cov",
+    "api",
+    # Allow test files to have the same name in different directories.
+    "--import-mode=importlib",
+]
+python_files = [
+    "test_*.py",
+    "tests.py",
+]

@@ -1,0 +1,46 @@
+# Django
+DJANGO_ALLOWED_HOSTS=*
+DJANGO_SECRET_KEY=ThisIsAnExampleKeyForDevPurposeOnly
+DJANGO_SETTINGS_MODULE=menshen.settings
+DJANGO_SUPERUSER_PASSWORD=admin
+
+# Logging
+# Set to DEBUG level for dev only
+LOGGING_LEVEL_HANDLERS_CONSOLE=INFO
+LOGGING_LEVEL_LOGGERS_ROOT=INFO
+LOGGING_LEVEL_LOGGERS_APP=INFO
+
+# Python
+PYTHONPATH=/app
+
+# menshen settings
+
+# Backend url
+MENSHEN_BASE_URL="http://localhost:8072"
+
+# OIDC
+OIDC_OP_JWKS_ENDPOINT=http://nginx:8083/realms/menshen/protocol/openid-connect/certs
+OIDC_OP_AUTHORIZATION_ENDPOINT=http://localhost:8083/realms/menshen/protocol/openid-connect/auth
+OIDC_OP_TOKEN_ENDPOINT=http://nginx:8083/realms/menshen/protocol/openid-connect/token
+OIDC_OP_USER_ENDPOINT=http://nginx:8083/realms/menshen/protocol/openid-connect/userinfo
+OIDC_OP_INTROSPECTION_ENDPOINT=http://nginx:8083/realms/menshen/protocol/openid-connect/token/introspect
+
+OIDC_RP_CLIENT_ID=menshen
+OIDC_RP_CLIENT_SECRET=ThisIsAnExampleKeyForDevPurposeOnly
+OIDC_RP_SIGN_ALGO=RS256
+OIDC_RP_SCOPES="openid email"
+
+LOGIN_REDIRECT_URL=http://localhost:3000
+LOGIN_REDIRECT_URL_FAILURE=http://localhost:3000
+LOGOUT_REDIRECT_URL=http://localhost:3000
+
+OIDC_REDIRECT_ALLOWED_HOSTS="localhost:8083,localhost:3000"
+OIDC_AUTH_REQUEST_EXTRA_PARAMS={"acr_values": "eidas1"}
+
+# Store OIDC tokens in the session. Needed by search/ endpoint.
+# OIDC_STORE_ACCESS_TOKEN = True
+# OIDC_STORE_REFRESH_TOKEN = True # Store the encrypted refresh token in the session.
+
+# Must be a valid Fernet key (32 url-safe base64-encoded bytes)
+# To create one, use the bin/fernetkey command.
+# OIDC_STORE_REFRESH_TOKEN_KEY="your-32-byte-encryption-key=="
