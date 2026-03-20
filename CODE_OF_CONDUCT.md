@@ -34,7 +34,7 @@ Examples of unacceptable behavior include:
 
 ## Enforcement
 
-- Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the community leaders responsible for enforcement at docs@numerique.gouv.fr.
+- Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the community leaders responsible for enforcement at menshen@numerique.gouv.fr.
 
 - All complaints will be reviewed and investigated promptly and fairly.
 
