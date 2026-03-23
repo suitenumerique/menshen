@@ -186,7 +186,6 @@ class Base(Configuration):
 
     # Django applications from the highest priority to the lowest
     INSTALLED_APPS = [
-        "api",
         # Third party apps
         "drf_spectacular",
         "drf_standardized_errors",

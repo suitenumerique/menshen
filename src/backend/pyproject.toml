@@ -71,8 +71,6 @@ addopts = [
     "-v",
     "--cov-report",
     "term-missing",
-    "--cov",
-    "api",
     # Allow test files to have the same name in different directories.
     "--import-mode=importlib",
 ]
