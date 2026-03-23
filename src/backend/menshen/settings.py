@@ -15,11 +15,10 @@ import tomllib
 from pathlib import Path
 from socket import gethostbyname, gethostname
 
-from django.utils.translation import gettext_lazy as _
-
 import dj_database_url
 import sentry_sdk
 from configurations import Configuration, values
+from django.utils.translation import gettext_lazy as _
 from lasuite.configuration.values import SecretFileValue
 from sentry_sdk.integrations.django import DjangoIntegration
 
@@ -29,9 +28,7 @@ DATA_DIR = os.environ.get("DATA_DIR", Path("/data"))
 
 
 def get_release():
-    """
-    Get the current release of the application
-    """
+    """Get the current release of the application."""
     try:
         with (Path(BASE_DIR) / Path("pyproject.toml")).open("rb") as f:
             pyproject_data = tomllib.load(f)
@@ -42,7 +39,7 @@ def get_release():
 
 class Base(Configuration):
     """
-    This is the base configuration every configuration (aka environment) should inherit from.
+    Base configuration every configuration (aka environment) should inherit from.
 
     It is recommended to configure third-party applications by creating a configuration mixins in
     ./configurations and compose the Base configuration with those mixins.
@@ -82,16 +79,10 @@ class Base(Configuration):
                 environ_name="DB_ENGINE",
                 environ_prefix=None,
             ),
-            "NAME": values.Value(
-                "menshen", environ_name="DB_NAME", environ_prefix=None
-            ),
+            "NAME": values.Value("menshen", environ_name="DB_NAME", environ_prefix=None),
             "USER": values.Value("dinum", environ_name="DB_USER", environ_prefix=None),
-            "PASSWORD": SecretFileValue(
-                "pass", environ_name="DB_PASSWORD", environ_prefix=None
-            ),
-            "HOST": values.Value(
-                "localhost", environ_name="DB_HOST", environ_prefix=None
-            ),
+            "PASSWORD": SecretFileValue("pass", environ_name="DB_PASSWORD", environ_prefix=None),
+            "HOST": values.Value("localhost", environ_name="DB_HOST", environ_prefix=None),
             "PORT": values.Value(5432, environ_name="DB_PORT", environ_prefix=None),
         }
     }
@@ -102,9 +93,7 @@ class Base(Configuration):
     STATIC_ROOT = DATA_DIR / Path("static")
     MEDIA_URL = "/media/"
     MEDIA_ROOT = DATA_DIR / Path("media")
-    MEDIA_BASE_URL = values.Value(
-        None, environ_name="MEDIA_BASE_URL", environ_prefix=None
-    )
+    MEDIA_BASE_URL = values.Value(None, environ_name="MEDIA_BASE_URL", environ_prefix=None)
 
     SITE_ID = 1
 
@@ -186,6 +175,7 @@ class Base(Configuration):
 
     # Django applications from the highest priority to the lowest
     INSTALLED_APPS = [
+        "apps.tx",
         # Third party apps
         "drf_spectacular",
         "drf_standardized_errors",
@@ -266,7 +256,13 @@ class Base(Configuration):
         "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.URLPathVersioning",
         "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
         "DEFAULT_THROTTLE_CLASSES": ["rest_framework.throttling.ScopedRateThrottle"],
-        "DEFAULT_THROTTLE_RATES": {},
+        "DEFAULT_THROTTLE_RATES": {
+            "token_exchange": values.Value(
+                default="20/minute",
+                environ_name="TOKEN_EXCHANGE_THROTTLE_RATES",
+                environ_prefix=None,
+            ),
+        },
     }
 
     # Mail
@@ -295,130 +291,10 @@ class Base(Configuration):
     SESSION_CACHE_ALIAS = "session"
     SESSION_COOKIE_AGE = 60 * 60 * 12
 
-    # OIDC - Authorization Code Flow
-    OIDC_CREATE_USER = values.BooleanValue(
-        default=True,
-        environ_name="OIDC_CREATE_USER",
-    )
-    OIDC_AUTHENTICATE_CLASS = "lasuite.oidc_login.views.OIDCAuthenticationRequestView"
-    OIDC_CALLBACK_CLASS = "core.authentication.views.OIDCAuthenticationCallbackView"
-    OIDC_RP_SIGN_ALGO = values.Value(
-        "RS256", environ_name="OIDC_RP_SIGN_ALGO", environ_prefix=None
-    )
-    OIDC_RP_CLIENT_ID = values.Value(
-        "menshen", environ_name="OIDC_RP_CLIENT_ID", environ_prefix=None
-    )
-    OIDC_RP_CLIENT_SECRET = SecretFileValue(
-        None,
-        environ_name="OIDC_RP_CLIENT_SECRET",
-        environ_prefix=None,
-    )
-    OIDC_OP_JWKS_ENDPOINT = values.Value(
-        environ_name="OIDC_OP_JWKS_ENDPOINT", environ_prefix=None
-    )
-    OIDC_OP_AUTHORIZATION_ENDPOINT = values.Value(
-        environ_name="OIDC_OP_AUTHORIZATION_ENDPOINT", environ_prefix=None
-    )
-    OIDC_OP_TOKEN_ENDPOINT = values.Value(
-        None, environ_name="OIDC_OP_TOKEN_ENDPOINT", environ_prefix=None
-    )
-    OIDC_OP_USER_ENDPOINT = values.Value(
-        None, environ_name="OIDC_OP_USER_ENDPOINT", environ_prefix=None
-    )
-    OIDC_OP_LOGOUT_ENDPOINT = values.Value(
-        None, environ_name="OIDC_OP_LOGOUT_ENDPOINT", environ_prefix=None
-    )
-    OIDC_REDIRECT_FIELD_NAME = values.Value(
-        "returnTo", environ_name="OIDC_REDIRECT_FIELD_NAME", environ_prefix=None
-    )
-    OIDC_AUTH_REQUEST_EXTRA_PARAMS = values.DictValue(
-        {}, environ_name="OIDC_AUTH_REQUEST_EXTRA_PARAMS", environ_prefix=None
-    )
-    OIDC_RP_SCOPES = values.Value(
-        "openid email", environ_name="OIDC_RP_SCOPES", environ_prefix=None
-    )
-    LOGIN_REDIRECT_URL = values.Value(
-        None, environ_name="LOGIN_REDIRECT_URL", environ_prefix=None
-    )
-    LOGIN_REDIRECT_URL_FAILURE = values.Value(
-        None, environ_name="LOGIN_REDIRECT_URL_FAILURE", environ_prefix=None
-    )
-    LOGOUT_REDIRECT_URL = values.Value(
-        None, environ_name="LOGOUT_REDIRECT_URL", environ_prefix=None
-    )
-    OIDC_USE_NONCE = values.BooleanValue(
-        default=True, environ_name="OIDC_USE_NONCE", environ_prefix=None
-    )
-    OIDC_REDIRECT_REQUIRE_HTTPS = values.BooleanValue(
-        default=False, environ_name="OIDC_REDIRECT_REQUIRE_HTTPS", environ_prefix=None
-    )
-    OIDC_REDIRECT_ALLOWED_HOSTS = values.ListValue(
-        default=[], environ_name="OIDC_REDIRECT_ALLOWED_HOSTS", environ_prefix=None
-    )
-    OIDC_STORE_ID_TOKEN = values.BooleanValue(
-        default=True, environ_name="OIDC_STORE_ID_TOKEN", environ_prefix=None
-    )
-    OIDC_FALLBACK_TO_EMAIL_FOR_IDENTIFICATION = values.BooleanValue(
-        default=True,
-        environ_name="OIDC_FALLBACK_TO_EMAIL_FOR_IDENTIFICATION",
-        environ_prefix=None,
-    )
-
-    OIDC_STORE_ACCESS_TOKEN = values.BooleanValue(
-        default=False, environ_name="OIDC_STORE_ACCESS_TOKEN", environ_prefix=None
-    )
-    OIDC_STORE_REFRESH_TOKEN = values.BooleanValue(
-        default=False, environ_name="OIDC_STORE_REFRESH_TOKEN", environ_prefix=None
-    )
-    OIDC_STORE_REFRESH_TOKEN_KEY = values.Value(
-        default=None,
-        environ_name="OIDC_STORE_REFRESH_TOKEN_KEY",
-        environ_prefix=None,
-    )
-
-    # OIDC claims to store
-    OIDC_STORE_CLAIMS = values.ListValue(
-        default=[],
-        environ_name="OIDC_STORE_CLAIMS",
-        environ_prefix=None,
-    )
-
-    # WARNING: Enabling this setting allows multiple user accounts to share the same email
-    # address. This may cause security issues and is not recommended for production use when
-    # email is activated as fallback for identification (see previous setting).
-    OIDC_ALLOW_DUPLICATE_EMAILS = values.BooleanValue(
-        default=False,
-        environ_name="OIDC_ALLOW_DUPLICATE_EMAILS",
-        environ_prefix=None,
-    )
-
-    OIDC_USER_INFO = values.ListValue(
-        default=values.ListValue(  # retrocompatibility
-            default=[],
-            environ_name="USER_OIDC_ESSENTIAL_CLAIMS",
-            environ_prefix=None,
-        ),
-        environ_name="OIDC_USER_INFO",
-        environ_prefix=None,
-    )
-
-    OIDC_USERINFO_FULLNAME_FIELDS = values.ListValue(
-        default=["first_name", "last_name"],
-        environ_name="OIDC_USERINFO_FULLNAME_FIELDS",
-        environ_prefix=None,
-    )
-    OIDC_USERINFO_SHORTNAME_FIELD = values.Value(
-        default="first_name",
-        environ_name="OIDC_USERINFO_SHORTNAME_FIELD",
-        environ_prefix=None,
-    )
-
-    # OIDC Resource Server
-
-    OIDC_RESOURCE_SERVER_ENABLED = values.BooleanValue(
-        default=False, environ_name="OIDC_RESOURCE_SERVER_ENABLED", environ_prefix=None
-    )
-
+    # OIDC Resource Server settings.
+    #
+    # FIXME: Most settings shouldn't be required here if we only use the  # noqa: FIX001
+    # introspection feature of the ResourceServerBackend class
     OIDC_RS_BACKEND_CLASS = values.Value(
         "lasuite.oidc_resource_server.backend.ResourceServerBackend",
         environ_name="OIDC_RS_BACKEND_CLASS",
@@ -431,9 +307,7 @@ class Base(Configuration):
         default=True, environ_name="OIDC_VERIFY_SSL", environ_prefix=None
     )
 
-    OIDC_TIMEOUT = values.PositiveIntegerValue(
-        3, environ_name="OIDC_TIMEOUT", environ_prefix=None
-    )
+    OIDC_TIMEOUT = values.PositiveIntegerValue(3, environ_name="OIDC_TIMEOUT", environ_prefix=None)
 
     OIDC_PROXY = values.Value(None, environ_name="OIDC_PROXY", environ_prefix=None)
 
@@ -441,9 +315,7 @@ class Base(Configuration):
         None, environ_name="OIDC_OP_INTROSPECTION_ENDPOINT", environ_prefix=None
     )
 
-    OIDC_RS_CLIENT_ID = values.Value(
-        None, environ_name="OIDC_RS_CLIENT_ID", environ_prefix=None
-    )
+    OIDC_RS_CLIENT_ID = values.Value(None, environ_name="OIDC_RS_CLIENT_ID", environ_prefix=None)
 
     OIDC_RS_CLIENT_SECRET = values.Value(
         None, environ_name="OIDC_RS_CLIENT_SECRET", environ_prefix=None
@@ -469,25 +341,56 @@ class Base(Configuration):
         ["openid"], environ_name="OIDC_RS_SCOPES", environ_prefix=None
     )
 
-    OIDC_RS_ALLOWED_AUDIENCES = values.ListValue(
-        default=[],
-        environ_name="OIDC_RS_ALLOWED_AUDIENCES",
+    # Token Exchange (RFC 8693) settings
+    TOKEN_EXCHANGE_ENABLED = values.BooleanValue(
+        default=False,
+        environ_name="TOKEN_EXCHANGE_ENABLED",
         environ_prefix=None,
     )
-
-    OIDC_RS_PRIVATE_KEY_STR = values.Value(
+    TOKEN_EXCHANGE_MULTI_AUDIENCES_ALLOWED = values.BooleanValue(
+        default=False,
+        environ_name="TOKEN_EXCHANGE_MULTI_AUDIENCES_ALLOWED",
+        environ_prefix=None,
+    )
+    TOKEN_EXCHANGE_DEFAULT_EXPIRES_IN = values.IntegerValue(
+        default=3600,  # 1 hour
+        environ_name="TOKEN_EXCHANGE_DEFAULT_EXPIRES_IN",
+        environ_prefix=None,
+    )
+    TOKEN_EXCHANGE_MAX_EXPIRES_IN = values.IntegerValue(
+        default=86400,  # 24 hours
+        environ_name="TOKEN_EXCHANGE_MAX_EXPIRES_IN",
+        environ_prefix=None,
+    )
+    TOKEN_EXCHANGE_ALLOWED_TOKEN_TYPES = values.ListValue(
+        default=["access_token", "jwt"],
+        environ_name="TOKEN_EXCHANGE_ALLOWED_TOKEN_TYPES",
+        environ_prefix=None,
+    )
+    TOKEN_EXCHANGE_JWT_SIGNING_KEYS = values.DictValue(
+        default={},
+        environ_name="TOKEN_EXCHANGE_JWT_SIGNING_KEYS",
+        environ_prefix=None,
+    )
+    TOKEN_EXCHANGE_JWT_CURRENT_KID = values.Value(
         default=None,
-        environ_name="OIDC_RS_PRIVATE_KEY_STR",
+        environ_name="TOKEN_EXCHANGE_JWT_CURRENT_KID",
         environ_prefix=None,
     )
-    OIDC_RS_ENCRYPTION_KEY_TYPE = values.Value(
-        default="RSA",
-        environ_name="OIDC_RS_ENCRYPTION_KEY_TYPE",
+    TOKEN_EXCHANGE_JWT_ALGORITHM = values.Value(
+        default="RS256",
+        environ_name="TOKEN_EXCHANGE_JWT_ALGORITHM",
         environ_prefix=None,
     )
-
-    ALLOW_LOGOUT_GET_METHOD = values.BooleanValue(
-        default=True, environ_name="ALLOW_LOGOUT_GET_METHOD", environ_prefix=None
+    TOKEN_EXCHANGE_MAX_ACTIVE_TOKENS_PER_USER = values.IntegerValue(
+        default=100,
+        environ_name="TOKEN_EXCHANGE_MAX_ACTIVE_TOKENS_PER_USER",
+        environ_prefix=None,
+    )
+    TOKEN_EXCHANGE_ALLOWED_SCHEMES = values.ListValue(
+        default=["http", "https"],
+        environ_name="TOKEN_EXCHANGE_ALLOWED_SCHEMES",
+        environ_prefix=None,
     )
 
     # Logging
@@ -534,15 +437,13 @@ class Base(Configuration):
         environ_prefix=None,
     )
 
-    # pylint: disable=invalid-name
     @property
-    def ENVIRONMENT(self):
+    def ENVIRONMENT(self):  # noqa: N802
         """Environment in which the application is launched."""
         return self.__class__.__name__.lower()
 
-    # pylint: disable=invalid-name
     @property
-    def RELEASE(self):
+    def RELEASE(self):  # noqa: N802
         """
         Return the release information.
 
@@ -552,7 +453,8 @@ class Base(Configuration):
 
     @classmethod
     def post_setup(cls):
-        """Post setup configuration.
+        """
+        Post setup configuration.
         This is the place where you can configure settings that require other
         settings to be loaded.
         """
@@ -568,18 +470,10 @@ class Base(Configuration):
             )
             sentry_sdk.set_tag("application", "backend")
 
-        if (
-            cls.OIDC_FALLBACK_TO_EMAIL_FOR_IDENTIFICATION
-            and cls.OIDC_ALLOW_DUPLICATE_EMAILS
-        ):
-            raise ValueError(
-                "Both OIDC_FALLBACK_TO_EMAIL_FOR_IDENTIFICATION and "
-                "OIDC_ALLOW_DUPLICATE_EMAILS cannot be set to True simultaneously. "
-            )
-
 
 class Build(Base):
-    """Settings used when the application is built.
+    """
+    Settings used when the application is built.
 
     This environment should not be used to run the application. Just to build it with non-blocking
     settings.
@@ -605,7 +499,7 @@ class Build(Base):
 
 class Development(Base):
     """
-    Development environment settings
+    Development environment settings.
 
     We set DEBUG to True and configure the server to respond from all hosts.
     """
@@ -622,17 +516,17 @@ class Development(Base):
     }
 
     def __init__(self):
-        # pylint: disable=invalid-name
+        """Override settings."""
         self.MIDDLEWARE += ["debug_toolbar.middleware.DebugToolbarMiddleware"]
-        # pylint: disable=invalid-name
         self.INSTALLED_APPS += [
+            "demo",
             "django_extensions",
             "debug_toolbar",
         ]
 
 
 class Test(Base):
-    """Test environment settings"""
+    """Test environment settings."""
 
     SESSION_CACHE_ALIAS = "default"
     CACHES = {
@@ -643,13 +537,10 @@ class Test(Base):
         "django.contrib.auth.hashers.MD5PasswordHasher",
     ]
 
-    OIDC_STORE_ACCESS_TOKEN = False
-    OIDC_STORE_REFRESH_TOKEN = False
-
 
 class ContinuousIntegration(Test):
     """
-    Continuous Integration environment settings
+    Continuous Integration environment settings.
 
     nota bene: it should inherit from the Test environment.
     """
@@ -657,7 +548,7 @@ class ContinuousIntegration(Test):
 
 class Production(Base):
     """
-    Production environment settings
+    Production environment settings.
 
     You must define the ALLOWED_HOSTS environment variable in Production
     configuration (and derived configurations):
@@ -706,7 +597,7 @@ class Production(Base):
 
 class Feature(Production):
     """
-    Feature environment settings
+    Feature environment settings.
 
     nota bene: it should inherit from the Production environment.
     """
@@ -714,7 +605,7 @@ class Feature(Production):
 
 class Staging(Production):
     """
-    Staging environment settings
+    Staging environment settings.
 
     nota bene: it should inherit from the Production environment.
     """
@@ -722,7 +613,7 @@ class Staging(Production):
 
 class PreProduction(Production):
     """
-    Pre-production environment settings
+    Pre-production environment settings.
 
     nota bene: it should inherit from the Production environment.
     """

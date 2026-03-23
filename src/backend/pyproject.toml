@@ -2,7 +2,7 @@
 # menshen package
 #
 [build-system]
-requires = ["uv_build>=0.10.7,<0.11.0"]
+requires = ["uv_build>=0.10.7,<0.12.0"]
 build-backend = "uv_build"
 
 [project]
@@ -14,7 +14,6 @@ classifiers = [
     "Framework :: Django",
     "Framework :: Django :: 6",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Natural Language :: English",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.14",
@@ -49,6 +48,7 @@ dependencies = [
 dev = [
     "django-debug-toolbar==6.2.0",
     "django-extensions==4.1",
+    "factory-boy==3.3.3",
     "ipdb==0.13.13",
     "ipython==9.11.0",
     "pytest==9.0.2",
@@ -66,11 +66,83 @@ source-exclude = [
     "**/tests.py",
 ]
 
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+extend-exclude = ["migrations"]
+lint.select = [
+    # pycodestyle
+    "E", "W",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+    # flake8-logging-format
+    "G",
+    # flake8-pie
+    "PIE",
+    # flake8-comprehensions
+    "C4",
+    # flake8-django
+    "DJ",
+    # flake8-bandit
+    "S",
+    # flake8-builtins
+    "A",
+    # flake8-datetimez
+    "DTZ",
+    # flake8-gettext
+    "INT",
+    # Pylint
+    "PL",
+    # flake8-fixme
+    "FIX",
+    # flake8-self
+    "SLF",
+    # flake8-return
+    "RET",
+    # pep8-naming (N)
+    "N",
+    # pydocstyle
+    "D",
+    # flake8-pytest-style (PT)
+    "PT",
+]
+lint.ignore = [
+    # undocumented-magic-method
+    "D105",
+    # incorrect-blank-line-before-class
+    "D203",
+    # missing-blank-line-after-summary
+    "D205",
+    # multi-line-summary-first-line
+    "D212",
+]
+lint.per-file-ignores = { "**/tests/*" = [
+    # flake8-bandit
+    "S",
+    # flake8-self
+    "SLF",
+    # magic-value-comparison
+    "PLR2004",
+  ], "__init__.py" = [
+    # Missing docstring in public package
+    "D104"
+]}
+
 [tool.pytest.ini_options]
 addopts = [
     "-v",
     "--cov-report",
     "term-missing",
+    "--cov",
+    "apps",
     # Allow test files to have the same name in different directories.
     "--import-mode=importlib",
 ]

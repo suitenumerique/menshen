@@ -51,6 +51,8 @@ services:
         restart: true
       redis:
         condition: service_started
+      keycloak:
+        condition: service_healthy
 
   kc_postgresql:
     image: postgres:14.3
@@ -73,7 +75,7 @@ services:
       - start-dev
       - --features=preview
       - --import-realm
-      - --hostname=http://localhost:8083
+      - --hostname=http://localhost:8080
       - --hostname-strict=false
       - --health-enabled=true
       - --metrics-enabled=true

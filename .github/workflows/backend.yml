@@ -125,13 +125,16 @@ jobs:
       DJANGO_SETTINGS_MODULE: menshen.settings
       DJANGO_SECRET_KEY: ThisIsAnExampleKeyForTestPurposeOnly
       OIDC_OP_JWKS_ENDPOINT: /endpoint-for-test-purpose-only
+      TOKEN_EXCHANGE_ENABLED: true
+      OIDC_OP_URL: "http://fake.local"
+      OIDC_OP_INTROSPECTION_ENDPOINT: "http://fake.local/realms/menshen/protocol/openid-connect/token/introspect"
+      OIDC_RS_CLIENT_ID: client_id
+      OIDC_RS_CLIENT_SECRET: client_secret
       DB_HOST: localhost
       DB_NAME: menshen
       DB_USER: dinum
       DB_PASSWORD: pass
       DB_PORT: 5432
-      STORAGES_STATICFILES_BACKEND: django.contrib.staticfiles.storage.StaticFilesStorage
-      MEDIA_BASE_URL: http://localhost:8083
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -155,14 +158,6 @@ jobs:
 
       - name: Install the dependencies
         run: uv sync --locked --all-extras --dev
-
-      - name: Install gettext (required to compile messages)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gettext 
-
-      - name: Generate a MO file from strings extracted from the project
-        run: uv run python manage.py compilemessages
 
       - name: Run tests
         run: uv run pytest -n 2

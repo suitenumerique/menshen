@@ -189,7 +189,7 @@ stop: ## stop the development server using Docker
 # -- Backend
 demo: ## flush db then create a demo for load testing purpose
 	@$(MAKE) resetdb
-	# @$(MANAGE) create_demo
+	@$(MANAGE) create_demo
 .PHONY: demo
 
 # Nota bene: Black should come after isort just in case they don't agree...
