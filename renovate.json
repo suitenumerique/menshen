@@ -9,7 +9,8 @@
   "enabledManagers": ["github-actions", "pep621", "docker"],
   "packageRules": [
     {
-      "matchDatasources": ["docker"],
+      "description": "Disable postgresql upgrades - managed manually",
+      "matchManagers": ["docker"],
       "matchPackagePatterns": ["postgresql"],
       "enabled": false
     }
