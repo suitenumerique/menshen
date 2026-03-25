@@ -6,6 +6,7 @@
   "prCreation": "not-pending",
   "rebaseWhen": "conflicted",
   "updateNotScheduled": false,
+  "enabledManagers": ["github-actions", "pep621", "docker"],
   "packageRules": [
     {
       "matchDatasources": ["docker"],
