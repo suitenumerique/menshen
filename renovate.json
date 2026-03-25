@@ -6,4 +6,11 @@
   "prCreation": "not-pending",
   "rebaseWhen": "conflicted",
   "updateNotScheduled": false
+  "packageRules": [
+    {
+      "matchDatasources": ["docker"],
+      "matchPackagePatterns": ["postgresql"],
+      "enabled": false
+    }
+  ]
 }
