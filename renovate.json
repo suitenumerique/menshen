@@ -6,13 +6,5 @@
   "prCreation": "not-pending",
   "rebaseWhen": "conflicted",
   "updateNotScheduled": false,
-  "enabledManagers": ["github-actions", "pep621", "docker"],
-  "packageRules": [
-    {
-      "description": "Disable postgresql upgrades - managed manually",
-      "matchManagers": ["docker"],
-      "matchPackagePatterns": ["postgresql"],
-      "enabled": false
-    }
-  ]
+  "enabledManagers": ["github-actions", "pep621", "docker"]
 }
