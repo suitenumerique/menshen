@@ -5,7 +5,7 @@
   "schedule": ["before 7am on monday"],
   "prCreation": "not-pending",
   "rebaseWhen": "conflicted",
-  "updateNotScheduled": false
+  "updateNotScheduled": false,
   "packageRules": [
     {
       "matchDatasources": ["docker"],
