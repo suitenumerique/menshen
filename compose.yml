@@ -66,7 +66,7 @@ services:
       - env.d/development/kc_postgresql.local
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.3
+    image: quay.io/keycloak/keycloak:26.5
     volumes:
       - ./docker/auth/realm.json:/opt/keycloak/data/import/realm.json
     command:
