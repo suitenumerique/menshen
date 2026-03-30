@@ -23,7 +23,7 @@ ENV UV_LINK_MODE=copy
 ENV UV_PYTHON_DOWNLOADS=0
 
 # Install uv
-COPY --from=ghcr.io/astral-sh/uv:0.11.1 /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.11.2 /uv /uvx /bin/
 
 WORKDIR /app
 
@@ -59,7 +59,7 @@ COPY --from=back-builder /app /app
 WORKDIR /app
 
 # Generate compiled translation messages
-RUN --mount=from=ghcr.io/astral-sh/uv:0.11.1,source=/uv,target=/bin/uv \
+RUN --mount=from=ghcr.io/astral-sh/uv:0.11.2,source=/uv,target=/bin/uv \
       DJANGO_CONFIGURATION=Build \
       uv run python manage.py compilemessages --ignore=".venv/**/*"
 
@@ -86,7 +86,7 @@ USER root:root
 RUN apk add postgresql-client
 
 # Install uv
-COPY --from=ghcr.io/astral-sh/uv:0.11.1 /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.11.2 /uv /uvx /bin/
 
 # Install development dependencies and ensure the virtual 
 # environment belongs to the DOCKER_USER 
