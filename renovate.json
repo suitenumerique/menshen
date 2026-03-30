@@ -6,5 +6,13 @@
   "prCreation": "not-pending",
   "rebaseWhen": "conflicted",
   "updateNotScheduled": false,
-  "enabledManagers": ["github-actions", "pep621", "docker-compose", "dockerfile"]
+  "enabledManagers": ["github-actions", "pep621", "docker-compose", "dockerfile"],
+  "packageRules": [
+    {
+      "groupName": "allowed postgres versions",
+      "matchManagers": ["docker-compose"],
+      "matchPackageNames": ["postgres"],
+      "allowedVersions": "<17"
+    }
+  ]
 }
