@@ -37,6 +37,11 @@ services:
       - env.d/development/postgresql.local
     ports:
       - "8071:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl localhost:8000/__heartbeat__"]
+      interval: 1s
+      timeout: 2s
+      retries: 300
     networks:
       default: {}
       lasuite:
@@ -119,6 +124,8 @@ services:
             - ./src/playground/source/.venv/
         - action: rebuild
           path: ./src/playground/source/uv.lock
+        - action: rebuild
+          path: ./src/playground/source/Dockerfile
     networks:
       default: {}
       lasuite:
@@ -128,7 +135,7 @@ services:
       keycloak:
         condition: service_healthy
       menshen:
-        condition: service_started
+        condition: service_healthy
 
   playground-target:
     build:

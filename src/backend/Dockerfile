@@ -82,8 +82,10 @@ ENV UV_COMPILE_BYTECODE=1 \
 # Switch back to the root user to install development dependencies
 USER root:root
 
-# Install psql
-RUN apk add postgresql-client
+# Install psql and curl
+RUN apk add \
+      postgresql-client \
+      curl
 
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:0.11.8 /uv /uvx /bin/
