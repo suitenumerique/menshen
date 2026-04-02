@@ -44,9 +44,9 @@ DOCKER_USER         := $(DOCKER_UID):$(DOCKER_GID)
 endif
 COMPOSE             = DOCKER_USER=$(DOCKER_USER) docker compose
 COMPOSE_EXEC        = $(COMPOSE) exec
-COMPOSE_EXEC_APP    = $(COMPOSE_EXEC) app-dev
+COMPOSE_EXEC_APP    = $(COMPOSE_EXEC) menshen
 COMPOSE_RUN         = $(COMPOSE) run --rm
-COMPOSE_RUN_APP     = $(COMPOSE_RUN) app-dev
+COMPOSE_RUN_APP     = $(COMPOSE_RUN) menshen
 COMPOSE_RUN_APP_UV  = $(COMPOSE_RUN_APP) uv run
 
 # -- Backend
@@ -157,20 +157,20 @@ build: ## build the project containers
 .PHONY: build
 
 build-backend: cache ?=
-build-backend: ## build the app-dev container
-	@$(COMPOSE) build app-dev $(cache)
+build-backend: ## build the menshen container
+	@$(COMPOSE) build menshen $(cache)
 .PHONY: build-backend
 
 down: ## stop and remove containers, networks, images, and volumes
 	@$(COMPOSE) down
 .PHONY: down
 
-logs: ## display app-dev logs (follow mode)
-	@$(COMPOSE) logs -f app-dev
+logs: ## display menshen logs (follow mode)
+	@$(COMPOSE) logs -f menshen
 .PHONY: logs
 
 run-backend: ## Start only the backend application and all needed services
-	@$(COMPOSE) up --force-recreate -d app-dev
+	@$(COMPOSE) up --force-recreate -d menshen
 .PHONY: run-backend
 
 run: ## start the wsgi (production) and development server
@@ -255,7 +255,7 @@ shell: ## connect to database shell
 # -- Database
 #
 dbshell: ## connect to database shell
-	docker compose exec app-dev python manage.py dbshell
+	docker compose exec menshen python manage.py dbshell
 .PHONY: dbshell
 
 resetdb: FLUSH_ARGS ?=
