@@ -102,6 +102,64 @@ services:
         condition: service_healthy
         restart: true
 
+  playground-source:
+    build:
+      context: .
+      dockerfile: ./src/playground/source/Dockerfile
+      target: backend-development
+    image: menshen:playground-source
+    ports:
+      - "8072:8000"
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./src/playground/source
+          target: /app
+          ignore:
+            - ./src/playground/source/.venv/
+        - action: rebuild
+          path: ./src/playground/source/uv.lock
+    networks:
+      default: {}
+      lasuite:
+        aliases:
+          - playground-source
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      menshen:
+        condition: service_started
+
+  playground-target:
+    build:
+      context: .
+      dockerfile: ./src/playground/target/Dockerfile
+      target: backend-development
+    image: menshen:playground-target
+    ports:
+      - "8073:8000"
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./src/playground/target
+          target: /app
+          ignore:
+            - ./src/playground/target/.venv/
+        - action: rebuild
+          path: ./src/playground/target/uv.lock
+        - action: rebuild
+          path: ./src/playground/target/Dockerfile
+    networks:
+      default: {}
+      lasuite:
+        aliases:
+          - playground-target
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      menshen:
+        condition: service_healthy
+
 networks:
   default: {}
   lasuite:

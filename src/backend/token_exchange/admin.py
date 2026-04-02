@@ -1,7 +1,6 @@
 """Menshen: admin configuration for the tx application."""
 
 from django.contrib import admin
-from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
 from .models import (
@@ -45,7 +44,7 @@ class ExchangedTokenAdmin(admin.ModelAdmin):
         "scope_display",
         "expires_at",
         "revoked_at",
-        "is_valid_display",
+        "status",
         "created_at",
     ]
 
@@ -71,7 +70,7 @@ class ExchangedTokenAdmin(admin.ModelAdmin):
         "subject_token_jti",
         "subject_token_scope",
         "created_at",
-        "is_valid_display",
+        "status",
     ]
 
     date_hierarchy = "created_at"
@@ -129,42 +128,35 @@ class ExchangedTokenAdmin(admin.ModelAdmin):
         """Disable manual creation - tokens should only be created via API."""
         return False
 
+    @admin.display(description=_("Token"))
     def token_display(self, obj):
         """Display truncated token."""
         if len(obj.token) > STR_MAX_DISPLAY_LENGTH:
             return f"{obj.token[:STR_MAX_DISPLAY_LENGTH]}…"
         return obj.token
 
-    token_display.short_description = _("Token")
-
+    @admin.display(description=_("Audiences"))
     def audiences_display(self, obj):
         """Display audiences as comma-separated list."""
         if not obj.audiences:
             return "-"
         return ", ".join(obj.audiences)
 
-    audiences_display.short_description = _("Audiences")
-
+    @admin.display(description=_("Scope"))
     def scope_display(self, obj):
         """Display scope truncated."""
         if not obj.scope:
             return "-"
         if len(obj.scope) > STR_MAX_DISPLAY_LENGTH:
-            return f"{obj.scope[:STR_MAX_DISPLAY_LENGTH]}..."
+            return f"{obj.scope[:STR_MAX_DISPLAY_LENGTH]}…"
         return obj.scope
 
-    scope_display.short_description = _("Scope")
-
-    def is_valid_display(self, obj):
+    @admin.display(description=_("Status"), boolean=True)
+    def status(self, obj):
         """Display validity status with icon."""
-        if obj.is_valid():
-            return format_html('<img src="/static/admin/img/icon-yes.svg" alt="Valid"> Valid')
         if obj.is_revoked():
-            return format_html('<img src="/static/admin/img/icon-no.svg" alt="Revoked"> Revoked')
-
-        return format_html('<img src="/static/admin/img/icon-no.svg" alt="Expired"> Expired')
-
-    is_valid_display.short_description = _("Status")
+            return False
+        return obj.is_valid()
 
     @admin.action(description=_("Revoke selected tokens"))
     def revoke_selected_tokens(self, request, queryset):
@@ -365,6 +357,3 @@ class TokenExchangeActionPermissionAdmin(admin.ModelAdmin):
     ]
 
     autocomplete_fields = ["rule", "action"]
-
-
-# Register your models here.

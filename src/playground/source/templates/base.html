@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Source service." />
+    <title>Token exchange: source service</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/pure-min.css"
+      integrity="sha384-X38yfunGUhNzHpBaEBsWLO+A0HDYOQi8ufWDkZ0k9e0eXz/tH3II7uKZ9msv++Ls"
+      crossorigin="anonymous"
+    />
+    <link
+      rel="stylesheet"
+      href="https://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css"
+    />
+    <link rel="stylesheet" href="/static/css/styles.css" />
+  </head>
+  <body>
+    <div class="header">
+      <div class="home-menu pure-menu pure-menu-horizontal pure-menu-fixed">
+        <a class="pure-menu-heading" href="">Source service provider</a>
+
+        <ul class="pure-menu-list">
+          <li class="pure-menu-item">
+            {% if request.user.is_authenticated %}
+            <form
+              class="pure-form"
+              action="{% url 'oidc_logout' %}"
+              method="post"
+            >
+              {% csrf_token %}
+              <button type="submit" class="pure-button pure-button-primary">
+                Logout
+              </button>
+            </form>
+            {% else %}
+            <a
+              href="{% url 'oidc_authentication_init' %}"
+              class="pure-menu-link"
+              >Login</a
+            >
+            {% endif %}
+          </li>
+          <li class="pure-menu-item">|</li>
+          <li class="pure-menu-item">
+            <a href="http://target.localhost:8073" class="pure-menu-link">Target</a>
+          </li>
+          <li class="pure-menu-item">
+            <a href="http://localhost:8080" class="pure-menu-link">OIDC</a>
+          </li>
+          <li class="pure-menu-item">
+            <a href="http://localhost:8071/admin" class="pure-menu-link"
+              >Menshen</a
+            >
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="content-wrapper">
+
+      <div class="messages-wrapper">
+        {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+      </div>
+
+      <div class="content">{% block content %}{% endblock %}</div>
+      <div class="footer l-box is-center">Made with love, by LaSuite.</div>
+    </div>
+  </body>
+</html>

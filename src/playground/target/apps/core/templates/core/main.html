@@ -1,0 +1,88 @@
+{% extends "base.html" %} 
+
+{% block content %}
+{% if request.user.is_authenticated %}
+<script>
+  const since = Date.now();
+  console.log("Since:", since)
+
+  async function newItems() {
+    const new_items_url = `/new?since=${since}`;
+    console.log(`URL: ${new_items_url}`)
+    const response = await fetch(new_items_url);
+    if (response.ok) {
+      // There are new items! 
+      console.log("New items detected.")
+      location.hash = '#new';
+      location.reload();
+    } else {
+      console.log("No new items.")
+    }
+  };
+
+  function notify() {
+    document.getElementById("notification").style.opacity = 1;
+    setTimeout(
+      () => {
+        document.getElementById("notification").style.opacity = 0;
+      }, 
+      2000
+    );
+  } 
+
+  // new items animation (after loading)
+  document.addEventListener("DOMContentLoaded", function(event) {
+    console.log("Document ready");
+    if (location.hash == "#new" ) {
+      console.log("Will notify…");
+      notify();
+      location.hash = "";
+    } else {
+      console.log("Won't notify…");
+    }
+  });
+
+
+  // Check every seconds
+  setInterval(async () => {await newItems();}, 1000);
+</script>
+
+<h3>My files</h3>
+
+<div id="notification"></div>
+
+<table class="pure-table pure-table-horizontal">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Item</th>
+      <th>Type</th>
+      <th>Size</th>
+      <th>Last modified</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in item_list %}
+    <tr class={% cycle "" "pure-table-odd" %}>
+      <td>{{ forloop.counter }}</td>
+      <td><b>{{ item.name }}</b></td>
+      <td>{{ item.type }}</td>
+      <td>{{ item.size }}</td>
+      <td>{{ item.updated_at }}</td>
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="5">
+        <em>Your drive is empty.</em>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% else %}
+<p>
+  You should be connected to see your files.
+</p>
+{% endif %}
+{% endblock %}

@@ -1,6 +1,7 @@
 """Menshen: create_demo management command."""
 
 import logging
+import os
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
@@ -11,69 +12,75 @@ logger = logging.getLogger(__name__)
 
 
 def create_demo(stdout):
-    """
-    Create a database with demo data for developers to work in a realistic environment.
-    The code is engineered to create a huge number of objects fast.
-    """
+    """Create a database with demo data for developers to work in a realistic environment."""
     # Create token exchange base configuration
     stdout.write("Creating token exchange base configuration")
 
-    menshen_service_provider, _ = tx_models.ServiceProvider.objects.get_or_create(
-        name="Menshen",  # yeah that's me!
-        audience_id="menshen",
+    # Service providers
+    source_service, _ = tx_models.ServiceProvider.objects.get_or_create(
+        name="playground:source",
+        audience_id="playground-source",
     )
-    docs_service_provider, _ = tx_models.ServiceProvider.objects.get_or_create(
-        name="Docs",
-        audience_id="docs",
+    target_service, _ = tx_models.ServiceProvider.objects.get_or_create(
+        name="playground:target",
+        audience_id="playground-target",
     )
 
+    # Credentials
     tx_models.ServiceProviderCredentials.objects.get_or_create(
-        service_provider=menshen_service_provider,
-        client_id="client_id",
-        client_secret="client_secret",  # noqa: S106
+        service_provider=source_service,
+        client_id=os.environ.get("TOKEN_EXCHANGE_DEMO_SOURCE_CLIENT_ID"),
+        client_secret=os.environ.get("TOKEN_EXCHANGE_DEMO_SOURCE_CLIENT_SECRET"),
+    )
+    tx_models.ServiceProviderCredentials.objects.get_or_create(
+        service_provider=target_service,
+        client_id=os.environ.get("TOKEN_EXCHANGE_DEMO_TARGET_CLIENT_ID"),
+        client_secret=os.environ.get("TOKEN_EXCHANGE_DEMO_TARGET_CLIENT_SECRET"),
     )
 
-    menshen_to_menshen_rule, _ = tx_models.TokenExchangeRule.objects.get_or_create(
-        source_service=menshen_service_provider,
-        target_service=menshen_service_provider,
+    # Rules
+    source_to_target_rule, _ = tx_models.TokenExchangeRule.objects.get_or_create(
+        source_service=source_service,
+        target_service=target_service,
     )
+
+    # Scopes
     tx_models.ScopeGrant.objects.get_or_create(
-        rule=menshen_to_menshen_rule,
+        rule=source_to_target_rule,
         source_scope="openid",
         granted_scope="openid",
     )
     tx_models.ScopeGrant.objects.get_or_create(
-        rule=menshen_to_menshen_rule,
+        rule=source_to_target_rule,
         source_scope="openid",
-        granted_scope="docs:read",
-    )
-
-    menshen_to_docs_rule, _ = tx_models.TokenExchangeRule.objects.get_or_create(
-        source_service=menshen_service_provider,
-        target_service=docs_service_provider,
+        granted_scope="target:read",
     )
     tx_models.ScopeGrant.objects.get_or_create(
-        rule=menshen_to_docs_rule,
-        source_scope="openid",
-        granted_scope="openid",
+        rule=source_to_target_rule,
+        source_scope="target:write",
+        granted_scope="target:write",
     )
 
-    simple_action, _ = tx_models.ActionScope.objects.get_or_create(
-        name="action:create-docs-for-groups",
+    # Actions
+    target_write_action, _ = tx_models.ActionScope.objects.get_or_create(
+        name="action:write-to-target",
     )
     tx_models.ActionScopeGrant.objects.get_or_create(
-        action=simple_action,
-        target_service=docs_service_provider,
-        granted_scope="docs:write",
+        action=target_write_action,
+        target_service=target_service,
+        granted_scope="target:write",
+    )
+    target_read_action, _ = tx_models.ActionScope.objects.get_or_create(
+        name="action:read-target",
     )
     tx_models.ActionScopeGrant.objects.get_or_create(
-        action=simple_action,
-        target_service=menshen_service_provider,
-        granted_scope="teams:read",
+        action=target_read_action,
+        target_service=target_service,
+        granted_scope="target:read",
     )
     tx_models.TokenExchangeActionPermission.objects.get_or_create(
-        rule=menshen_to_docs_rule,
-        action=simple_action,
+        rule=source_to_target_rule,
+        action=target_write_action,
     )
 
 

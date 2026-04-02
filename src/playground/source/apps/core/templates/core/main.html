@@ -1,0 +1,41 @@
+{% extends "base.html" %} 
+
+{% block content %} 
+{% if request.user.is_authenticated %}
+<h3>My recordings</h3>
+
+<table class="pure-table pure-table-horizontal">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Meeting</th>
+      <th>Duration (seconds)</th>
+      <th>Held at</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for recording in recording_list %}
+    <tr class={% cycle "" "pure-table-odd" %}>
+      <td>{{ forloop.counter }}</td>
+      <td><b>{{ recording.meeting }}</b></td>
+      <td>{{ recording.duration }}</td>
+      <td>{{ recording.held_at }}</td>
+      <td> 
+        <form action="{% url 'backup' %}" method="post">
+          {% csrf_token %}
+          <input type="hidden" name="pk" value="{{ recording.id }}">
+          <button class="pure-button" type="submit">Backup</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% else %}
+<p>
+  You should be connected to see your recordings.
+</p>
+{% endif %}
+{% endblock %}

@@ -8,7 +8,7 @@ DJANGO_SUPERUSER_PASSWORD=admin
 # Set to DEBUG level for dev only
 LOGGING_LEVEL_HANDLERS_CONSOLE=INFO
 LOGGING_LEVEL_LOGGERS_ROOT=INFO
-LOGGING_LEVEL_LOGGERS_APP=INFO
+LOGGING_LEVEL_LOGGERS_APP=DEBUG
 
 # Python
 PYTHONPATH=/app
@@ -18,11 +18,18 @@ PYTHONPATH=/app
 MENSHEN_BASE_URL="http://localhost:8072"
 
 # OIDC
-OIDC_OP_AUTHORIZATION_ENDPOINT=http://localhost:8083/realms/menshen/protocol/openid-connect/auth
-OIDC_OP_URL=http://localhost:8083/realms/menshen
-OIDC_OP_INTROSPECTION_ENDPOINT=http://nginx:8083/realms/menshen/protocol/openid-connect/token/introspect
-OIDC_RS_CLIENT_ID=client_id
-OIDC_RS_CLIENT_SECRET=client_secret
+OIDC_OP_AUTHORIZATION_ENDPOINT=http://localhost:8080/realms/menshen/protocol/openid-connect/auth
+OIDC_OP_URL=http://localhost:8080/realms/menshen
+OIDC_OP_INTROSPECTION_ENDPOINT=http://keycloak:8080/realms/menshen/protocol/openid-connect/token/introspect
+OIDC_OP_TOKEN_ENDPOINT=http://keycloak:8080/realms/menshen/protocol/openid-connect/token
+OIDC_RS_CLIENT_ID=menshen
+OIDC_RS_CLIENT_SECRET=ThisIsAnExampleKeyForDevPurposeOnly
+OIDC_RP_CLIENT_ID=menshen
+OIDC_RP_CLIENT_SECRET=ThisIsAnExampleKeyForDevPurposeOnly
 
 # Token exchange
 TOKEN_EXCHANGE_ENABLED=True
+TOKEN_EXCHANGE_DEMO_SOURCE_CLIENT_ID=source
+TOKEN_EXCHANGE_DEMO_SOURCE_CLIENT_SECRET=source_secret
+TOKEN_EXCHANGE_DEMO_TARGET_CLIENT_ID=target
+TOKEN_EXCHANGE_DEMO_TARGET_CLIENT_SECRET=target_secret

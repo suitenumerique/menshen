@@ -153,13 +153,29 @@ bootstrap: \
 #
 build: cache ?=
 build: ## build the project containers
-	@$(MAKE) build-backend cache=$(cache)
+	@$(COMPOSE) build $(cache)
 .PHONY: build
 
 build-backend: cache ?=
 build-backend: ## build the menshen container
 	@$(COMPOSE) build menshen $(cache)
 .PHONY: build-backend
+
+build-playground: \
+  build-playground-source \
+  build-playground-target
+build-playground:  ## build playground services container
+.PHONY: build-playground
+
+build-playground-source: cache ?=
+build-playground-source: ## build the playground-source container
+	@$(COMPOSE) build playground-source $(cache)
+.PHONY: build-playground-source
+
+build-playground-target: cache ?=
+build-playground-target: ## build the playground-target container
+	@$(COMPOSE) build playground-target $(cache)
+.PHONY: build-playground-target
 
 down: ## stop and remove containers, networks, images, and volumes
 	@$(COMPOSE) down
@@ -173,6 +189,10 @@ run-backend: ## Start only the backend application and all needed services
 	@$(COMPOSE) up --force-recreate -d menshen
 .PHONY: run-backend
 
+run-playground: ## start the playground 
+	$(COMPOSE) up --force-recreate -d playground-source playground-target
+.PHONY: run-playground
+
 run: ## start the wsgi (production) and development server
 run: 
 	@$(MAKE) run-backend
@@ -185,6 +205,10 @@ status: ## an alias for "docker compose ps"
 stop: ## stop the development server using Docker
 	@$(COMPOSE) stop
 .PHONY: stop
+
+watch: ## watch changes in source code (development mode)
+	@$(COMPOSE) watch
+.PHONY: watch 
 
 # -- Backend
 demo: ## flush db then create a demo for load testing purpose
