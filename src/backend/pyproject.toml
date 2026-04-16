@@ -142,7 +142,7 @@ addopts = [
     "--cov-report",
     "term-missing",
     "--cov",
-    "apps",
+    "token_exchange",
     # Allow test files to have the same name in different directories.
     "--import-mode=importlib",
 ]

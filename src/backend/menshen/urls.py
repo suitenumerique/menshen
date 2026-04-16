@@ -25,7 +25,7 @@ from django.urls import include, path
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("auth/", include("apps.tx.urls")),
+    path("auth/", include("token_exchange.urls")),
 ]
 
 if settings.DEBUG:

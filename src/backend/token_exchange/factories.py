@@ -55,7 +55,7 @@ class ServiceProviderCredentialsFactory(factory.django.DjangoModelFactory):
     class Meta:  # noqa: D106
         model = models.ServiceProviderCredentials
 
-    service_provider = factory.SubFactory("apps.tx.factories.ServiceProviderFactory")
+    service_provider = factory.SubFactory("token_exchange.factories.ServiceProviderFactory")
     client_id = factory.LazyFunction(fake.uuid4)
     client_secret = factory.LazyFunction(fake.uuid4)
 
@@ -66,8 +66,8 @@ class TokenExchangeRuleFactory(factory.django.DjangoModelFactory):
     class Meta:  # noqa: D106
         model = models.TokenExchangeRule
 
-    source_service = factory.SubFactory("apps.tx.factories.ServiceProviderFactory")
-    target_service = factory.SubFactory("apps.tx.factories.ServiceProviderFactory")
+    source_service = factory.SubFactory("token_exchange.factories.ServiceProviderFactory")
+    target_service = factory.SubFactory("token_exchange.factories.ServiceProviderFactory")
     is_active = True
 
 
@@ -100,7 +100,7 @@ class ActionScopeGrantFactory(factory.django.DjangoModelFactory):
         model = models.ActionScopeGrant
 
     action = factory.SubFactory(ActionScopeFactory)
-    target_service = factory.SubFactory("apps.tx.factories.ServiceProviderFactory")
+    target_service = factory.SubFactory("token_exchange.factories.ServiceProviderFactory")
     granted_scope = factory.LazyFunction(fake.word)
     throttle_rate = ""
 

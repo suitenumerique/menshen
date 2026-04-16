@@ -6,4 +6,4 @@ from django.apps import AppConfig
 class TxConfig(AppConfig):
     """Token exchance application configuration."""
 
-    name = "apps.tx"
+    name = "token_exchange"

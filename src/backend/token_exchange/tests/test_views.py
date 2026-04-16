@@ -9,13 +9,13 @@ import pytest
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from apps.tx.factories import (
+from token_exchange.factories import (
     ExchangedTokenFactory,
     ServiceProviderFactory,
     TokenExchangeRuleFactory,
 )
-from apps.tx.models import ExchangedToken, ServiceProvider, TokenTypeChoices
-from apps.tx.token_generator import TokenGenerator
+from token_exchange.models import ExchangedToken, ServiceProvider, TokenTypeChoices
+from token_exchange.token_generator import TokenGenerator
 
 
 @pytest.mark.django_db

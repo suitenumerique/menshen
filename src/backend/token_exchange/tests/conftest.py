@@ -5,7 +5,7 @@ import base64
 import pytest
 from rest_framework.test import APIClient
 
-from apps.tx.factories import (
+from token_exchange.factories import (
     ActionScopeFactory,
     ActionScopeGrantFactory,
     ScopeGrantFactory,
@@ -14,7 +14,7 @@ from apps.tx.factories import (
     TokenExchangeActionPermissionFactory,
     TokenExchangeRuleFactory,
 )
-from apps.tx.models import ServiceProvider
+from token_exchange.models import ServiceProvider
 
 
 @pytest.fixture(autouse=True)

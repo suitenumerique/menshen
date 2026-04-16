@@ -5,7 +5,7 @@ import logging
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
-from apps.tx import models as tx_models
+from token_exchange import models as tx_models
 
 logger = logging.getLogger(__name__)
 
