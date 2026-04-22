@@ -2,7 +2,9 @@
 DJANGO_ALLOWED_HOSTS=*
 DJANGO_SECRET_KEY=ThisIsAnExampleKeyForDevPurposeOnly
 DJANGO_SETTINGS_MODULE=menshen.settings
+DJANGO_SUPERUSER_EMAIL=admin@example.com
 DJANGO_SUPERUSER_PASSWORD=admin
+DJANGO_SUPERUSER_USERNAME=admin
 
 # Logging
 # Set to DEBUG level for dev only

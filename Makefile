@@ -261,7 +261,7 @@ migrate:  ## run django migrations for the menshen project.
 
 superuser: ## Create an admin superuser with password "admin"
 	@echo -e "$(BOLD)Creating a Django superuser$(RESET)"
-	@DJANGO_SUPERUSER_PASSWORD=admin $(MANAGE) createsuperuser --email admin@example.com --username admin --no-input
+	$(MANAGE) createsuperuser --no-input
 .PHONY: superuser
 
 back-i18n-compile: ## compile the gettext files
