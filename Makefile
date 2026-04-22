@@ -295,7 +295,7 @@ clean: ## restore repository state as it was freshly cloned
 .PHONY: clean
 
 help:
-	@echo -e "$(BOLD)menshen Makefile"
-	@echo "Please use 'make $(BOLD)target$(RESET)' where $(BOLD)target$(RESET) is one of:"
+	@echo -e "$(BOLD)Menshen Makefile$(RESET)\n"
+	@echo -e "Please use 'make $(BOLD)target$(RESET)' where $(BOLD)target$(RESET) is one of:\n"
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(firstword $(MAKEFILE_LIST)) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "$(GREEN)%-30s$(RESET) %s\n", $$1, $$2}'
 .PHONY: help
