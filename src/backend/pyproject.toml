@@ -24,17 +24,17 @@ license = "MIT"
 requires-python = "~=3.14.3"
 dependencies = [
     "dj-database-url==3.1.2",
-    "django==6.0.3",
+    "django==6.0.4",
     "django-configurations==2.5.1",
     "django-cors-headers==4.9.0",
-    "django-lasuite[all]==0.0.25",
+    "django-lasuite[all]==0.0.26",
     "django-redis==6.0.0",
-    "djangorestframework==3.17.0",
+    "djangorestframework==3.17.1",
     "dockerflow==2026.3.4",
     "drf-spectacular==0.29.0",
     "drf-standardized-errors==0.15.0",
     "psycopg[binary]==3.3.3",
-    "sentry-sdk==2.55.0",
+    "sentry-sdk==2.58.0",
     "whitenoise==6.12.0",
 ]
 
@@ -46,16 +46,16 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "django-debug-toolbar==6.2.0",
+    "django-debug-toolbar==6.3.0",
     "django-extensions==4.1",
     "factory-boy==3.3.3",
     "ipdb==0.13.13",
-    "ipython==9.11.0",
-    "pytest==9.0.2",
+    "ipython==9.12.0",
+    "pytest==9.0.3",
     "pytest-cov==7.1.0",
     "pytest-django==4.12.0",
     "pytest-xdist==3.8.0",
-    "ruff==0.15.7",
+    "ruff==0.15.11",
 ]
 
 [tool.uv.build-backend]
