@@ -20,14 +20,10 @@ PYTHONPATH=/app
 MENSHEN_BASE_URL="http://localhost:8072"
 
 # OIDC
-OIDC_OP_AUTHORIZATION_ENDPOINT=http://localhost:8080/realms/menshen/protocol/openid-connect/auth
 OIDC_OP_URL=http://localhost:8080/realms/menshen
 OIDC_OP_INTROSPECTION_ENDPOINT=http://keycloak:8080/realms/menshen/protocol/openid-connect/token/introspect
-OIDC_OP_TOKEN_ENDPOINT=http://keycloak:8080/realms/menshen/protocol/openid-connect/token
 OIDC_RS_CLIENT_ID=menshen
 OIDC_RS_CLIENT_SECRET=ThisIsAnExampleKeyForDevPurposeOnly
-OIDC_RP_CLIENT_ID=menshen
-OIDC_RP_CLIENT_SECRET=ThisIsAnExampleKeyForDevPurposeOnly
 
 # Token exchange
 TOKEN_EXCHANGE_ENABLED=True

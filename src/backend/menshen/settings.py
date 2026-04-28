@@ -291,65 +291,39 @@ class Base(Configuration):
     SESSION_CACHE_ALIAS = "session"
     SESSION_COOKIE_AGE = 60 * 60 * 12
 
-    # OIDC Resource Server settings.
-    #
-    # FIXME: Most settings shouldn't be required here if we only use the  # noqa: FIX001
-    # introspection feature of the ResourceServerBackend class
+    # OIDC Resource Server settings
     OIDC_RS_BACKEND_CLASS = values.Value(
         "lasuite.oidc_resource_server.backend.ResourceServerBackend",
         environ_name="OIDC_RS_BACKEND_CLASS",
         environ_prefix=None,
     )
-
     OIDC_OP_URL = values.Value(None, environ_name="OIDC_OP_URL", environ_prefix=None)
-
     OIDC_VERIFY_SSL = values.BooleanValue(
         default=True, environ_name="OIDC_VERIFY_SSL", environ_prefix=None
     )
-
     OIDC_TIMEOUT = values.PositiveIntegerValue(3, environ_name="OIDC_TIMEOUT", environ_prefix=None)
-
     OIDC_PROXY = values.Value(None, environ_name="OIDC_PROXY", environ_prefix=None)
-
     OIDC_OP_INTROSPECTION_ENDPOINT = values.Value(
         None, environ_name="OIDC_OP_INTROSPECTION_ENDPOINT", environ_prefix=None
     )
-    OIDC_OP_TOKEN_ENDPOINT = values.Value(
-        None, environ_name="OIDC_OP_TOKEN_ENDPOINT", environ_prefix=None
-    )
-    OIDC_OP_USER_ENDPOINT = values.Value(
-        None, environ_name="OIDC_OP_USER_ENDPOINT", environ_prefix=None
-    )
-    OIDC_RP_CLIENT_ID = values.Value(None, environ_name="OIDC_RP_CLIENT_ID", environ_prefix=None)
-    OIDC_RP_CLIENT_SECRET = values.Value(
-        None, environ_name="OIDC_RP_CLIENT_SECRET", environ_prefix=None
-    )
-    OIDC_FALLBACK_TO_EMAIL_FOR_IDENTIFICATION = values.Value(
-        None, environ_name="OIDC_FALLBACK_TO_EMAIL_FOR_IDENTIFICATION", environ_prefix=None
-    )
 
+    # Resource server backend class is used for token introspection
     OIDC_RS_CLIENT_ID = values.Value(None, environ_name="OIDC_RS_CLIENT_ID", environ_prefix=None)
-
     OIDC_RS_CLIENT_SECRET = values.Value(
         None, environ_name="OIDC_RS_CLIENT_SECRET", environ_prefix=None
     )
-
     OIDC_RS_AUDIENCE_CLAIM = values.Value(
         "client_id", environ_name="OIDC_RS_AUDIENCE_CLAIM", environ_prefix=None
     )
-
     OIDC_RS_ENCRYPTION_ENCODING = values.Value(
         "A256GCM", environ_name="OIDC_RS_ENCRYPTION_ENCODING", environ_prefix=None
     )
-
     OIDC_RS_ENCRYPTION_ALGO = values.Value(
         "RSA-OAEP", environ_name="OIDC_RS_ENCRYPTION_ALGO", environ_prefix=None
     )
-
     OIDC_RS_SIGNING_ALGO = values.Value(
         "ES256", environ_name="OIDC_RS_SIGNING_ALGO", environ_prefix=None
     )
-
     OIDC_RS_SCOPES = values.ListValue(
         ["openid"], environ_name="OIDC_RS_SCOPES", environ_prefix=None
     )
