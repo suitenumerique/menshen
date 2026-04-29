@@ -1,4 +1,4 @@
-"""Menshen: URL configuration for the tx application."""
+"""Menshen: URL configuration for the token_exchange application."""
 
 from django.urls import path
 

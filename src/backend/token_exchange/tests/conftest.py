@@ -1,4 +1,4 @@
-"""Menshen: test fixtures for the tx application."""
+"""Menshen: test fixtures for the token_exchange application."""
 
 import base64
 
@@ -36,7 +36,7 @@ def ip_user_info(monkeypatch, settings) -> None:
 
 
 @pytest.fixture(autouse=True)
-def configure_token_exchange() -> None:
+def configure_token_exchange(db) -> None:
     """Configure token exchange between source and target services."""
     source_service = ServiceProviderFactory(audience_id="service:source")
     target_service = ServiceProviderFactory(audience_id="service:target")

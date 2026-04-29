@@ -14,6 +14,7 @@ import os
 import tomllib
 from pathlib import Path
 from socket import gethostbyname, gethostname
+from typing import cast
 
 import dj_database_url
 import sentry_sdk
@@ -284,7 +285,7 @@ class Base(Configuration):
     CORS_ALLOWED_ORIGIN_REGEXES = values.ListValue([])
 
     # Sentry
-    SENTRY_DSN = values.Value(None, environ_name="SENTRY_DSN", environ_prefix=None)
+    SENTRY_DSN = values.URLValue(None, environ_name="SENTRY_DSN", environ_prefix=None)
 
     # Session
     SESSION_ENGINE = "django.contrib.sessions.backends.cache"
@@ -450,7 +451,7 @@ class Base(Configuration):
         # The SENTRY_DSN setting should be available to activate sentry for an environment
         if cls.SENTRY_DSN is not None:
             sentry_sdk.init(
-                dsn=cls.SENTRY_DSN,
+                dsn=str(cls.SENTRY_DSN),
                 environment=cls.__name__.lower(),
                 release=get_release(),
                 integrations=[DjangoIntegration()],
@@ -547,7 +548,7 @@ class Production(Base):
     # The machine hostname is added by default,
     # it makes the application pingable by a load balancer on the same machine by example
     ALLOWED_HOSTS = [
-        *values.ListValue([], environ_name="ALLOWED_HOSTS"),
+        *cast(list[str], values.ListValue([], environ_name="ALLOWED_HOSTS")),
         gethostbyname(gethostname()),
     ]
     CSRF_TRUSTED_ORIGINS = values.ListValue([])

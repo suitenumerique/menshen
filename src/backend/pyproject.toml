@@ -33,6 +33,7 @@ dependencies = [
     "dockerflow==2026.3.4",
     "drf-spectacular==0.29.0",
     "drf-standardized-errors==0.15.0",
+    "msgspec==0.21.1",
     "psycopg[binary]==3.3.3",
     "sentry-sdk==2.58.0",
     "whitenoise==6.12.0",
@@ -48,6 +49,7 @@ dependencies = [
 dev = [
     "django-debug-toolbar==6.3.0",
     "django-extensions==4.1",
+    "django-types==0.24.0",
     "factory-boy==3.3.3",
     "ipdb==0.13.13",
     "ipython==9.12.0",
@@ -56,6 +58,7 @@ dev = [
     "pytest-django==4.12.0",
     "pytest-xdist==3.8.0",
     "ruff==0.15.11",
+    "ty==0.0.37",
 ]
 
 [tool.uv.build-backend]
@@ -135,6 +138,12 @@ lint.per-file-ignores = { "**/tests/*" = [
     # Missing docstring in public package
     "D104"
 ]}
+
+[tool.coverage.run]
+omit = [
+  "token_exchange/migrations/*",
+  "token_exchange/tests/*",
+]
 
 [tool.pytest.ini_options]
 addopts = [

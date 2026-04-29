@@ -1,4 +1,4 @@
-"""Menshen: configuration for the tx application."""
+"""Menshen: configuration for the token_exchange application."""
 
 from django.apps import AppConfig
 

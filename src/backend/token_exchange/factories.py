@@ -1,4 +1,4 @@
-"""Menshen: factories for the tx application."""
+"""Menshen: factories for the token_exchange application."""
 
 from datetime import UTC
 

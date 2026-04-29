@@ -1,4 +1,4 @@
-"""Menshen: serializers the tx application."""
+"""Menshen: serializers the token_exchange application."""
 
 from django.conf import settings
 from rest_framework import serializers
@@ -23,7 +23,7 @@ class TokenExchangeSerializer(serializers.Serializer):
     resource = serializers.CharField(required=False, allow_blank=True)
     expires_in = serializers.IntegerField(required=False, min_value=1)
 
-    def validate_grant_type(self, value):
+    def validate_grant_type(self, value: str) -> str:
         """Validate that grant_type is the correct RFC 8693 value."""
         expected = "urn:ietf:params:oauth:grant-type:token-exchange"
         if value != expected:
@@ -32,7 +32,7 @@ class TokenExchangeSerializer(serializers.Serializer):
             )
         return value
 
-    def validate_requested_token_type(self, value):
+    def validate_requested_token_type(self, value: str | None) -> str | None:
         """Validate that the requested token type is allowed."""
         if not value:
             return value
@@ -61,7 +61,7 @@ class TokenExchangeSerializer(serializers.Serializer):
 
         return simple_type
 
-    def validate_expires_in(self, value):
+    def validate_expires_in(self, value: int | None) -> int | None:
         """Validate that expires_in is within acceptable bounds."""
         if value is None:
             return value
@@ -74,7 +74,7 @@ class TokenExchangeSerializer(serializers.Serializer):
 
         return value
 
-    def validate_scope(self, value):
+    def validate_scope(self, value: str | None) -> str | list[str]:
         """Validate and parse scopes."""
         if not value:
             return ""
@@ -91,14 +91,14 @@ class TokenExchangeSerializer(serializers.Serializer):
         # Return as-is, will be validated against subject_token_scope in the view
         return scopes
 
-    def validate_audience(self, value):
+    def validate_audience(self, value: str | None) -> list[str]:
         """Parse multiple audiences separated by spaces."""
         if not value:
             return []
         # Split by spaces and filter empty strings
         return [aud.strip() for aud in value.split() if aud.strip()]
 
-    def validate_subject_token_type(self, value):
+    def validate_subject_token_type(self, value: str) -> str:
         """Validate that subject_token_type is access_token."""
         expected = "urn:ietf:params:oauth:token-type:access_token"
         if value != expected:
@@ -107,7 +107,7 @@ class TokenExchangeSerializer(serializers.Serializer):
             )
         return value
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict) -> dict:
         """Additional cross-field validation."""
         # If actor_token is provided, actor_token_type should also be provided
         if attrs.get("actor_token") and not attrs.get("actor_token_type"):
@@ -128,7 +128,7 @@ class TokenRevocationSerializer(serializers.Serializer):
     token = serializers.CharField(required=True)
     token_type_hint = serializers.CharField(required=False, allow_blank=True)
 
-    def validate_token(self, value):
+    def validate_token(self, value: str) -> str:
         """Validate that token is not empty."""
         if not value or not value.strip():
             raise serializers.ValidationError("Token cannot be empty")

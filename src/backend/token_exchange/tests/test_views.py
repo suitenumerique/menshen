@@ -1,4 +1,4 @@
-"""Menshen: views tests for the tx application."""
+"""Menshen: views tests for the token_exchange application."""
 
 import logging
 from datetime import UTC, datetime, timedelta
@@ -115,7 +115,7 @@ def test_exchange_view_inactive_rule(source_api_client, caplog):
     """Test the TokenExchangeView when the token points to an inactive service rule."""
     source_service = ServiceProvider.objects.get(audience_id="service:source")
     other_service = ServiceProviderFactory(audience_id="service:other")
-    inactive_rule = TokenExchangeRuleFactory(
+    inactive_rule = TokenExchangeRuleFactory.create(
         source_service=source_service, target_service=other_service, is_active=False
     )
     payload = {
@@ -230,14 +230,12 @@ def test_introspect_view_invalid_token(
 
 
 @pytest.mark.django_db
-def test_introspect_view_invalid_jwt_token_signature(target_api_client, caplog):
+def test_introspect_view_invalid_jwt_signature(target_api_client, caplog):
     """Test the TokenIntrospectView with a badly signed JWT exchange token."""
     exchanged_token = ExchangedTokenFactory(token_type=TokenTypeChoices.JWT)
     with (
         caplog.at_level(logging.INFO),
-        mock.patch.object(
-            TokenGenerator, "verify_jwt_token", side_effect=ValueError("wrong signature")
-        ),
+        mock.patch.object(TokenGenerator, "verify_jwt", side_effect=ValueError("wrong signature")),
     ):
         response = target_api_client.post(
             "/auth/token/introspect/",

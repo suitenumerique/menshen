@@ -1,4 +1,4 @@
-"""Menshen: views for the tx application."""
+"""Menshen: views for the token_exchange application."""
 
 import logging
 from datetime import timedelta
@@ -20,6 +20,7 @@ from .authentication import ServiceProviderBasicAuthentication
 from .models import (
     ActionScopeGrant,
     ExchangedToken,
+    IntrospectionResponse,
     ScopeGrant,
     TokenExchangeActionPermission,
     TokenExchangeRule,
@@ -359,7 +360,7 @@ class TokenExchangeView(APIView):
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
             try:
-                token_value = TokenGenerator.generate_jwt_token(
+                token_value = TokenGenerator.generate_jwt(
                     sub=subject_sub,
                     email=subject_email,
                     audiences=audiences,
@@ -369,7 +370,7 @@ class TokenExchangeView(APIView):
                     may_act=None,  # TODO: Parse from actor_token if needed  # noqa: FIX002
                     subject_token_jti=subject_token_jti,
                     kid=kid,
-                    grants=grants_dict if grants_dict else None,
+                    grants=[grants_dict] if grants_dict else None,
                 )
             except ValueError as exc:
                 return Response(
@@ -444,26 +445,33 @@ class TokenIntrospectionView(APIView):
     authentication_classes = [ServiceProviderBasicAuthentication]
     permission_classes = [IsServiceProviderAuthenticated]
 
+    @staticmethod
+    def _to_response(
+        introspection_response: IntrospectionResponse, status: int = status.HTTP_200_OK
+    ) -> Response:
+        """Serialize the introspection response to a proper Django HTTP response."""
+        return Response(introspection_response.to_dict(), status=status)
+
     def post(self, request):
         """
         Handle token introspection requests.
 
         Accepts a token and returns its validity and metadata.
         """
+        # Default response payload
+        inactive_introspection_response = IntrospectionResponse(active=False)
+
         # Get token from request (form-encoded or JSON)
         token = request.data.get("token")
         if not token:
-            return Response(
-                {"active": False},
-                status=status.HTTP_200_OK,
-            )
+            return self._to_response(inactive_introspection_response)
 
         # Look up the token
         try:
             exchanged_token = ExchangedToken.objects.get(token=token)
         except ExchangedToken.DoesNotExist:
             logger.info("Token introspected: token not found, active=False")
-            return Response({"active": False}, status=status.HTTP_200_OK)
+            return self._to_response(inactive_introspection_response)
 
         # Check if valid
         if not exchanged_token.is_valid():
@@ -472,31 +480,28 @@ class TokenIntrospectionView(APIView):
                 exchanged_token.subject_token_jti,
                 exchanged_token.token_type,
             )
-            return Response({"active": False}, status=status.HTTP_200_OK)
+            return self._to_response(inactive_introspection_response)
 
         # For JWT tokens, verify signature
         if exchanged_token.token_type == TokenTypeChoices.JWT:
             try:
-                TokenGenerator.verify_jwt_token(token)
+                TokenGenerator.verify_jwt(token)
             except ValueError as exc:
                 logger.warning(
                     "Token introspected: JWT signature verification failed: %s",
                     str(exc),
                 )
-                return Response({"active": False}, status=status.HTTP_200_OK)
+                return self._to_response(inactive_introspection_response)
 
-        # Return introspection response
-        response_data = exchanged_token.to_introspection_response()
-
+        introspection_response = exchanged_token.to_introspection_response()
         logger.info(
             "Token introspected: token_jti=%s, active=%s, format=%s, kid=%s",
             exchanged_token.subject_token_jti,
-            response_data["active"],
+            introspection_response.active,
             exchanged_token.token_type,
             exchanged_token.jwt_kid or "N/A",
         )
-
-        return Response(response_data, status=status.HTTP_200_OK)
+        return self._to_response(introspection_response)
 
 
 class TokenRevocationView(APIView):

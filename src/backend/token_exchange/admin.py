@@ -1,4 +1,4 @@
-"""Menshen: admin configuration for the tx application."""
+"""Menshen: admin configuration for the token_exchange application."""
 
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _

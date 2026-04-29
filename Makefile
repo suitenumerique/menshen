@@ -220,7 +220,8 @@ demo: ## flush db then create a demo for load testing purpose
 lint: ## lint back-end python sources
 lint: \
   lint-ruff-format \
-  lint-ruff-check
+  lint-ruff-check \
+  lint-ty-check
 .PHONY: lint
 
 lint-ruff-format: ## format back-end python sources with ruff
@@ -232,6 +233,11 @@ lint-ruff-check: ## lint back-end python sources with ruff
 	@echo 'lint:ruff-check started…'
 	@$(COMPOSE_RUN_APP_UV) ruff check . --fix
 .PHONY: lint-ruff-check
+
+lint-ty-check: ## lint back-end python sources with ty
+	@echo 'lint:ty-check started…'
+	@$(COMPOSE_RUN_APP_UV) ty check
+.PHONY: lint-ty-check
 
 test: ## run project tests
 	@$(MAKE) test-back-parallel

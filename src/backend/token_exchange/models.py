@@ -1,4 +1,4 @@
-"""Menshen: models for the tx application."""
+"""Menshen: models for the token_exchange application."""
 
 import datetime
 import logging
@@ -13,6 +13,9 @@ from django.db.models import JSONField
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from .enums import TokenTypeEnum
+from .structs import IntrospectionResponse
+
 logger = logging.getLogger(__name__)
 
 
@@ -25,8 +28,8 @@ def validate_action_scope_name(value):
 class TokenTypeChoices(models.TextChoices):
     """Token type choices for RFC 8693."""
 
-    ACCESS_TOKEN = "access_token", _("Access Token")
-    JWT = "jwt", _("JWT")
+    ACCESS_TOKEN = TokenTypeEnum.ACCESS_TOKEN, _("Access Token")
+    JWT = TokenTypeEnum.JWT, _("JWT")
 
 
 class BaseModel(models.Model):
@@ -60,10 +63,10 @@ class BaseModel(models.Model):
     class Meta:  # noqa: D106
         abstract = True
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, **kwargs) -> None:
         """Call `full_clean` before saving."""
         self.full_clean()
-        return super().save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
 
 class ServiceProvider(BaseModel):
@@ -77,14 +80,14 @@ class ServiceProvider(BaseModel):
         verbose_name = _("service provider")
         verbose_name_plural = _("service providers")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, **kwargs) -> None:
         """Enforce name (even if ugly) from the `audience_id` field."""
         if not self.name:
             self.name = self.audience_id  # ok, same length
-        return super().save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
 
 class ServiceProviderCredentials(BaseModel):
@@ -125,12 +128,12 @@ class ServiceProviderCredentials(BaseModel):
     def __str__(self) -> str:
         return f"{self.service_provider} [is_active:{self.is_active}]"
 
-    def clean(self):
+    def clean(self) -> None:
         """Validate allowed origins URLs."""
         super().clean()
 
         if allowed_origins := self.allowed_origins.strip().split():
-            validator = URLValidator(settings.TOKEN_EXCHANGE_ALLOWED_SCHEMES, "allowed origin")
+            validator = URLValidator(schemes=settings.TOKEN_EXCHANGE_ALLOWED_SCHEMES)
             for url in allowed_origins:
                 validator(url)
 
@@ -173,7 +176,7 @@ class TokenExchangeRule(BaseModel):
         verbose_name = _("Token Exchange Rule")
         verbose_name_plural = _("Token Exchange Rules")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.source_service} → {self.target_service}"
 
 
@@ -216,8 +219,8 @@ class ScopeGrant(BaseModel):
         verbose_name_plural = _("Scope Grants")
         unique_together = ("rule", "source_scope", "granted_scope")
 
-    def __str__(self):
-        return f"{self.source_scope} → {self.granted_scope} (rule: {self.rule_id})"
+    def __str__(self) -> str:
+        return f"{self.source_scope} → {self.granted_scope} (rule: {self.rule.id})"
 
 
 class ActionScope(BaseModel):
@@ -246,10 +249,10 @@ class ActionScope(BaseModel):
         verbose_name = _("Action Scope")
         verbose_name_plural = _("Action Scopes")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, **kwargs) -> None:
         """Ensure the action name is stored in lowercase."""
         if self.name:
             self.name = self.name.lower()
@@ -294,7 +297,7 @@ class ActionScopeGrant(BaseModel):
         verbose_name_plural = _("Action Scope Grants")
         unique_together = ("action", "target_service", "granted_scope")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.action.name} → {self.granted_scope} on {self.target_service}"
 
 
@@ -331,8 +334,8 @@ class TokenExchangeActionPermission(BaseModel):
         verbose_name_plural = _("Token Exchange Action Permissions")
         unique_together = ("rule", "action")
 
-    def __str__(self):
-        return f"{self.action.name} in rule {self.rule_id}"
+    def __str__(self) -> str:
+        return f"{self.action.name} in rule {self.rule.id}"
 
 
 class ExchangedToken(BaseModel):
@@ -344,8 +347,7 @@ class ExchangedToken(BaseModel):
     signed JWT tokens with key rotation.
     """
 
-    token = models.CharField(
-        max_length=None,
+    token = models.TextField(
         unique=True,
         db_index=True,
         verbose_name=_("Token"),
@@ -445,11 +447,11 @@ class ExchangedToken(BaseModel):
             models.Index(fields=["expires_at", "revoked_at"]),
         ]
 
-    def __str__(self):
+    def __str__(self) -> str:
         identity = self.subject_email or self.subject_sub or "unknown"
         return f"{self.token_type} for {identity} (expires {self.expires_at})"
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, **kwargs) -> None:
         """
         Override save to enforce token limit per user when creating a new token.
 
@@ -498,25 +500,27 @@ class ExchangedToken(BaseModel):
                     to_delete,
                 )
 
-    def is_expired(self):
+    def is_expired(self) -> bool:
         """Check if the token has expired."""
         return timezone.now() >= self.expires_at
 
-    def is_revoked(self):
+    def is_revoked(self) -> bool:
         """Check if the token has been revoked."""
         return self.revoked_at is not None
 
-    def is_valid(self):
+    def is_valid(self) -> bool:
         """Check if the token is valid (not expired and not revoked)."""
         return not self.is_expired() and not self.is_revoked()
 
-    def revoke(self):
+    def revoke(self) -> None:
         """Revoke this token."""
-        if not self.is_revoked():
-            self.revoked_at = timezone.now()
-            self.save(update_fields=["revoked_at", "updated_at"])
+        if self.is_revoked():
+            return
 
-    def to_introspection_response(self):
+        self.revoked_at = timezone.now()
+        self.save(update_fields=["revoked_at", "updated_at"])
+
+    def to_introspection_response(self) -> IntrospectionResponse:
         """
         Convert this token to an RFC 7662 introspection response.
 
@@ -525,23 +529,23 @@ class ExchangedToken(BaseModel):
 
         """
         if not self.is_valid():
-            return {"active": False}
+            return IntrospectionResponse(active=False)
 
-        return {
-            "active": True,
-            "scope": self.scope,
-            "username": self.subject_email or self.subject_sub,
-            "token_type": self.token_type,
-            "exp": int(self.expires_at.timestamp()),
-            "iat": int(self.created_at.timestamp()),
-            "sub": self.subject_sub,
-            "email": self.subject_email,
-            "aud": self.audiences,
-            "jti": self._get_jti(),
-            "client_id": settings.OIDC_RS_CLIENT_ID,
-        }
+        return IntrospectionResponse(
+            active=True,
+            scope=self.scope,
+            username=self.subject_email or self.subject_sub,
+            token_type=TokenTypeEnum(self.token_type),
+            exp=int(self.expires_at.timestamp()),
+            iat=int(self.created_at.timestamp()),
+            sub=self.subject_sub,
+            email=self.subject_email,
+            aud=self.audiences,  # ty: ignore
+            jti=self._get_jti(),
+            client_id=settings.OIDC_RS_CLIENT_ID,
+        )
 
-    def _get_jti(self):
+    def _get_jti(self) -> str:
         """Extract or generate a JTI for this token."""
         if self.token_type == TokenTypeChoices.JWT:
             # For JWT tokens, we could extract the jti from the token itself
