@@ -330,11 +330,6 @@ class Base(Configuration):
     )
 
     # Token Exchange (RFC 8693) settings
-    TOKEN_EXCHANGE_ENABLED = values.BooleanValue(
-        default=False,
-        environ_name="TOKEN_EXCHANGE_ENABLED",
-        environ_prefix=None,
-    )
     TOKEN_EXCHANGE_MULTI_AUDIENCES_ALLOWED = values.BooleanValue(
         default=False,
         environ_name="TOKEN_EXCHANGE_MULTI_AUDIENCES_ALLOWED",

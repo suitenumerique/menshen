@@ -27,18 +27,6 @@ def test_exchange_view_auth():
 
 
 @pytest.mark.django_db
-def test_exchange_view_activation(source_api_client, settings):
-    """Test the TokenExchangeView activation in the settings."""
-    settings.TOKEN_EXCHANGE_ENABLED = False
-    response = source_api_client.post("/auth/token/exchange/", {}, content_type="application/json")
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.json() == {
-        "error": "token_exchange_disabled",
-        "error_description": "Token exchange feature is not enabled",
-    }
-
-
-@pytest.mark.django_db
 @pytest.mark.parametrize(
     "payload",
     [

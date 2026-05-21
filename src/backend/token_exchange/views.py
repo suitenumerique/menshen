@@ -74,16 +74,6 @@ class TokenExchangeView(APIView):
         Validates the request, checks scopes, generates a new token,
         and returns an RFC 8693 compliant response.
         """
-        # Check if feature is enabled
-        if not settings.TOKEN_EXCHANGE_ENABLED:
-            return Response(
-                {
-                    "error": "token_exchange_disabled",
-                    "error_description": "Token exchange feature is not enabled",
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         # Retrieve authenticated service provider
         service_provider = request.user
 
