@@ -62,12 +62,15 @@ data/static:
 
 # -- Project
 #
+create-env-local-files: \
+  env.d/development/common.local
 create-env-local-files: ## create env.local files in env.d/development
-create-env-local-files: 
-	@touch env.d/development/common.local
 	@touch env.d/development/postgresql.local
 	@touch env.d/development/kc_postgresql.local
 .PHONY: create-env-local-files
+
+env.d/development/common.local:
+	@bin/local-env
 
 pre-bootstrap: \
 	data/static \

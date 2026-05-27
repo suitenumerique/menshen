@@ -138,8 +138,6 @@ jobs:
       OIDC_RS_CLIENT_ID: client_id
       OIDC_RS_CLIENT_SECRET: client_secret
       TOKEN_EXCHANGE_ENABLED: true
-      TOKEN_EXCHANGE_JWT_SIGNING_KEYS: '{"019b77de-17d8-4de2-87c8-0e81b6caa96f": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDeHVbNWpnyGXfH\n/XFU+osdiOg54DBWu/3efjeBVirLIitAIRUZ1yS9aPYm2qZs6nVThNf+G5qphc52\nyIavJkVBk1J0S43O4kycRPZe7tYHYGsdU8Rxq7NFUP5rWOLvI8bgkNlFx3wGlUWM\n50FgI9+Uz96VvsDDCrkb+LfCC0RZaD2ON41BTq8e2vuIr53q6DBzpuXjwUJjkO2L\nahCiQHxUacNh75DIR4TEmJ/e13ISm7KHJqQgVojQhrofZCm50t8pGMgjIV2Gv6/B\nGVErOONDhzAbFCvEZUEegYCCSk0pphbrkso5YdR1Cp3Yzybqzq7x3pmanAIcX4Z0\nUCZ2qHu9AgMBAAECggEAIad8YX0a2k31kj3akC+uKHl4Blzrthih7LZfHp+5uDGj\nMAJTOikZDgH7WgPDN7mGsXLtbzkrhAgcMm9LyPoZgEgcNDbGc9RiG0NvuQ6jK1b2\no+jvWPHVJemRwx4itG1NUvVflm0VY8H2WdUoWLLWy6t7ZGEUv/i993kGDsa6Qnl6\noglN84sERwsLqGRBRt9PcluPs9e9O5LkS8Kw6AHb1JilPzyyjgqXGK//I4fyLeZ7\nel0NPMJ9WUBAk4u11fKj2SRTNAB4YKGfizax6yHAhKbofq40JlVjpoL33SG4wcQq\nDcXybV7oaIWKTLkpuSxlSvQ6WjNPk4MuQKr7jcFmGQKBgQD0Kz1EXZuhTFBO0tCY\n/U2r3AB5kcZF277omyqiR0Cqwq3Sj7XLpE7Ib+yg6AUmrpjl2/uGuFeYJxTsCaTP\nvRUYL5NvOJ/f92mh4m8YIF07S6SdXKpXQzQvrU/B1Qfh4W1kf+hrKl/7PCdvAmA+\ncK7JjnnQlMSI90DfPOv7j1/qJwKBgQDo4Ie3dz3phaFX6D+Z9jL5siBc+G74hsk0\nqsUPT4h1kqZkbH9UxSxRnkXOglE+teyXvsyqYPBlqQrXoQGSWihOsEzGrkqESTaY\n9aeqyk/vXqkoBfZCumJ2ww6fRguPpVEXBH344eiW4MVpP9ZuUg8GCwfWuht840HF\nsVpDHjkNewKBgQC3CNLctO89ct+gtxf4F6pp8nnIqCZhp+DsraTAEXnAiD+VYHV/\nOqR0TLKtzEBQRwIHDWj4DKhdPq7IYlJSCAQQJVn4PhJa6jUdTYjKJTi+gm3cKOLo\nl1A/jUQEoZVPFpXSiK/J5fIde3J0HOvY4s+j+FIIsfzCT9cpgZnE8i2McQKBgDLS\n5eu9g26Wsnq7/j18xO1H2dZQhe+JgxoSdwV7Zx25zsS2BSgcDCsX7sY+HLsh+yu3\nAXXhyDV3qh0bT3uAX7GkumzWFv8990N0wY39r2pfb22Dt5YilWCz+1n5cIZ+Hu92\nFIQf0aI0FgF9ZDAZipvYBnLvlRYxhuY9aaSiUPNHAoGBAK2HfPA+FnUWBi6VL4CL\noLHzCnc+SHRtgjwj2ZKe8FsAZx8peRmkeaoofDLGNfWy4vXSIzRpKFsgNs6wK8HS\n4kWWbMxJZgnUxcXIY5XVlaUY238COwGWfIkp/19F+fks9PktfTvoAyRN+oxfk1bD\nEp9FNVbLdGLkzvt5ueIgu0R/\n-----END PRIVATE KEY-----\n"}'
-      TOKEN_EXCHANGE_JWT_CURRENT_KID: 019b77de-17d8-4de2-87c8-0e81b6caa96f
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -163,6 +161,9 @@ jobs:
 
       - name: Install the dependencies
         run: uv sync --locked --all-extras --dev
+
+      - name: Define required environment variables
+        run: ../../bin/local-env
 
       - name: Run tests
         run: uv run pytest -n 2
