@@ -56,9 +56,7 @@ class TokenGenerator:
         scope: str | list[str],
         expires_in: int,
         kid: str,
-        actor_token: str | None = None,
         may_act: TokenExchangeJWTMayActClaim | None = None,
-        subject_token_jti: str | None = None,
         grants: list[dict] | None = None,
     ) -> str:
         """
@@ -70,9 +68,7 @@ class TokenGenerator:
             audiences: List of audience strings
             scope: Space-separated scopes or list of scopes
             expires_in: Token lifetime in seconds
-            actor_token: Optional actor token for delegation
             may_act: Optional may_act claim for delegation
-            subject_token_jti: JTI of the original SSO token
             kid: Key ID for signing
             grants: Optional list of grant dicts with throttle info
 

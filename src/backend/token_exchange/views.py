@@ -366,9 +366,7 @@ class TokenExchangeView(APIView):
                     audiences=audiences,
                     scope=final_scope,
                     expires_in=expires_in,
-                    actor_token=validated_data.get("actor_token", ""),
                     may_act=None,  # TODO: Parse from actor_token if needed  # noqa: FIX002
-                    subject_token_jti=subject_token_jti,
                     kid=kid,
                     grants=[grants_dict] if grants_dict else None,
                 )
