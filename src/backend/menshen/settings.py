@@ -345,9 +345,28 @@ class Base(Configuration):
         environ_name="TOKEN_EXCHANGE_MAX_EXPIRES_IN",
         environ_prefix=None,
     )
-    TOKEN_EXCHANGE_ALLOWED_TOKEN_TYPES = values.ListValue(
-        default=["access_token", "jwt"],
-        environ_name="TOKEN_EXCHANGE_ALLOWED_TOKEN_TYPES",
+    TOKEN_EXCHANGE_ALLOWED_SUBJECT_TOKEN_TYPES = values.ListValue(
+        default=[
+            "urn:ietf:params:oauth:token-type:access_token",
+            "urn:ietf:params:oauth:token-type:jwt",
+        ],
+        environ_name="TOKEN_EXCHANGE_ALLOWED_SUBJECT_TOKEN_TYPES",
+        environ_prefix=None,
+    )
+    TOKEN_EXCHANGE_ALLOWED_REQUESTED_TOKEN_TYPES = values.ListValue(
+        default=[
+            "urn:ietf:params:oauth:token-type:access_token",
+            "urn:ietf:params:oauth:token-type:jwt",
+        ],
+        environ_name="TOKEN_EXCHANGE_ALLOWED_REQUESTED_TOKEN_TYPES",
+        environ_prefix=None,
+    )
+    TOKEN_EXCHANGE_ALLOWED_ACTOR_TOKEN_TYPES = values.ListValue(
+        default=[
+            "urn:ietf:params:oauth:token-type:access_token",
+            "urn:ietf:params:oauth:token-type:jwt",
+        ],
+        environ_name="TOKEN_EXCHANGE_ALLOWED_ACTOR_TOKEN_TYPES",
         environ_prefix=None,
     )
     TOKEN_EXCHANGE_JWT_SIGNING_KEYS = values.DictValue(

@@ -9,6 +9,7 @@ import pytest
 from rest_framework import status
 from rest_framework.test import APIClient
 
+from token_exchange.enums import TokenTypeEnum
 from token_exchange.factories import (
     ExchangedTokenFactory,
     ServiceProviderFactory,
@@ -41,6 +42,12 @@ def test_exchange_view_auth():
             "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
             "subject_token": "",
             "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
+            "audience": "service:target",
+        },
+        {
+            "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+            "subject_token": "",
+            "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
             "audience": "service:target",
         },
     ],
@@ -126,13 +133,22 @@ def test_exchange_view_inactive_rule(source_api_client, caplog):
 
 
 @pytest.mark.django_db
-def test_exchange_view(source_api_client):
-    """Test the TokenExchangeView."""
+@pytest.mark.parametrize(
+    ("subject_token", "subject_token_type"),
+    [
+        # Could be fake since it won't be introspected
+        ("fake-access-token", TokenTypeEnum.ACCESS_TOKEN),
+        ("{}", TokenTypeEnum.JWT),
+    ],
+)
+def test_exchange_view_with_subject_token_type(
+    subject_token, subject_token_type, source_api_client
+):
+    """Test the TokenExchangeView with different subject tokens."""
     payload = {
         "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
-        # Could be fake since it won't be introspected
-        "subject_token": "{}",
-        "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
+        "subject_token": subject_token,
+        "subject_token_type": subject_token_type,
         "audience": "service:target",
     }
     # Create an exchange token
@@ -148,6 +164,55 @@ def test_exchange_view(source_api_client):
     assert "service:target" in exchanged_token["grants"]
     assert {"scope": "target:read", "throttle": {}} in exchanged_token["grants"]["service:target"]
     assert {"scope": "target:write", "throttle": {}} in exchanged_token["grants"]["service:target"]
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "requested_token_type",
+    [TokenTypeEnum.ACCESS_TOKEN, TokenTypeEnum.JWT],
+)
+def test_exchange_view_with_requested_token_type(requested_token_type, source_api_client):
+    """Test the TokenExchangeView with different requested token types."""
+    payload = {
+        "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+        "subject_token": "foo",
+        "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
+        "audience": "service:target",
+        "requested_token_type": requested_token_type,
+    }
+    # Create an exchange token
+    response = source_api_client.post(
+        "/auth/token/exchange/", payload, content_type="application/json"
+    )
+    assert response.status_code == status.HTTP_200_OK
+    exchanged_token = response.json()
+    assert "access_token" in exchanged_token
+    assert len(exchanged_token["access_token"]) > 1
+    assert exchanged_token["issued_token_type"] == requested_token_type
+    assert "target:read" in exchanged_token["scope"]
+    assert "service:target" in exchanged_token["grants"]
+    assert {"scope": "target:read", "throttle": {}} in exchanged_token["grants"]["service:target"]
+    assert {"scope": "target:write", "throttle": {}} in exchanged_token["grants"]["service:target"]
+
+
+@pytest.mark.django_db
+def test_exchange_view_with_requested_refresh_token_type(source_api_client):
+    """Test the TokenExchangeView with requested refresh token type (not implemented)."""
+    payload = {
+        "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+        "subject_token": "foo",
+        "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
+        "audience": "service:target",
+        "requested_token_type": "urn:ietf:params:oauth:token-type:refresh_token",
+    }
+    # Create an exchange token
+    response = source_api_client.post(
+        "/auth/token/exchange/", payload, content_type="application/json"
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    payload = response.json()
+    assert payload["error"] == "invalid_request"
+    assert "refresh_token type is not supported for token exchange" in payload["error_description"]
 
 
 @pytest.mark.django_db

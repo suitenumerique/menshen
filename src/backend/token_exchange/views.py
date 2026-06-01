@@ -405,7 +405,7 @@ class TokenExchangeView(APIView):
         # Return RFC 8693 response
         response_data = {
             "access_token": token_value,
-            "issued_token_type": f"urn:ietf:params:oauth:token-type:{token_type}",
+            "issued_token_type": token_type,
             "token_type": "Bearer",
             "expires_in": expires_in,
         }

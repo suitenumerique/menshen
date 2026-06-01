@@ -3,6 +3,8 @@
 from django.conf import settings
 from rest_framework import serializers
 
+from token_exchange.enums import TokenTypeEnum
+
 
 class TokenExchangeSerializer(serializers.Serializer):
     """
@@ -37,29 +39,19 @@ class TokenExchangeSerializer(serializers.Serializer):
         if not value:
             return value
 
-        allowed_types = settings.TOKEN_EXCHANGE_ALLOWED_TOKEN_TYPES
+        allowed_types = settings.TOKEN_EXCHANGE_ALLOWED_REQUESTED_TOKEN_TYPES
 
-        # Map URN types to simple types
-        urn_mapping = {
-            "urn:ietf:params:oauth:token-type:access_token": "access_token",
-            "urn:ietf:params:oauth:token-type:jwt": "jwt",
-            "urn:ietf:params:oauth:token-type:refresh_token": "refresh_token",
-        }
-
-        # Check if it's a URN or simple type
-        simple_type = urn_mapping.get(value, value)
-
-        if simple_type == "refresh_token":
+        if value == TokenTypeEnum.REFRESH_TOKEN:
             raise serializers.ValidationError(
                 "refresh_token type is not supported for token exchange"
             )
 
-        if simple_type not in allowed_types:
+        if value not in allowed_types:
             raise serializers.ValidationError(
                 f"Token type '{value}' is not allowed. Allowed types: {', '.join(allowed_types)}"
             )
 
-        return simple_type
+        return value
 
     def validate_expires_in(self, value: int | None) -> int | None:
         """Validate that expires_in is within acceptable bounds."""
@@ -99,12 +91,12 @@ class TokenExchangeSerializer(serializers.Serializer):
         return [aud.strip() for aud in value.split() if aud.strip()]
 
     def validate_subject_token_type(self, value: str) -> str:
-        """Validate that subject_token_type is access_token."""
-        expected = "urn:ietf:params:oauth:token-type:access_token"
-        if value != expected:
+        """Validate that subject_token_type is allowed."""
+        if value not in settings.TOKEN_EXCHANGE_ALLOWED_SUBJECT_TOKEN_TYPES:
             raise serializers.ValidationError(
-                f"Invalid subject_token_type. Expected '{expected}', got '{value}'"
+                f"Invalid subject_token_type: '{value}' is not allowed"
             )
+
         return value
 
     def validate(self, attrs: dict) -> dict:

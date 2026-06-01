@@ -3,14 +3,21 @@
 from __future__ import annotations
 
 from functools import cache
-from typing import cast
+from typing import Annotated, Literal, cast
 from uuid import UUID, uuid4
 
 import msgspec
+from django.conf import settings
 from django.utils import timezone
 from joserfc.jwt import ClaimsOption, JWTClaimsRegistry
 
-from .enums import TokenTypeEnum
+from .enums import (
+    AllowedActorTokenTypeEnum,
+    AllowedRequestedTokenTypeEnum,
+    AllowedSubjectTokenTypeEnum,
+    TokenExchangeResponseTokenType,
+    TokenTypeEnum,
+)
 
 
 class BaseStruct(msgspec.Struct):
@@ -112,7 +119,7 @@ class MenshenJWTClaims(
 
 
 class IntrospectionResponse(BaseStruct, omit_defaults=True):
-    """Introspection response object."""
+    """Introspection response."""
 
     active: bool
     scope: str | None = None
@@ -125,3 +132,105 @@ class IntrospectionResponse(BaseStruct, omit_defaults=True):
     aud: list[str] | None = None
     jti: str | None = None
     client_id: str | None = None
+
+
+def str_to_list(value: str) -> list[str]:
+    """Split input string with space separated items to a list of items."""
+    return [item.strip() for item in value.split() if item.strip()]
+
+
+class TokenExchangeRequest(
+    BaseStruct,
+    forbid_unknown_fields=True,
+    dict=True,
+):
+    """
+    Token exchange request.
+
+    Reference:
+    https://www.rfc-editor.org/info/rfc8693/#name-request
+    """
+
+    subject_token: str
+    subject_token_type: AllowedSubjectTokenTypeEnum
+    grant_type: Literal["urn:ietf:params:oauth:grant-type:token-exchange"] = (
+        "urn:ietf:params:oauth:grant-type:token-exchange"
+    )
+    resource: str | None = None
+    audience: str | None = None
+    scope: str | None = None
+    requested_token_type: AllowedRequestedTokenTypeEnum | None = None
+    actor_token: str | None = None
+    actor_token_type: AllowedActorTokenTypeEnum | None = None
+
+    @property
+    def audiences(self) -> list[str]:
+        """Access to audiences as a list of strings."""
+        return str_to_list(self.audience) if self.audience else []
+
+    @property
+    def scopes(self) -> list[str]:
+        """Access to scopes as a list of strings."""
+        return str_to_list(self.scope) if self.scope else []
+
+    def _validate_scopes(self) -> None:
+        """Validate scopes."""
+        if not self.scopes:
+            return
+
+        actions_count = len(list(filter(lambda scope: scope.startswith("action:"), self.scopes)))
+        if actions_count > 1:
+            raise msgspec.ValidationError(
+                "Only one action scope is allowed per token exchange request"
+            )
+
+        has_action = actions_count > 0
+        if has_action and len(self.scopes) > 1:
+            raise msgspec.ValidationError("Actions cannot be combined with other scopes")
+
+    def _validate_actor_token_requirements(self):
+        """When an actor token is provided, an actor token type should be defined."""
+        if self.actor_token and self.actor_token_type is None:
+            raise msgspec.ValidationError(
+                "An actor_token_type is required when actor_token is provided"
+            )
+        if self.actor_token_type and self.actor_token is None:
+            raise msgspec.ValidationError(
+                "An actor_token is required when actor_token_type is provided"
+            )
+
+    def __post_init__(self):
+        """Perform post initialization validation."""
+        self._validate_scopes()
+        self._validate_actor_token_requirements()
+
+
+class TokenExchangeResponse(BaseStruct, forbid_unknown_fields=True):
+    """
+    Token exchange response.
+
+    Reference:
+    https://www.rfc-editor.org/info/rfc8693/#name-response
+    """
+
+    access_token: str
+    issued_token_type: AllowedRequestedTokenTypeEnum
+    token_type: TokenExchangeResponseTokenType
+    expires_in: Annotated[int, msgspec.Meta(le=settings.TOKEN_EXCHANGE_MAX_EXPIRES_IN)] | None = (
+        None
+    )
+    scope: str | None = None
+    refresh_token: str | None = None
+
+
+class TokenRevocationRequest(BaseStruct, forbid_unknown_fields=True):
+    """
+    Exchanged token revocation request.
+
+    Reference:
+    https://www.rfc-editor.org/info/rfc7009/#section-2.1
+    """
+
+    # When striped the token should be at least 32 characters long (opaque token)
+    token: Annotated[str, msgspec.Meta(pattern=r"^\s*\S{32,}\s*$")]
+    token_type_hint: AllowedRequestedTokenTypeEnum | None = None
