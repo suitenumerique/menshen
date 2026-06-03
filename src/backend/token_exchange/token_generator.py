@@ -13,6 +13,7 @@ from joserfc.jwt import Token
 
 from token_exchange.structs import (
     MenshenJWTClaims,
+    MenshenJWTGrantClaim,
     TokenExchangeJWTActClaim,
     TokenExchangeJWTMayActClaim,
 )
@@ -57,7 +58,7 @@ class TokenGenerator:
         expires_in: int,
         kid: str,
         may_act: TokenExchangeJWTMayActClaim | None = None,
-        grants: list[dict] | None = None,
+        grants: list[MenshenJWTGrantClaim] | None = None,
     ) -> str:
         """
         Generate a signed JWT according to RFC 8693.

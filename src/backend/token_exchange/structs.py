@@ -20,6 +20,11 @@ from .enums import (
 )
 
 
+def str_to_list(value: str) -> list[str]:
+    """Split input string with space separated items to a list of items."""
+    return [item.strip() for item in value.split() if item.strip()]
+
+
 class BaseStruct(msgspec.Struct):
     """Base Struct class for Menshen."""
 
@@ -77,6 +82,20 @@ class TokenExchangeJWTClaims(
     may_act: TokenExchangeJWTMayActClaim | None = None
 
 
+class MenshenJWTGrantClaimThrottling(BaseStruct, forbid_unknown_fields=True):
+    """Menshen JWT grant claim throttling."""
+
+    rate: str | None = None
+
+
+class MenshenJWTGrantClaim(BaseStruct, omit_defaults=True, forbid_unknown_fields=True):
+    """Menshen JWT grant claim."""
+
+    audience_id: str
+    scope: str
+    throttle: MenshenJWTGrantClaimThrottling | None = None
+
+
 class MenshenJWTClaims(
     TokenExchangeJWTClaims,
     omit_defaults=True,
@@ -96,7 +115,7 @@ class MenshenJWTClaims(
     jti: UUID = msgspec.field(default_factory=uuid4)
 
     email: str | None = None
-    grants: list[dict] | None = None
+    grants: list[MenshenJWTGrantClaim] | None = None
 
     @classmethod
     @cache
@@ -118,25 +137,34 @@ class MenshenJWTClaims(
         return JWTClaimsRegistry(now=None, leeway=0, **options)
 
 
-class IntrospectionResponse(BaseStruct, omit_defaults=True):
+class IntrospectionResponse(
+    BaseStruct,
+    omit_defaults=True,
+    dict=True,
+):
     """Introspection response."""
 
     active: bool
     scope: str | None = None
+    sub: str | None = None
+    email: str | None = None
     username: str | None = None
     token_type: TokenTypeEnum | None = None
     exp: int | None = None
     iat: int | None = None
-    sub: str | None = None
-    email: str | None = None
-    aud: list[str] | None = None
+    aud: str | None = None
     jti: str | None = None
     client_id: str | None = None
 
+    @property
+    def scopes(self) -> list[str]:
+        """Access to scopes as a list of strings."""
+        return str_to_list(self.scope) if self.scope else []
 
-def str_to_list(value: str) -> list[str]:
-    """Split input string with space separated items to a list of items."""
-    return [item.strip() for item in value.split() if item.strip()]
+    @property
+    def audiences(self) -> list[str]:
+        """Access to audiences as a list of strings."""
+        return str_to_list(self.aud) if self.aud else []
 
 
 class TokenExchangeRequest(
@@ -151,7 +179,7 @@ class TokenExchangeRequest(
     https://www.rfc-editor.org/info/rfc8693/#name-request
     """
 
-    subject_token: str
+    subject_token: Annotated[str, msgspec.Meta(min_length=1)]
     subject_token_type: AllowedSubjectTokenTypeEnum
     grant_type: Literal["urn:ietf:params:oauth:grant-type:token-exchange"] = (
         "urn:ietf:params:oauth:grant-type:token-exchange"
@@ -173,12 +201,35 @@ class TokenExchangeRequest(
         """Access to scopes as a list of strings."""
         return str_to_list(self.scope) if self.scope else []
 
-    def _validate_scopes(self) -> None:
-        """Validate scopes."""
+    @property
+    def _actions(self) -> set[str]:
+        """Extract action(s) from request scope."""
+        return set(filter(lambda scope: scope.startswith("action:"), self.scopes))
+
+    @property
+    def action(self) -> str | None:
+        """
+        Extract action from scope.
+
+        Note that there must be at least a single action per request.
+
+        Returns:
+            str: the action
+            None: no action has been defined in the scope request
+
+        """
+        # Make sure the scope does not contain a mix of scopes and actions or multiple actions
+        self._validate_actions()
+        if not len(self._actions):
+            return None
+        return next(iter(self._actions))
+
+    def _validate_actions(self) -> None:
+        """Validate actions defined in the scope field."""
         if not self.scopes:
             return
 
-        actions_count = len(list(filter(lambda scope: scope.startswith("action:"), self.scopes)))
+        actions_count = len(self._actions)
         if actions_count > 1:
             raise msgspec.ValidationError(
                 "Only one action scope is allowed per token exchange request"
@@ -190,22 +241,22 @@ class TokenExchangeRequest(
 
     def _validate_actor_token_requirements(self):
         """When an actor token is provided, an actor token type should be defined."""
-        if self.actor_token and self.actor_token_type is None:
+        if self.actor_token and not self.actor_token_type:
             raise msgspec.ValidationError(
                 "An actor_token_type is required when actor_token is provided"
             )
-        if self.actor_token_type and self.actor_token is None:
+        if self.actor_token_type and not self.actor_token:
             raise msgspec.ValidationError(
                 "An actor_token is required when actor_token_type is provided"
             )
 
     def __post_init__(self):
         """Perform post initialization validation."""
-        self._validate_scopes()
+        self._validate_actions()
         self._validate_actor_token_requirements()
 
 
-class TokenExchangeResponse(BaseStruct, forbid_unknown_fields=True):
+class TokenExchangeResponse(BaseStruct, omit_defaults=True, forbid_unknown_fields=True):
     """
     Token exchange response.
 
@@ -216,8 +267,8 @@ class TokenExchangeResponse(BaseStruct, forbid_unknown_fields=True):
     access_token: str
     issued_token_type: AllowedRequestedTokenTypeEnum
     token_type: TokenExchangeResponseTokenType
-    expires_in: Annotated[int, msgspec.Meta(le=settings.TOKEN_EXCHANGE_MAX_EXPIRES_IN)] | None = (
-        None
+    expires_in: Annotated[int, msgspec.Meta(le=settings.TOKEN_EXCHANGE_MAX_EXPIRES_IN)] = (
+        settings.TOKEN_EXCHANGE_DEFAULT_EXPIRES_IN
     )
     scope: str | None = None
     refresh_token: str | None = None

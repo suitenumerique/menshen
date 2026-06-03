@@ -62,7 +62,7 @@ def test_exchange_view_invalid_token(source_api_client, payload):
 
 
 @pytest.mark.django_db
-def test_exchange_view_unknown_audience(source_api_client, caplog):
+def test_exchange_view_with_only_unknown_audience(source_api_client, caplog):
     """Test the TokenExchangeView when the token points to an unknown audience."""
     payload = {
         "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
@@ -77,15 +77,21 @@ def test_exchange_view_unknown_audience(source_api_client, caplog):
         )
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.json() == {
-        "error": "invalid_target",
-        "error_description": "Invalid target audience",
+        "errors": [
+            {
+                "attr": None,
+                "code": "invalid_target",
+                "detail": "Only unknown audience(s) requested: foo",
+            }
+        ],
+        "type": "client_error",
     }
-    assert "Only unknown audiences requested: foo" in caplog.messages
+    assert "Only unknown audience(s) requested: foo" in caplog.messages
 
 
 @pytest.mark.django_db
-def test_exchange_view_unknown_service(source_api_client, caplog):
-    """Test the TokenExchangeView when the token points to an unknown service."""
+def test_exchange_view_with_unknown_audience(source_api_client, caplog):
+    """Test the TokenExchangeView when the token points to an unknown audience."""
     payload = {
         "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
         # Could be fake since it won't be introspected
@@ -99,14 +105,20 @@ def test_exchange_view_unknown_service(source_api_client, caplog):
         )
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.json() == {
-        "error": "invalid_target",
-        "error_description": "Invalid target audience",
+        "errors": [
+            {
+                "attr": None,
+                "code": "invalid_target",
+                "detail": "Unknown audience(s) requested: foo",
+            }
+        ],
+        "type": "client_error",
     }
-    assert "Unknown audiences requested: foo" in caplog.messages
+    assert "Unknown audience(s) requested: foo" in caplog.messages
 
 
 @pytest.mark.django_db
-def test_exchange_view_inactive_rule(source_api_client, caplog):
+def test_exchange_view_with_inactive_rule(source_api_client, caplog):
     """Test the TokenExchangeView when the token points to an inactive service rule."""
     source_service = ServiceProvider.objects.get(audience_id="service:source")
     other_service = ServiceProviderFactory(audience_id="service:other")
@@ -126,8 +138,14 @@ def test_exchange_view_inactive_rule(source_api_client, caplog):
         )
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.json() == {
-        "error": "invalid_target",
-        "error_description": "Invalid target audience",
+        "errors": [
+            {
+                "attr": None,
+                "code": "invalid_target",
+                "detail": f"Some rules are inactive: {inactive_rule.pk}",
+            }
+        ],
+        "type": "client_error",
     }
     assert f"Some rules are inactive: {inactive_rule.pk}" in caplog.messages
 
@@ -161,9 +179,17 @@ def test_exchange_view_with_subject_token_type(
     assert len(exchanged_token["access_token"]) > 1
     assert exchanged_token["issued_token_type"] == "urn:ietf:params:oauth:token-type:access_token"
     assert "target:read" in exchanged_token["scope"]
-    assert "service:target" in exchanged_token["grants"]
-    assert {"scope": "target:read", "throttle": {}} in exchanged_token["grants"]["service:target"]
-    assert {"scope": "target:write", "throttle": {}} in exchanged_token["grants"]["service:target"]
+
+    # Check saved token grants
+    saved_exchanged_token = ExchangedToken.objects.get()
+    assert {
+        "audience_id": "service:target",
+        "scope": "target:read",
+    } in saved_exchanged_token.grants
+    assert {
+        "audience_id": "service:target",
+        "scope": "target:write",
+    } in saved_exchanged_token.grants
 
 
 @pytest.mark.django_db
@@ -190,9 +216,17 @@ def test_exchange_view_with_requested_token_type(requested_token_type, source_ap
     assert len(exchanged_token["access_token"]) > 1
     assert exchanged_token["issued_token_type"] == requested_token_type
     assert "target:read" in exchanged_token["scope"]
-    assert "service:target" in exchanged_token["grants"]
-    assert {"scope": "target:read", "throttle": {}} in exchanged_token["grants"]["service:target"]
-    assert {"scope": "target:write", "throttle": {}} in exchanged_token["grants"]["service:target"]
+
+    # Check saved token grants
+    saved_exchanged_token = ExchangedToken.objects.get()
+    assert {
+        "audience_id": "service:target",
+        "scope": "target:read",
+    } in saved_exchanged_token.grants
+    assert {
+        "audience_id": "service:target",
+        "scope": "target:write",
+    } in saved_exchanged_token.grants
 
 
 @pytest.mark.django_db
@@ -212,7 +246,10 @@ def test_exchange_view_with_requested_refresh_token_type(source_api_client):
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     payload = response.json()
     assert payload["error"] == "invalid_request"
-    assert "refresh_token type is not supported for token exchange" in payload["error_description"]
+    assert (
+        "Invalid enum value 'urn:ietf:params:oauth:token-type:refresh_token'"
+        " - at `$.requested_token_type`"
+    ) in payload["error_description"]
 
 
 @pytest.mark.django_db
