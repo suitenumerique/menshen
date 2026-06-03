@@ -295,7 +295,7 @@ def test_tokenexchangeresponse_struct_decoding_with_only_required_fields():
     assert token_exchanged_response.access_token == "fake_access"
     assert token_exchanged_response.issued_token_type == TokenTypeEnum.ACCESS_TOKEN
     assert token_exchanged_response.token_type == TokenExchangeResponseTokenType.BEARER
-    assert token_exchanged_response.expires_in is None
+    assert token_exchanged_response.expires_in == 3600
     assert token_exchanged_response.scope is None
     assert token_exchanged_response.refresh_token is None
 

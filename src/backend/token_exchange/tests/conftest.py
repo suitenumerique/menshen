@@ -1,6 +1,7 @@
 """Menshen: test fixtures for the token_exchange application."""
 
 import base64
+from uuid import uuid4
 
 import pytest
 from rest_framework.test import APIClient
@@ -25,9 +26,12 @@ def ip_user_info(monkeypatch, settings) -> None:
     def mock_user_info(self, _):
         self.token_origin_audience = "service:source"
         return {
+            "active": True,
             "client_id": "service:source",
             "email": "jane.doe@example.org",
             "scope": "openid target:read target:write",
+            "jti": uuid4(),
+            "sub": uuid4(),
         }
 
     monkeypatch.setattr(
