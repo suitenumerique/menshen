@@ -20,7 +20,7 @@ from .models import (
 from .permissions import IsServiceProviderAuthenticated
 from .serializers import TokenRevocationSerializer
 from .services.request import TokenExchangeRequestService
-from .structs import TokenExchangeRequest, TokenExchangeResponse
+from .structs import MenshenTokenExchangeResponse, TokenExchangeRequest
 from .token_generator import TokenGenerator
 
 logger = logging.getLogger(__name__)
@@ -74,7 +74,7 @@ class TokenExchangeView(APIView):
         token_exchange_request_service = TokenExchangeRequestService(
             source_audience=source_service.audience_id, request=token_exchange_request
         )
-        exchange_response: TokenExchangeResponse = (
+        exchange_response: MenshenTokenExchangeResponse = (
             token_exchange_request_service.generate_exchange_response()
         )
 
@@ -89,7 +89,7 @@ class TokenExchangeView(APIView):
             subject_email=token_exchange_request_service.user_info.email,
             audiences=token_exchange_request_service.audiences,
             scope=exchange_response.scope,
-            grants=[grant.to_dict() for grant in token_exchange_request_service.grants],
+            grants=[grant.to_dict() for grant in exchange_response.grants],
             expires_at=expires_at,
             actor_token=token_exchange_request.actor_token
             if token_exchange_request.actor_token is not None

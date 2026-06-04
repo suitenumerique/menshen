@@ -33,8 +33,8 @@ from ..models import (
 from ..structs import (
     MenshenJWTGrantClaim,
     MenshenJWTGrantClaimThrottling,
+    MenshenTokenExchangeResponse,
     TokenExchangeRequest,
-    TokenExchangeResponse,
 )
 from ..token_generator import TokenGenerator
 
@@ -294,7 +294,7 @@ class TokenExchangeRequestService:
                     "Configured request token type is not supported."
                 )
 
-    def generate_exchange_response(self) -> TokenExchangeResponse:
+    def generate_exchange_response(self) -> MenshenTokenExchangeResponse:
         """Generate an exchange response."""
         self._validate_target()
         self._validate_scopes()
@@ -311,11 +311,12 @@ class TokenExchangeRequestService:
         )
         access_token: str = self._generate_exchange_token(requested_token_type, scope, expires_in)
 
-        return TokenExchangeResponse(
+        return MenshenTokenExchangeResponse(
             access_token=access_token,
             issued_token_type=requested_token_type,
             token_type=TokenExchangeResponseTokenType.BEARER,
             expires_in=expires_in,
             scope=scope,
             refresh_token=None,
+            grants=self.grants,
         )

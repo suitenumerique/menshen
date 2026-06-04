@@ -93,7 +93,7 @@ class MenshenJWTGrantClaimThrottling(BaseStruct, forbid_unknown_fields=True):
     rate: str | None = None
 
 
-class MenshenJWTGrantClaim(BaseStruct, omit_defaults=True, forbid_unknown_fields=True):
+class MenshenJWTGrantClaim(BaseStruct, forbid_unknown_fields=True):
     """Menshen JWT grant claim."""
 
     audience_id: str
@@ -265,7 +265,12 @@ class TokenExchangeRequest(
         self._validate_actor_token_requirements()
 
 
-class TokenExchangeResponse(BaseStruct, omit_defaults=True, forbid_unknown_fields=True):
+class TokenExchangeResponse(
+    BaseStruct,
+    omit_defaults=True,
+    forbid_unknown_fields=True,
+    kw_only=True,
+):
     """
     Token exchange response.
 
@@ -281,6 +286,12 @@ class TokenExchangeResponse(BaseStruct, omit_defaults=True, forbid_unknown_field
     )
     scope: str | None = None
     refresh_token: str | None = None
+
+
+class MenshenTokenExchangeResponse(TokenExchangeResponse):
+    """Menshen token exchange custom response."""
+
+    grants: list[MenshenJWTGrantClaim]
 
 
 class TokenRevocationRequest(BaseStruct, forbid_unknown_fields=True):
