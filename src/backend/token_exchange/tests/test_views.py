@@ -179,17 +179,20 @@ def test_exchange_view_with_subject_token_type(
     assert len(exchanged_token["access_token"]) > 1
     assert exchanged_token["issued_token_type"] == "urn:ietf:params:oauth:token-type:access_token"
     assert "target:read" in exchanged_token["scope"]
-
-    # Check saved token grants
-    saved_exchanged_token = ExchangedToken.objects.get()
     assert {
         "audience_id": "service:target",
         "scope": "target:read",
-    } in saved_exchanged_token.grants
+        "throttle": None,
+    } in exchanged_token["grants"]
     assert {
         "audience_id": "service:target",
         "scope": "target:write",
-    } in saved_exchanged_token.grants
+        "throttle": None,
+    } in exchanged_token["grants"]
+
+    # Check saved token grants
+    saved_exchanged_token = ExchangedToken.objects.get()
+    assert saved_exchanged_token.token == exchanged_token["access_token"]
 
 
 @pytest.mark.django_db
@@ -216,17 +219,20 @@ def test_exchange_view_with_requested_token_type(requested_token_type, source_ap
     assert len(exchanged_token["access_token"]) > 1
     assert exchanged_token["issued_token_type"] == requested_token_type
     assert "target:read" in exchanged_token["scope"]
-
-    # Check saved token grants
-    saved_exchanged_token = ExchangedToken.objects.get()
     assert {
         "audience_id": "service:target",
         "scope": "target:read",
-    } in saved_exchanged_token.grants
+        "throttle": None,
+    } in exchanged_token["grants"]
     assert {
         "audience_id": "service:target",
         "scope": "target:write",
-    } in saved_exchanged_token.grants
+        "throttle": None,
+    } in exchanged_token["grants"]
+
+    # Check saved token grants
+    saved_exchanged_token = ExchangedToken.objects.get()
+    assert saved_exchanged_token.token == exchanged_token["access_token"]
 
 
 @pytest.mark.django_db
