@@ -16,7 +16,7 @@ from token_exchange.factories import (
     TokenExchangeRuleFactory,
 )
 from token_exchange.models import ExchangedToken, ServiceProvider, TokenTypeChoices
-from token_exchange.token_generator import TokenGenerator
+from token_exchange.services.token import TokenGenerator
 
 
 @pytest.mark.django_db

@@ -20,8 +20,8 @@ from .models import (
 from .permissions import IsServiceProviderAuthenticated
 from .serializers import TokenRevocationSerializer
 from .services.request import TokenExchangeRequestService
+from .services.token import TokenGenerator
 from .structs import MenshenTokenExchangeResponse, TokenExchangeRequest
-from .token_generator import TokenGenerator
 
 logger = logging.getLogger(__name__)
 

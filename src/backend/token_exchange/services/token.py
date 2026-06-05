@@ -52,7 +52,7 @@ class TokenGenerator:
     def generate_jwt(  # noqa: PLR0913
         cls,
         sub: str,
-        email: str,
+        email: str | None,
         audiences: list[str],
         scope: str | list[str],
         expires_in: int,
