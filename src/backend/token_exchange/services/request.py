@@ -36,7 +36,7 @@ from ..structs import (
     MenshenTokenExchangeResponse,
     TokenExchangeRequest,
 )
-from ..token_generator import TokenGenerator
+from .token import TokenGenerator
 
 logger = logging.getLogger(__name__)
 
