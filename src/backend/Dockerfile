@@ -23,7 +23,7 @@ ENV UV_LINK_MODE=copy
 ENV UV_PYTHON_DOWNLOADS=0
 
 # Install uv
-COPY --from=ghcr.io/astral-sh/uv:0.11.8 /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.11.19 /uv /uvx /bin/
 
 WORKDIR /app
 
@@ -59,7 +59,7 @@ COPY --from=back-builder /app /app
 WORKDIR /app
 
 # Generate compiled translation messages
-RUN --mount=from=ghcr.io/astral-sh/uv:0.11.8,source=/uv,target=/bin/uv \
+RUN --mount=from=ghcr.io/astral-sh/uv:0.11.19,source=/uv,target=/bin/uv \
       DJANGO_CONFIGURATION=Build \
       uv run python manage.py compilemessages --ignore=".venv/**/*"
 
@@ -88,7 +88,7 @@ RUN apk add \
       curl
 
 # Install uv
-COPY --from=ghcr.io/astral-sh/uv:0.11.8 /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.11.19 /uv /uvx /bin/
 
 # Install development dependencies and ensure the virtual 
 # environment belongs to the DOCKER_USER 
