@@ -6,6 +6,7 @@ from unittest import mock
 from uuid import uuid4
 
 import pytest
+from requests import HTTPError
 from rest_framework import status
 from rest_framework.test import APIClient
 
@@ -15,7 +16,7 @@ from token_exchange.factories import (
     ServiceProviderFactory,
     TokenExchangeRuleFactory,
 )
-from token_exchange.models import ExchangedToken, ServiceProvider, TokenTypeChoices
+from token_exchange.models import ExchangedToken, TokenTypeChoices
 from token_exchange.services.token import TokenGenerator
 
 
@@ -76,16 +77,7 @@ def test_exchange_view_with_only_unknown_audience(source_api_client, caplog):
             "/auth/token/exchange/", payload, content_type="application/json"
         )
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.json() == {
-        "errors": [
-            {
-                "attr": None,
-                "code": "invalid_target",
-                "detail": "Only unknown audience(s) requested: foo",
-            }
-        ],
-        "type": "client_error",
-    }
+    assert response.json() == {"detail": "Only unknown audience(s) requested."}
     assert "Only unknown audience(s) requested: foo" in caplog.messages
 
 
@@ -104,27 +96,42 @@ def test_exchange_view_with_unknown_audience(source_api_client, caplog):
             "/auth/token/exchange/", payload, content_type="application/json"
         )
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.json() == {
-        "errors": [
-            {
-                "attr": None,
-                "code": "invalid_target",
-                "detail": "Unknown audience(s) requested: foo",
-            }
-        ],
-        "type": "client_error",
-    }
+    assert response.json() == {"detail": "Unknown audience(s) requested."}
     assert "Unknown audience(s) requested: foo" in caplog.messages
 
 
 @pytest.mark.django_db
-def test_exchange_view_with_inactive_rule(source_api_client, caplog):
+def test_exchange_view_with_introspection_error(source_api_client, monkeypatch, settings):
+    """Test the TokenExchangeView when the subject token introspection fails."""
+    payload = {
+        "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+        "subject_token": "fake-access-token",
+        "subject_token_type": TokenTypeEnum.ACCESS_TOKEN,
+        "audience": "service:target",
+    }
+
+    # HTTPError
+    monkeypatch.setattr(
+        f"{settings.OIDC_RS_BACKEND_CLASS}.get_user_info_with_introspection",
+        mock.Mock(side_effect=HTTPError("Connection fails")),
+    )
+    response = source_api_client.post(
+        "/auth/token/exchange/", payload, content_type="application/json"
+    )
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.json() == {"detail": "Failed to introspect subject token."}
+
+
+@pytest.mark.django_db
+def test_exchange_view_with_inactive_rule(source_api_client, source_service, caplog):
     """Test the TokenExchangeView when the token points to an inactive service rule."""
-    source_service = ServiceProvider.objects.get(audience_id="service:source")
     other_service = ServiceProviderFactory(audience_id="service:other")
-    inactive_rule = TokenExchangeRuleFactory.create(
+
+    # The inactive rule
+    TokenExchangeRuleFactory.create(
         source_service=source_service, target_service=other_service, is_active=False
     )
+
     payload = {
         "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
         # Could be fake since it won't be introspected
@@ -137,17 +144,8 @@ def test_exchange_view_with_inactive_rule(source_api_client, caplog):
             "/auth/token/exchange/", payload, content_type="application/json"
         )
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.json() == {
-        "errors": [
-            {
-                "attr": None,
-                "code": "invalid_target",
-                "detail": f"Some rules are inactive: {inactive_rule.pk}",
-            }
-        ],
-        "type": "client_error",
-    }
-    assert f"Some rules are inactive: {inactive_rule.pk}" in caplog.messages
+    assert response.json() == {"detail": "Unknown audience(s) requested."}
+    assert "Unknown audience(s) requested: service:other" in caplog.messages
 
 
 @pytest.mark.django_db

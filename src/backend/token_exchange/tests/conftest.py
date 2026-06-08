@@ -15,7 +15,8 @@ from token_exchange.factories import (
     TokenExchangeActionPermissionFactory,
     TokenExchangeRuleFactory,
 )
-from token_exchange.models import ServiceProvider
+from token_exchange.models import ServiceProvider, TokenExchangeRule
+from token_exchange.services.token import TokenGenerator
 
 
 @pytest.fixture(autouse=True)
@@ -39,14 +40,29 @@ def ip_user_info(monkeypatch, settings) -> None:
     )
 
 
-@pytest.fixture(autouse=True)
-def configure_token_exchange(db) -> None:
-    """Configure token exchange between source and target services."""
-    source_service = ServiceProviderFactory(audience_id="service:source")
-    target_service = ServiceProviderFactory(audience_id="service:target")
-    source_target_rule = TokenExchangeRuleFactory(
+@pytest.fixture(name="source_service")
+def source_service_fixture(db) -> ServiceProvider:
+    """Generate the standard source service."""
+    return ServiceProviderFactory.create(audience_id="service:source")
+
+
+@pytest.fixture(name="target_service")
+def target_service_fixture(db) -> ServiceProvider:
+    """Generate the standard target service."""
+    return ServiceProviderFactory.create(audience_id="service:target")
+
+
+@pytest.fixture(name="source_target_rule")
+def source_target_rule_fixture(db, source_service, target_service) -> TokenExchangeRule:
+    """Generate the standard target service."""
+    return TokenExchangeRuleFactory.create(
         source_service=source_service, target_service=target_service
     )
+
+
+@pytest.fixture(autouse=True, name="configure_token_exchange")
+def configure_token_exchange_fixture(db, target_service, source_target_rule) -> None:
+    """Configure token exchange between source and target services."""
     ScopeGrantFactory(rule=source_target_rule, source_scope="openid", granted_scope="openid")
     ScopeGrantFactory(
         rule=source_target_rule, source_scope="target:read", granted_scope="target:read"
@@ -86,3 +102,18 @@ def source_api_client(configure_token_exchange) -> APIClient:
 def target_api_client(configure_token_exchange) -> APIClient:
     """Target server TX API client."""
     return token_exchange_api_client(ServiceProvider.objects.get(audience_id="service:target"))
+
+
+@pytest.fixture(autouse=True)
+def clear_lru_cache():
+    """
+    Taken from codeinthehole.
+
+    https://til.codeinthehole.com/posts/how-to-inspect-and-clear-pythons-functoolslrucache/
+
+    """
+    # Clear the LRU cache.
+    TokenGenerator._load_key_set.cache_clear()
+
+    # Execute the test...
+    # Note that, as we don't have a teardown, there is no need to yield here.
