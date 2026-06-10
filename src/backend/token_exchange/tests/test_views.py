@@ -306,7 +306,7 @@ def test_introspect_view_with_unknown_token(target_api_client, caplog):
         )
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {"active": False}
-    assert "Token introspected: token not found, active=False" in caplog.messages
+    assert "Introspected token not found." in caplog.messages
 
 
 @pytest.mark.django_db
@@ -322,14 +322,20 @@ def test_introspect_view_with_unknown_token(target_api_client, caplog):
         (datetime.now(tz=UTC) + timedelta(hours=1), datetime.now(tz=UTC) - timedelta(minutes=1)),
     ],
 )
-def test_introspect_view_invalid_token(
-    target_api_client, caplog, token_type, expires_at, revoked_at
+def test_introspect_view_invalid_token(  # noqa: PLR0913
+    target_api_client,
+    target_service,
+    caplog,
+    token_type,
+    expires_at,
+    revoked_at,
 ):
     """Test the TokenIntrospectView with an invalid exchange token (expired or revoked)."""
     exchanged_token = ExchangedTokenFactory(
         expires_at=expires_at,
         revoked_at=revoked_at,
         token_type=token_type,
+        audiences=[target_service.audience_id],
     )
     with caplog.at_level(logging.INFO):
         response = target_api_client.post(
@@ -340,15 +346,17 @@ def test_introspect_view_invalid_token(
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {"active": False}
     assert (
-        f"Token introspected: token_jti={exchanged_token.subject_token_jti}, "
-        f"active=False, format={token_type} [invalid]"
+        f"Token introspected (invalid): token_jti={exchanged_token.subject_token_jti}, "
+        f"type={token_type}, kid=N/A"
     ) in caplog.messages
 
 
 @pytest.mark.django_db
-def test_introspect_view_invalid_jwt_signature(target_api_client, caplog):
+def test_introspect_view_invalid_jwt_signature(target_api_client, target_service, caplog):
     """Test the TokenIntrospectView with a badly signed JWT exchange token."""
-    exchanged_token = ExchangedTokenFactory(token_type=TokenTypeChoices.JWT)
+    exchanged_token = ExchangedTokenFactory(
+        token_type=TokenTypeChoices.JWT, audiences=[target_service.audience_id]
+    )
     with (
         caplog.at_level(logging.INFO),
         mock.patch.object(TokenGenerator, "verify_jwt", side_effect=ValueError("wrong signature")),
@@ -366,9 +374,75 @@ def test_introspect_view_invalid_jwt_signature(target_api_client, caplog):
 
 
 @pytest.mark.django_db
-def test_introspect_view_introspection(target_api_client, caplog):
+def test_introspect_view_invalid_audience(target_api_client, caplog):
+    """Test the TokenIntrospectView with an invalid audience from requesting service."""
+    exchanged_token = ExchangedTokenFactory(
+        token_type=TokenTypeChoices.JWT, audiences=["service:foo"]
+    )
+    with caplog.at_level(logging.INFO):
+        response = target_api_client.post(
+            "/auth/token/introspect/",
+            {"token": exchanged_token.token},
+            content_type="application/json",
+        )
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() == {"active": False}
+    assert (
+        "'service:target' service tried to introspect an "
+        "exchanged token that is beyond its audience"
+    ) in caplog.messages
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("token_type_hint", ["bogus", "refresh"])
+def test_introspect_view_introspection_with_wrong_token_type_hint(
+    target_api_client, target_service, token_type_hint, caplog
+):
+    """Test the TokenIntrospectView instrospection with a falsy token type hint."""
+    exchanged_token = ExchangedTokenFactory(
+        token_type=TokenTypeChoices.ACCESS_TOKEN, audiences=[target_service.audience_id]
+    )
+    with caplog.at_level(logging.INFO):
+        response = target_api_client.post(
+            "/auth/token/introspect/",
+            {"token": exchanged_token.token, "token_type_hint": token_type_hint},
+            content_type="application/json",
+        )
+    assert response.status_code == status.HTTP_200_OK
+    introspected_token = response.json()
+    assert not introspected_token["active"]
+
+
+@pytest.mark.django_db
+def test_introspect_view_introspection_with_token_type_hint(
+    target_api_client, target_service, caplog
+):
     """Test the TokenIntrospectView instrospection."""
-    exchanged_token = ExchangedTokenFactory(token_type=TokenTypeChoices.ACCESS_TOKEN)
+    exchanged_token = ExchangedTokenFactory(
+        token_type=TokenTypeChoices.ACCESS_TOKEN, audiences=[target_service.audience_id]
+    )
+    with caplog.at_level(logging.INFO):
+        response = target_api_client.post(
+            "/auth/token/introspect/",
+            {"token": exchanged_token.token, "token_type_hint": "access_token"},
+            content_type="application/json",
+        )
+    assert response.status_code == status.HTTP_200_OK
+    introspected_token = response.json()
+    assert introspected_token["active"]
+    assert (
+        f"Token introspected (active): token_jti={exchanged_token.subject_token_jti}, "
+        f"type={exchanged_token.token_type}, kid={exchanged_token.jwt_kid or 'N/A'}"
+        in caplog.messages
+    )
+
+
+@pytest.mark.django_db
+def test_introspect_view_introspection(target_api_client, target_service, caplog):
+    """Test the TokenIntrospectView instrospection."""
+    exchanged_token = ExchangedTokenFactory(
+        token_type=TokenTypeChoices.ACCESS_TOKEN, audiences=[target_service.audience_id]
+    )
     with caplog.at_level(logging.INFO):
         response = target_api_client.post(
             "/auth/token/introspect/",
@@ -377,8 +451,8 @@ def test_introspect_view_introspection(target_api_client, caplog):
         )
     assert response.status_code == status.HTTP_200_OK
     assert (
-        f"Token introspected: token_jti={exchanged_token.subject_token_jti}, active=True, "
-        f"format={exchanged_token.token_type}, kid={exchanged_token.jwt_kid or 'N/A'}"
+        f"Token introspected (active): token_jti={exchanged_token.subject_token_jti}, "
+        f"type={exchanged_token.token_type}, kid={exchanged_token.jwt_kid or 'N/A'}"
         in caplog.messages
     )
     introspected_token = response.json()

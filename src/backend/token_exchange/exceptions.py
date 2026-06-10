@@ -61,3 +61,7 @@ class TokenExchangeInvalidActionError(APIException):
     status_code = 403
     default_detail = "Invalid action."
     default_code = "invalid_action"
+
+
+class ExchangedTokenInstrospectionError(TokenExchangeError):
+    """Exception raised when exchanged token introspection failed."""

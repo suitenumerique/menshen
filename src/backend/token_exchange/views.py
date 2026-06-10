@@ -14,14 +14,17 @@ from rest_framework.views import APIView
 from .authentication import ServiceProviderBasicAuthentication
 from .models import (
     ExchangedToken,
-    IntrospectionResponse,
-    TokenTypeChoices,
 )
 from .permissions import IsServiceProviderAuthenticated
 from .serializers import TokenRevocationSerializer
+from .services.introspection import TokenExchangeIntrospectionService
 from .services.request import TokenExchangeRequestService
-from .services.token import TokenGenerator
-from .structs import MenshenTokenExchangeResponse, TokenExchangeRequest
+from .structs import (
+    IntrospectionRequest,
+    IntrospectionResponse,
+    MenshenTokenExchangeResponse,
+    TokenExchangeRequest,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -139,63 +142,37 @@ class TokenIntrospectionView(APIView):
     authentication_classes = [ServiceProviderBasicAuthentication]
     permission_classes = [IsServiceProviderAuthenticated]
 
-    @staticmethod
-    def _to_response(
-        introspection_response: IntrospectionResponse, status: int = status.HTTP_200_OK
-    ) -> Response:
-        """Serialize the introspection response to a proper Django HTTP response."""
-        return Response(introspection_response.to_dict(), status=status)
-
     def post(self, request):
         """
         Handle token introspection requests.
 
         Accepts a token and returns its validity and metadata.
         """
-        # Default response payload
-        inactive_introspection_response = IntrospectionResponse(active=False)
+        # Retrieve authenticated service provider
+        source_service = request.user
 
-        # Get token from request (form-encoded or JSON)
-        token = request.data.get("token")
-        if not token:
-            return self._to_response(inactive_introspection_response)
-
-        # Look up the token
+        # !!!!!!!!!!!!
+        # EXPERIMENTAL
+        # !!!!!!!!!!!!
+        #
+        # This is a temporary parsing solution preparing the django-bolt migration
         try:
-            exchanged_token = ExchangedToken.objects.get(token=token)
-        except ExchangedToken.DoesNotExist:
-            logger.info("Token introspected: token not found, active=False")
-            return self._to_response(inactive_introspection_response)
-
-        # Check if valid
-        if not exchanged_token.is_valid():
-            logger.info(
-                "Token introspected: token_jti=%s, active=False, format=%s [invalid]",
-                exchanged_token.subject_token_jti,
-                exchanged_token.token_type,
+            token_introspection_request = msgspec.json.decode(
+                request.body, type=IntrospectionRequest
             )
-            return self._to_response(inactive_introspection_response)
-
-        # For JWT tokens, verify signature
-        if exchanged_token.token_type == TokenTypeChoices.JWT:
-            try:
-                TokenGenerator.verify_jwt(token)
-            except ValueError as exc:
-                logger.warning(
-                    "Token introspected: JWT signature verification failed: %s",
-                    str(exc),
-                )
-                return self._to_response(inactive_introspection_response)
-
-        introspection_response = exchanged_token.to_introspection_response()
-        logger.info(
-            "Token introspected: token_jti=%s, active=%s, format=%s, kid=%s",
-            exchanged_token.subject_token_jti,
-            introspection_response.active,
-            exchanged_token.token_type,
-            exchanged_token.jwt_kid or "N/A",
+        except msgspec.ValidationError:
+            return Response(
+                IntrospectionResponse(active=False).to_dict(),
+                status=status.HTTP_200_OK,
+            )
+        token_exchange_introspection_service = TokenExchangeIntrospectionService(
+            service=source_service, request=token_introspection_request
         )
-        return self._to_response(introspection_response)
+        introspection_response: IntrospectionResponse = (
+            token_exchange_introspection_service.generate_introspection_response()
+        )
+
+        return Response(introspection_response.to_dict(), status=status.HTTP_200_OK)
 
 
 class TokenRevocationView(APIView):

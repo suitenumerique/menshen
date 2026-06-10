@@ -24,6 +24,16 @@ class TokenExchangeResponseTokenType(StrEnum):
     NA = "N_A"
 
 
+class TokenExchangeTokenTypeHint(StrEnum):
+    """Token type hint used for token introspection (RFC 7662) and revocation (RFC 7009)."""
+
+    ACCESS_TOKEN = "access_token"  # noqa: S105
+    REFRESH_TOKEN = "refresh_token"  # noqa: S105
+
+    # Extension
+    JWT = "jwt"
+
+
 #
 # Dynamic enums depending on project settings
 #
