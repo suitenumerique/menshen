@@ -16,6 +16,7 @@ from .enums import (
     AllowedRequestedTokenTypeEnum,
     AllowedSubjectTokenTypeEnum,
     TokenExchangeResponseTokenType,
+    TokenExchangeTokenTypeHint,
     TokenTypeEnum,
 )
 
@@ -285,6 +286,19 @@ class MenshenTokenExchangeResponse(TokenExchangeResponse):
     grants: list[MenshenJWTGrantClaim]
 
 
+class TokenIntrospectionRequest(BaseStruct, forbid_unknown_fields=True):
+    """
+    Exchanged token introspection request.
+
+    Reference:
+    https://www.rfc-editor.org/info/rfc7662/#section-2.1
+    """
+
+    # When striped the token should be at least 32 characters long (opaque token)
+    token: Annotated[str, msgspec.Meta(pattern=r"^\s*\S{32,}\s*$")]
+    token_type_hint: TokenExchangeTokenTypeHint | None = None
+
+
 class TokenRevocationRequest(BaseStruct, forbid_unknown_fields=True):
     """
     Exchanged token revocation request.
@@ -295,4 +309,4 @@ class TokenRevocationRequest(BaseStruct, forbid_unknown_fields=True):
 
     # When striped the token should be at least 32 characters long (opaque token)
     token: Annotated[str, msgspec.Meta(pattern=r"^\s*\S{32,}\s*$")]
-    token_type_hint: AllowedRequestedTokenTypeEnum | None = None
+    token_type_hint: TokenExchangeTokenTypeHint | None = None

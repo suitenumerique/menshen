@@ -13,7 +13,7 @@ from django.db.models import JSONField
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from .enums import TokenTypeEnum
+from .enums import TokenExchangeTokenTypeHint, TokenTypeEnum
 from .structs import IntrospectionResponse
 
 logger = logging.getLogger(__name__)
@@ -30,6 +30,14 @@ class TokenTypeChoices(models.TextChoices):
 
     ACCESS_TOKEN = TokenTypeEnum.ACCESS_TOKEN, _("Access Token")
     JWT = TokenTypeEnum.JWT, _("JWT")
+
+
+# Mapping between token type hint and token type choices
+TOKEN_TYPE_HINT_CHOICES_MAPPING = {
+    TokenExchangeTokenTypeHint.ACCESS_TOKEN: TokenTypeChoices.ACCESS_TOKEN,
+    TokenExchangeTokenTypeHint.REFRESH_TOKEN: None,
+    TokenExchangeTokenTypeHint.JWT: TokenTypeChoices.JWT,
+}
 
 
 class BaseModel(models.Model):

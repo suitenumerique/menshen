@@ -11,6 +11,7 @@ from joserfc.jwt import ClaimsOption, JWTClaimsRegistry
 from token_exchange.enums import (
     AllowedActorTokenTypeEnum,
     TokenExchangeResponseTokenType,
+    TokenExchangeTokenTypeHint,
     TokenTypeEnum,
 )
 from token_exchange.structs import (
@@ -20,6 +21,7 @@ from token_exchange.structs import (
     TokenExchangeJWTClaims,
     TokenExchangeRequest,
     TokenExchangeResponse,
+    TokenIntrospectionRequest,
     TokenRevocationRequest,
 )
 
@@ -98,7 +100,7 @@ def test_menshenjwtclaims_struct_default_factories():
 
 def test_menshenjwtclaims_struct_to_jwt_claims_registry():
     """Test the MenshenJWTClaims struct to_jwt_claims_registy method."""
-    # joserfc does not allow None in ClaimsOption.value, we think it's perfectly legit and thus
+    # joserfc does not allow None in ClaimsOption.value, we think it's perfectly legit & thus
     # ignore typing issues deliberately.
     assert (
         MenshenJWTClaims.to_jwt_claims_registry().options
@@ -336,35 +338,52 @@ def test_tokenexchangeresponse_struct_expires_in(settings):
         msgspec.json.decode(json.dumps(payload), type=TokenExchangeResponse)
 
 
-def test_tokenrevocationrequest_struct_decoding():
-    """Test the TokenRevocationRequest struct decoding."""
+@pytest.mark.parametrize(
+    "token_request_struc",
+    [
+        TokenIntrospectionRequest,
+        TokenRevocationRequest,
+    ],
+)
+@pytest.mark.parametrize(
+    "token_type_hint",
+    [
+        TokenExchangeTokenTypeHint.ACCESS_TOKEN,
+        TokenExchangeTokenTypeHint.REFRESH_TOKEN,
+        TokenExchangeTokenTypeHint.JWT,
+    ],
+)
+def test_token_request_struct_decoding(token_request_struc, token_type_hint):
+    """Test TokenIntrospectionRequest & TokenRevocationRequeststruct decoding."""
     token = secrets.token_urlsafe(32)
     payload = {
         "token": token,
     }
 
-    token_revocation_request = msgspec.json.decode(json.dumps(payload), type=TokenRevocationRequest)
+    token_revocation_request = msgspec.json.decode(json.dumps(payload), type=token_request_struc)
     assert token_revocation_request.token == token
     assert token_revocation_request.token_type_hint is None
 
     # With a token_type_hint
-    payload.update({"token_type_hint": TokenTypeEnum.ACCESS_TOKEN})
-    token_revocation_request = msgspec.json.decode(json.dumps(payload), type=TokenRevocationRequest)
+    payload.update({"token_type_hint": token_type_hint})
+    token_revocation_request = msgspec.json.decode(json.dumps(payload), type=token_request_struc)
     assert token_revocation_request.token == token
-    assert token_revocation_request.token_type_hint == TokenTypeEnum.ACCESS_TOKEN
+    assert token_revocation_request.token_type_hint == token_type_hint
 
 
 @pytest.mark.parametrize(
     "token_type_hint",
+    ["id_token", "saml1", "saml2", "fake_type"],
+)
+@pytest.mark.parametrize(
+    "token_request_struc",
     [
-        TokenTypeEnum.REFRESH_TOKEN,
-        TokenTypeEnum.ID_TOKEN,
-        TokenTypeEnum.SAML1,
-        TokenTypeEnum.SAML2,
+        TokenIntrospectionRequest,
+        TokenRevocationRequest,
     ],
 )
-def test_tokenrevocationrequest_struct_allowed_token_type_hint(token_type_hint):
-    """Test the TokenRevocationRequest struct allowed token type hint."""
+def test_token_request_struct_allowed_token_type_hint(token_type_hint, token_request_struc):
+    """Test TokenIntrospectionRequest & TokenRevocationRequeststruct allowed token type hint."""
     payload = {
         "token": secrets.token_urlsafe(32),
         "token_type_hint": token_type_hint,
@@ -372,9 +391,9 @@ def test_tokenrevocationrequest_struct_allowed_token_type_hint(token_type_hint):
 
     with pytest.raises(
         msgspec.ValidationError,
-        match="Invalid enum value 'urn:ietf:params:oauth:token-type:",
+        match=f"Invalid enum value '{token_type_hint}'",
     ):
-        msgspec.json.decode(json.dumps(payload), type=TokenRevocationRequest)
+        msgspec.json.decode(json.dumps(payload), type=token_request_struc)
 
 
 @pytest.mark.parametrize(
@@ -385,8 +404,15 @@ def test_tokenrevocationrequest_struct_allowed_token_type_hint(token_type_hint):
         " " * 14 + "fake" + " " * 14,  # 32 characters but padded with spaces
     ],
 )
-def test_tokenrevocationrequest_struct_invalid_token(token):
-    """Test the TokenRevocationRequest struct with an invalid token."""
+@pytest.mark.parametrize(
+    "token_request_struc",
+    [
+        TokenIntrospectionRequest,
+        TokenRevocationRequest,
+    ],
+)
+def test_token_request_struct_invalid_token(token, token_request_struc):
+    """Test TokenIntrospectionRequest & TokenRevocationRequeststruct with an invalid token."""
     payload = {
         "token": token,
     }
@@ -394,15 +420,22 @@ def test_tokenrevocationrequest_struct_invalid_token(token):
     with pytest.raises(
         msgspec.ValidationError, match=r"Expected `str` matching regex .* at `\$.token`"
     ):
-        msgspec.json.decode(json.dumps(payload), type=TokenRevocationRequest)
+        msgspec.json.decode(json.dumps(payload), type=token_request_struc)
 
 
-def test_tokenrevocationrequest_struct_valid_access_token():
-    """Test the TokenRevocationRequest struct with a valid access token."""
+@pytest.mark.parametrize(
+    "token_request_struc",
+    [
+        TokenIntrospectionRequest,
+        TokenRevocationRequest,
+    ],
+)
+def test_token_request_struct_valid_access_token(token_request_struc):
+    """Test TokenIntrospectionRequest & TokenRevocationRequeststruct with a valid access token."""
     payload = {
         "token": "f4k3" * 8,  # 32 characters
     }
 
-    token_revokation_request = msgspec.json.decode(json.dumps(payload), type=TokenRevocationRequest)
+    token_revokation_request = msgspec.json.decode(json.dumps(payload), type=token_request_struc)
     assert token_revokation_request.token == "f4k3" * 8
     assert token_revokation_request.token_type_hint is None
