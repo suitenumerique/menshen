@@ -26,12 +26,12 @@ from ..exceptions import (
 )
 from ..models import (
     ActionScopeGrant,
-    IntrospectionResponse,
     ScopeGrant,
     ServiceProvider,
     TokenExchangeRule,
 )
 from ..structs import (
+    IntrospectionResponse,
     MenshenJWTGrantClaim,
     MenshenJWTGrantClaimThrottling,
     MenshenTokenExchangeResponse,
