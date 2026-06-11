@@ -2,6 +2,7 @@
 
 import datetime
 import logging
+import re
 import uuid
 
 from django.conf import settings
@@ -19,9 +20,9 @@ from .structs import IntrospectionResponse
 logger = logging.getLogger(__name__)
 
 
-def validate_action_scope_name(value):
+def validate_action_scope_name(value: str) -> None:
     """Ensure action name starts with 'action:'."""
-    if not value.startswith("action:"):
+    if not re.match(r"^action:\S+$", value):
         raise ValidationError(_("Action name must start with 'action:'"))
 
 
@@ -461,44 +462,47 @@ class ExchangedToken(BaseModel):
         is_new = self._state.adding
         super().save(*args, **kwargs)
 
-        if is_new:
-            # Enforce token limit after creation to ensure created_at is set
-            max_tokens = getattr(settings, "TOKEN_EXCHANGE_MAX_ACTIVE_TOKENS_PER_USER", None)
-            if max_tokens is None:
-                return
+        if not is_new:
+            return
 
-            # Filter by subject_sub or subject_email
-            if self.subject_sub:
-                active_tokens_qs = ExchangedToken.objects.filter(
-                    subject_sub=self.subject_sub,
-                    expires_at__gt=timezone.now(),
-                    revoked_at__isnull=True,
-                )
-            elif self.subject_email:
-                active_tokens_qs = ExchangedToken.objects.filter(
-                    subject_email=self.subject_email,
-                    expires_at__gt=timezone.now(),
-                    revoked_at__isnull=True,
-                )
-            else:
-                # No identity to group by
-                return
+        # Enforce token limit after creation to ensure created_at is set
+        max_tokens = getattr(settings, "TOKEN_EXCHANGE_MAX_ACTIVE_TOKENS_PER_USER", None)
+        if max_tokens is None:
+            return
 
-            active_tokens_qs = active_tokens_qs.order_by("created_at")
+        # Filter by subject_sub or subject_email
+        if self.subject_sub:
+            active_tokens_qs = ExchangedToken.objects.filter(
+                subject_sub=self.subject_sub,
+                expires_at__gt=timezone.now(),
+                revoked_at__isnull=True,
+            )
+        elif self.subject_email:
+            active_tokens_qs = ExchangedToken.objects.filter(
+                subject_email=self.subject_email,
+                expires_at__gt=timezone.now(),
+                revoked_at__isnull=True,
+            )
+        else:
+            # No identity to group by
+            return
 
-            active_tokens_count = active_tokens_qs.count()
-            if active_tokens_count > max_tokens:
-                # Number to delete
-                to_delete = active_tokens_count - max_tokens
-                oldest = active_tokens_qs[:to_delete]
-                ids = [t.id for t in oldest]
-                ExchangedToken.objects.filter(id__in=ids).delete()
-                logger.info(
-                    "Enforced token limit for sub=%s/email=%s: deleted %d oldest tokens",
-                    self.subject_sub,
-                    self.subject_email,
-                    to_delete,
-                )
+        active_tokens_qs = active_tokens_qs.order_by("created_at")
+
+        # Did we reach allowed user tokens limit?
+        active_tokens_count = active_tokens_qs.count()
+        if active_tokens_count <= max_tokens:
+            return  # Not yet
+
+        # Number to delete
+        to_delete = active_tokens_count - max_tokens
+        ExchangedToken.objects.filter(id__in=[t.id for t in active_tokens_qs[:to_delete]]).delete()
+        logger.info(
+            "Enforced token limit for sub=%s/email=%s: deleted %d oldest tokens",
+            self.subject_sub,
+            self.subject_email,
+            to_delete,
+        )
 
     def is_expired(self) -> bool:
         """Check if the token has expired."""
