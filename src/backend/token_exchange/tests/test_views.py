@@ -466,21 +466,23 @@ def test_revocation_view_with_unknown_token(source_api_client, caplog):
         )
     assert response.status_code == status.HTTP_200_OK
     assert not len(response.content)
-    assert "Token revocation attempted: token not found" in caplog.messages
+    assert "Token revocation failed (not found)." in caplog.messages
 
 
 @pytest.mark.django_db
-def test_revocation_view(source_api_client, caplog):
+def test_revocation_view(target_api_client, target_service, caplog):
     """Test the TokenRevocationView revocation."""
-    exchanged_token = ExchangedTokenFactory(token_type=TokenTypeChoices.ACCESS_TOKEN)
+    exchanged_token = ExchangedTokenFactory.create(
+        token_type=TokenTypeChoices.ACCESS_TOKEN,
+        audiences=[target_service.audience_id],
+    )
 
     # Get token from database
-    database_exchanged_token = ExchangedToken.objects.get(token=exchanged_token.token)
-    assert database_exchanged_token.revoked_at is None
+    assert not exchanged_token.is_revoked()
 
     before = datetime.now(tz=UTC)
     with caplog.at_level(logging.INFO):
-        response = source_api_client.post(
+        response = target_api_client.post(
             "/auth/token/revoke/", {"token": exchanged_token.token}, content_type="application/json"
         )
     assert response.status_code == status.HTTP_200_OK
@@ -491,10 +493,10 @@ def test_revocation_view(source_api_client, caplog):
         f"sub={exchanged_token.subject_sub}, "
         f"email={exchanged_token.subject_email}, "
         f"type={exchanged_token.token_type}, "
-        f"audiences={exchanged_token.audiences}" in caplog.messages
-    )
+        f"audiences={exchanged_token.audiences}"
+    ) in caplog.messages
 
     # revoked_at field should have been updated
-    database_exchanged_token.refresh_from_db()
-    assert database_exchanged_token.revoked_at is not None
-    assert database_exchanged_token.revoked_at > before
+    exchanged_token.refresh_from_db()
+    assert exchanged_token.is_revoked()
+    assert exchanged_token.revoked_at > before
