@@ -135,7 +135,7 @@ jobs:
       OIDC_OP_INTROSPECTION_ENDPOINT: "http://fake.local/realms/menshen/protocol/openid-connect/token/introspect"
       OIDC_OP_JWKS_ENDPOINT: /endpoint-for-test-purpose-only
       OIDC_OP_URL: "http://fake.local"
-      OIDC_RS_CLIENT_ID: client_id
+      OIDC_RS_CLIENT_ID: menshen
       OIDC_RS_CLIENT_SECRET: client_secret
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
