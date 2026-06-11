@@ -1,9 +1,7 @@
 """Menshen: enums for the token_exchange application."""
 
 from enum import StrEnum
-from typing import Annotated
 
-from annotated_types import Predicate
 from django.conf import settings
 
 
@@ -18,13 +16,6 @@ class TokenTypeEnum(StrEnum):
     SAML2 = "urn:ietf:params:oauth:token-type:saml2"
 
 
-class SupportedTokenTypeEnum(StrEnum):
-    """Token type identifier that the current implementation supports."""
-
-    ACCESS_TOKEN = TokenTypeEnum.ACCESS_TOKEN
-    JWT = TokenTypeEnum.JWT
-
-
 class TokenExchangeResponseTokenType(StrEnum):
     """Token exchange response token_types allowed values."""
 
@@ -33,18 +24,37 @@ class TokenExchangeResponseTokenType(StrEnum):
     NA = "N_A"
 
 
+class TokenExchangeTokenTypeHint(StrEnum):
+    """Token type hint used for token introspection (RFC 7662) and revocation (RFC 7009)."""
+
+    ACCESS_TOKEN = "access_token"  # noqa: S105
+    REFRESH_TOKEN = "refresh_token"  # noqa: S105
+
+    # Extension
+    JWT = "jwt"
+
+
 #
 # Dynamic enums depending on project settings
 #
-AllowedRequestedTokenTypeEnum = Annotated[
-    SupportedTokenTypeEnum,
-    Predicate(lambda type_: type_ in settings.TOKEN_EXCHANGE_ALLOWED_REQUESTED_TOKEN_TYPES),
-]
-AllowedActorTokenTypeEnum = Annotated[
-    SupportedTokenTypeEnum,
-    Predicate(lambda type_: type_ in settings.TOKEN_EXCHANGE_ALLOWED_ACTOR_TOKEN_TYPES),
-]
-AllowedSubjectTokenTypeEnum = Annotated[
-    SupportedTokenTypeEnum,
-    Predicate(lambda type_: type_ in settings.TOKEN_EXCHANGE_ALLOWED_SUBJECT_TOKEN_TYPES),
-]
+AllowedRequestedTokenTypeEnum = StrEnum(
+    "AllowedRequestedTokenTypeEnum",
+    {
+        TokenTypeEnum(type_).name: TokenTypeEnum(type_).value
+        for type_ in settings.TOKEN_EXCHANGE_ALLOWED_REQUESTED_TOKEN_TYPES
+    },
+)
+AllowedActorTokenTypeEnum = StrEnum(
+    "AllowedActorTokenTypeEnum",
+    {
+        TokenTypeEnum(type_).name: TokenTypeEnum(type_).value
+        for type_ in settings.TOKEN_EXCHANGE_ALLOWED_ACTOR_TOKEN_TYPES
+    },
+)
+AllowedSubjectTokenTypeEnum = StrEnum(
+    "AllowedSubjectTokenTypeEnum",
+    {
+        TokenTypeEnum(type_).name: TokenTypeEnum(type_).value
+        for type_ in settings.TOKEN_EXCHANGE_ALLOWED_SUBJECT_TOKEN_TYPES
+    },
+)

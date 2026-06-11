@@ -3,7 +3,12 @@
 from datetime import UTC
 
 import factory.fuzzy
+from django.conf import settings
 from faker import Faker
+
+from token_exchange.enums import AllowedRequestedTokenTypeEnum
+from token_exchange.services.token import TokenGenerator
+from token_exchange.structs import MenshenJWTGrantClaim
 
 from . import models
 
@@ -37,6 +42,37 @@ class ExpiredExchangedTokenFactory(ExchangedTokenFactory):
     expires_at = factory.LazyFunction(
         lambda: fake.date_time_between(start_date="-30d", end_date="-1d", tzinfo=UTC)
     )
+
+
+class JWTExchangedTokenFactory(ExchangedTokenFactory):
+    """A factory to create JWT ExchangedToken instances for testing."""
+
+    token = factory.LazyFunction(
+        lambda: TokenGenerator.generate_jwt(
+            sub="ef7d37b4-080c-4df7-b0f8-3560dc7138aa",
+            email="jane.doe@example.org",
+            audiences=["service:target"],
+            scope="openid target:read target:write",
+            expires_in=3600,
+            kid=settings.TOKEN_EXCHANGE_JWT_CURRENT_KID,
+            grants=[
+                MenshenJWTGrantClaim(
+                    audience_id="service:target",
+                    scope="target:read",
+                    throttle=None,
+                ),
+                MenshenJWTGrantClaim(
+                    audience_id="service:target",
+                    scope="target:write",
+                    throttle=None,
+                ),
+            ],
+        )
+    )
+    token_type = AllowedRequestedTokenTypeEnum.JWT
+    subject_sub = "ef7d37b4-080c-4df7-b0f8-3560dc7138aa"
+    subject_email = "jane.doe@example.org"
+    audiences = ["service:target"]
 
 
 class ServiceProviderFactory(factory.django.DjangoModelFactory):

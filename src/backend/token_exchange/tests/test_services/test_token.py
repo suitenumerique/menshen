@@ -1,4 +1,4 @@
-"""Menshen: tests for the token_generator module."""
+"""Menshen: tests for the token service module."""
 
 from uuid import UUID
 
@@ -6,7 +6,7 @@ import pytest
 from django.utils import timezone
 from joserfc.jwt import Token
 
-from token_exchange.token_generator import TokenGenerator
+from token_exchange.services.token import TokenGenerator
 
 
 def test_token_generator_generate_opaque_token():
