@@ -244,24 +244,24 @@ def test_tokenexchangerequest_struct_ensure_actor_token_type_requirements():
 
 
 @pytest.mark.parametrize(
-    ("subject_token_type", "requested_token_type", "actor_token_type"),
+    ("subject_token_type", "requested_token_type", "actor_token", "actor_token_type"),
     [
-        (TokenTypeEnum.REFRESH_TOKEN, None, None),
-        (TokenTypeEnum.ID_TOKEN, None, None),
-        (TokenTypeEnum.SAML1, None, None),
-        (TokenTypeEnum.SAML2, None, None),
-        (TokenTypeEnum.ACCESS_TOKEN, TokenTypeEnum.REFRESH_TOKEN, None),
-        (TokenTypeEnum.ACCESS_TOKEN, TokenTypeEnum.ID_TOKEN, None),
-        (TokenTypeEnum.ACCESS_TOKEN, TokenTypeEnum.SAML1, None),
-        (TokenTypeEnum.ACCESS_TOKEN, TokenTypeEnum.SAML2, None),
-        (TokenTypeEnum.ACCESS_TOKEN, None, TokenTypeEnum.REFRESH_TOKEN),
-        (TokenTypeEnum.ACCESS_TOKEN, None, TokenTypeEnum.ID_TOKEN),
-        (TokenTypeEnum.ACCESS_TOKEN, None, TokenTypeEnum.SAML1),
-        (TokenTypeEnum.ACCESS_TOKEN, None, TokenTypeEnum.SAML2),
+        (TokenTypeEnum.REFRESH_TOKEN, None, None, None),
+        (TokenTypeEnum.ID_TOKEN, None, None, None),
+        (TokenTypeEnum.SAML1, None, None, None),
+        (TokenTypeEnum.SAML2, None, None, None),
+        (TokenTypeEnum.ACCESS_TOKEN, TokenTypeEnum.REFRESH_TOKEN, None, None),
+        (TokenTypeEnum.ACCESS_TOKEN, TokenTypeEnum.ID_TOKEN, None, None),
+        (TokenTypeEnum.ACCESS_TOKEN, TokenTypeEnum.SAML1, None, None),
+        (TokenTypeEnum.ACCESS_TOKEN, TokenTypeEnum.SAML2, None, None),
+        (TokenTypeEnum.ACCESS_TOKEN, None, "foo", TokenTypeEnum.REFRESH_TOKEN),
+        (TokenTypeEnum.ACCESS_TOKEN, None, "foo", TokenTypeEnum.ID_TOKEN),
+        (TokenTypeEnum.ACCESS_TOKEN, None, "foo", TokenTypeEnum.SAML1),
+        (TokenTypeEnum.ACCESS_TOKEN, None, "foo", TokenTypeEnum.SAML2),
     ],
 )
 def test_tokenexchangerequest_struct_not_allowed_token_types(
-    subject_token_type, requested_token_type, actor_token_type
+    subject_token_type, requested_token_type, actor_token, actor_token_type
 ):
     """Test the TokenExchangeRequest struct not allowed token types."""
     payload = {
@@ -272,7 +272,7 @@ def test_tokenexchangerequest_struct_not_allowed_token_types(
         "scope": "action:foo",
         "audience": " target1  target2 ",
         "requested_token_type": requested_token_type,
-        "actor_token": "foo",
+        "actor_token": actor_token,
         "actor_token_type": actor_token_type,
     }
 
@@ -295,7 +295,7 @@ def test_tokenexchangeresponse_struct_decoding_with_only_required_fields():
     assert token_exchanged_response.access_token == "fake_access"
     assert token_exchanged_response.issued_token_type == TokenTypeEnum.ACCESS_TOKEN
     assert token_exchanged_response.token_type == TokenExchangeResponseTokenType.BEARER
-    assert token_exchanged_response.expires_in is None
+    assert token_exchanged_response.expires_in == 3600
     assert token_exchanged_response.scope is None
     assert token_exchanged_response.refresh_token is None
 
