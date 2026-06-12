@@ -32,7 +32,6 @@ from token_exchange.factories import (
     TokenExchangeActionPermissionFactory,
     TokenExchangeRuleFactory,
 )
-from token_exchange.models import TokenExchangeRule
 from token_exchange.services.request import TokenExchangeRequestService
 from token_exchange.services.token import TokenGenerator
 from token_exchange.structs import IntrospectionResponse, MenshenJWTGrantClaim, TokenExchangeRequest
@@ -111,6 +110,23 @@ def test_request_service_rules_cached_property(source_service, target_service):
     assert rule.is_active
 
 
+def test_request_service_rules_cached_property_with_inactive_rule(source_service, target_service):
+    """Test the request service rules property with an inactive rule."""
+    request = TokenExchangeRequest(
+        subject_token="foo",
+        subject_token_type=AllowedSubjectTokenTypeEnum(TokenTypeEnum.ACCESS_TOKEN),
+        audience="service:target",
+    )
+    request_service = TokenExchangeRequestService(source_service.audience_id, request)
+
+    # Inactivate source/target services associated rule
+    rule = source_service.exchange_out.get()
+    rule.is_active = False
+    rule.save()
+
+    assert request_service.rules.count() == 0
+
+
 def test_request_service_validate_target(source_service, monkeypatch):
     """Test the request service validate target method."""
     request = TokenExchangeRequest(
@@ -166,26 +182,6 @@ def test_request_service_validate_target_with_unknown_audience(source_service):
 
     # Should be ok now
     request_service._validate_target()
-
-
-def test_request_service_validate_target_with_inactive_rule(source_service):
-    """Test the request service validate target method with inactive rule."""
-    request = TokenExchangeRequest(
-        subject_token="foo",
-        subject_token_type=AllowedSubjectTokenTypeEnum(TokenTypeEnum.ACCESS_TOKEN),
-        audience="service:target",
-    )
-    request_service = TokenExchangeRequestService(source_service.audience_id, request)
-
-    # There should be a single rule
-    rule = TokenExchangeRule.objects.get()
-    rule.is_active = False
-    rule.save()
-    with pytest.raises(
-        TokenExchangeInvalidTargetError,
-        match=f"Some rules are inactive: {request_service.rules[0].pk}",
-    ):
-        request_service._validate_target()
 
 
 def test_request_service_introspect_subject_token_request_failure(source_service, monkeypatch):
