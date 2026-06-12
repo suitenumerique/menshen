@@ -52,9 +52,6 @@ class TokenExchangeRequestService:
         """
         Initialize the service.
 
-        Note that token exchange request subject token introspection is performed during class
-        instantiation. Thus instantiation may be slow.
-
         Args:
             source_audience: audience from the source service performing the token exchange request
             request: the token exchange request
@@ -73,7 +70,15 @@ class TokenExchangeRequestService:
             if settings.TOKEN_EXCHANGE_MULTI_AUDIENCES_ALLOWED
             else self.requested_audiences[:1]
         )
-        self.user_info: IntrospectionResponse = self._introspect_subject_token()
+        self._user_info: IntrospectionResponse | None = None
+
+    @property
+    def user_info(self) -> IntrospectionResponse:
+        """Get subject token introspection response."""
+        if self._user_info:
+            return self._user_info
+        self._user_info = self._introspect_subject_token()
+        return self._user_info
 
     @cached_property
     def rules(self) -> QuerySet[TokenExchangeRule]:
