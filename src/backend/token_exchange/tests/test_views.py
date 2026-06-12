@@ -15,7 +15,7 @@ from token_exchange.factories import (
     ServiceProviderFactory,
     TokenExchangeRuleFactory,
 )
-from token_exchange.models import ExchangedToken, ServiceProvider, TokenTypeChoices
+from token_exchange.models import ExchangedToken, TokenTypeChoices
 from token_exchange.services.token import TokenGenerator
 
 
@@ -118,13 +118,15 @@ def test_exchange_view_with_unknown_audience(source_api_client, caplog):
 
 
 @pytest.mark.django_db
-def test_exchange_view_with_inactive_rule(source_api_client, caplog):
+def test_exchange_view_with_inactive_rule(source_api_client, source_service, caplog):
     """Test the TokenExchangeView when the token points to an inactive service rule."""
-    source_service = ServiceProvider.objects.get(audience_id="service:source")
     other_service = ServiceProviderFactory(audience_id="service:other")
-    inactive_rule = TokenExchangeRuleFactory.create(
+
+    # The inactive rule
+    TokenExchangeRuleFactory.create(
         source_service=source_service, target_service=other_service, is_active=False
     )
+
     payload = {
         "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
         # Could be fake since it won't be introspected
@@ -142,12 +144,12 @@ def test_exchange_view_with_inactive_rule(source_api_client, caplog):
             {
                 "attr": None,
                 "code": "invalid_target",
-                "detail": f"Some rules are inactive: {inactive_rule.pk}",
+                "detail": "Unknown audience(s) requested: service:other",
             }
         ],
         "type": "client_error",
     }
-    assert f"Some rules are inactive: {inactive_rule.pk}" in caplog.messages
+    assert "Unknown audience(s) requested: service:other" in caplog.messages
 
 
 @pytest.mark.django_db

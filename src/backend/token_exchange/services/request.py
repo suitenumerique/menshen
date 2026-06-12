@@ -82,10 +82,11 @@ class TokenExchangeRequestService:
 
     @cached_property
     def rules(self) -> QuerySet[TokenExchangeRule]:
-        """Get rules associated with the source and target audiences."""
+        """Get active rules associated with the source and target audiences."""
         return TokenExchangeRule.objects.filter(
             source_service__audience_id=self.source_audience,
             target_service__audience_id__in=self.requested_audiences,
+            is_active=True,
         ).select_related("target_service")
 
     @cached_property
@@ -106,7 +107,6 @@ class TokenExchangeRequestService:
         Target service may be invalid if:
             - requested_audiences does not correspond to any registered service
             - requested_audiences mentions extra services that are not registered
-            - rules associated with this service are inactive
 
         Raises:
             TokenExchangeInvalidTargetError: if target service is invalid (see above).
@@ -123,13 +123,6 @@ class TokenExchangeRequestService:
         if unknown_audiences := (set(self.requested_audiences) - rules_audiences):
             message = "Unknown audience(s) requested: {audiences}".format(
                 audiences=", ".join(unknown_audiences)
-            )
-            logger.warning(message)
-            raise TokenExchangeInvalidTargetError(message)
-
-        if any(not rule.is_active for rule in self.rules):
-            message = "Some rules are inactive: {rules}".format(
-                rules=", ".join(str(rule.pk) for rule in self.rules if not rule.is_active)
             )
             logger.warning(message)
             raise TokenExchangeInvalidTargetError(message)
