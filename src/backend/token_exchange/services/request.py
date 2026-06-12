@@ -92,11 +92,12 @@ class TokenExchangeRequestService:
     def introspection_backend(self) -> ResourceServerBackend:
         """Return the resource server backend class based on the settings."""
         backend_class = import_string(settings.OIDC_RS_BACKEND_CLASS)
-        # Prevent backend from enforcing scopes: MUST improve code here
-        backend_class._scopes = [  # noqa: SLF001
+        backend = backend_class()
+        # Prevent backend from enforcing scopes
+        backend._scopes = [  # noqa: SLF001
             "openid"
         ]
-        return backend_class()
+        return backend
 
     def _validate_target(self) -> None:
         """
