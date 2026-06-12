@@ -108,9 +108,8 @@ class TokenExchangeRequestService:
             - requested_audiences mentions extra services that are not registered
             - rules associated with this service are inactive
 
-        Returns:
-            None if rules are valid for the requested audiences
-            Response [400] when the target is invalid
+        Raises:
+            TokenExchangeInvalidTargetError: if target service is invalid (see above).
 
         """
         rules_audiences = {rule.target_service.audience_id for rule in self.rules}
