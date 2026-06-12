@@ -44,9 +44,9 @@ def test_request_service_instantiation_with_base_request(source_service):
         subject_token="foo",
         subject_token_type=AllowedSubjectTokenTypeEnum(TokenTypeEnum.ACCESS_TOKEN),
     )
-    request_service = TokenExchangeRequestService(source_service, request)
+    request_service = TokenExchangeRequestService(source_service.audience_id, request)
 
-    assert request_service.service == source_service
+    assert request_service.source_audience == source_service.audience_id
     assert request_service.request == request
     assert request_service.requested_audiences == [source_service.audience_id]
     assert request_service.granted_scopes == set()
@@ -83,7 +83,7 @@ def test_request_service_instantiation_audiences(
         audience=request_audience,
     )
     settings.TOKEN_EXCHANGE_MULTI_AUDIENCES_ALLOWED = multi_audience_allowed
-    request_service = TokenExchangeRequestService(source_service, request)
+    request_service = TokenExchangeRequestService(source_service.audience_id, request)
     assert request_service.requested_audiences == ["service:target", "foo", "bar"]
     assert request_service.audiences == expected_audiences
 
@@ -95,7 +95,7 @@ def test_request_service_rules_cached_property(source_service, target_service):
         subject_token_type=AllowedSubjectTokenTypeEnum(TokenTypeEnum.ACCESS_TOKEN),
         audience="service:target",
     )
-    request_service = TokenExchangeRequestService(source_service, request)
+    request_service = TokenExchangeRequestService(source_service.audience_id, request)
 
     # Database query should be cached
     with assertNumQueries(1):
@@ -118,7 +118,7 @@ def test_request_service_validate_target(source_service, monkeypatch):
         subject_token_type=AllowedSubjectTokenTypeEnum(TokenTypeEnum.ACCESS_TOKEN),
         audience="service:target",
     )
-    request_service = TokenExchangeRequestService(source_service, request)
+    request_service = TokenExchangeRequestService(source_service.audience_id, request)
     # Should not raise an issue as the requested audience covers source/target services
     # attached rules
     request_service._validate_target()
@@ -131,7 +131,7 @@ def test_request_service_validate_target_only_unknown_audiences(source_service, 
         subject_token_type=AllowedSubjectTokenTypeEnum(TokenTypeEnum.ACCESS_TOKEN),
         audience="service:target",
     )
-    request_service = TokenExchangeRequestService(source_service, request)
+    request_service = TokenExchangeRequestService(source_service.audience_id, request)
 
     # Remove all rules associated with the services
     monkeypatch.setattr(request_service, "rules", [])
@@ -149,7 +149,7 @@ def test_request_service_validate_target_with_unknown_audience(source_service):
         subject_token_type=AllowedSubjectTokenTypeEnum(TokenTypeEnum.ACCESS_TOKEN),
         audience="service:target service:foo",
     )
-    request_service = TokenExchangeRequestService(source_service, request)
+    request_service = TokenExchangeRequestService(source_service.audience_id, request)
 
     with pytest.raises(
         TokenExchangeInvalidTargetError,
@@ -175,7 +175,7 @@ def test_request_service_validate_target_with_inactive_rule(source_service):
         subject_token_type=AllowedSubjectTokenTypeEnum(TokenTypeEnum.ACCESS_TOKEN),
         audience="service:target",
     )
-    request_service = TokenExchangeRequestService(source_service, request)
+    request_service = TokenExchangeRequestService(source_service.audience_id, request)
 
     # There should be a single rule
     rule = TokenExchangeRule.objects.get()
@@ -195,7 +195,7 @@ def test_request_service_introspect_subject_token_request_failure(source_service
         subject_token_type=AllowedSubjectTokenTypeEnum(TokenTypeEnum.ACCESS_TOKEN),
         audience="service:target",
     )
-    request_service = TokenExchangeRequestService(source_service, request)
+    request_service = TokenExchangeRequestService(source_service.audience_id, request)
 
     # HTTPError
     monkeypatch.setattr(
@@ -234,7 +234,7 @@ def test_request_service_introspect_subject_token_suspicious_origin_audience(
         subject_token_type=AllowedSubjectTokenTypeEnum(TokenTypeEnum.ACCESS_TOKEN),
         audience="service:target",
     )
-    request_service = TokenExchangeRequestService(source_service, request)
+    request_service = TokenExchangeRequestService(source_service.audience_id, request)
 
     # Monkeypatch OIDC backend token introspection
     def mock_user_info(self, _):
@@ -267,7 +267,7 @@ def test_request_service_introspect_subject_token_suspicious_introspection_respo
         subject_token_type=AllowedSubjectTokenTypeEnum(TokenTypeEnum.ACCESS_TOKEN),
         audience="service:target",
     )
-    request_service = TokenExchangeRequestService(source_service, request)
+    request_service = TokenExchangeRequestService(source_service.audience_id, request)
 
     # Monkeypatch OIDC backend token introspection
     def mock_user_info(self, _):
@@ -295,7 +295,7 @@ def test_request_service_introspect_subject_token_missing_identity(
         subject_token_type=AllowedSubjectTokenTypeEnum(TokenTypeEnum.ACCESS_TOKEN),
         audience="service:target",
     )
-    request_service = TokenExchangeRequestService(source_service, request)
+    request_service = TokenExchangeRequestService(source_service.audience_id, request)
 
     # Monkeypatch OIDC backend token introspection
     def mock_user_info(self, _):
@@ -331,7 +331,7 @@ def test_request_service_validate_pure_scopes_from_user_info_scope(source_servic
         subject_token_type=AllowedSubjectTokenTypeEnum(TokenTypeEnum.ACCESS_TOKEN),
         audience="service:target",
     )
-    request_service = TokenExchangeRequestService(source_service, request)
+    request_service = TokenExchangeRequestService(source_service.audience_id, request)
     request_service._validate_pure_scopes()
 
     # Scopes from user info are granted
@@ -355,7 +355,7 @@ def test_request_service_validate_pure_scopes_from_request(source_service):
         audience="service:target",
         scope="target:read target:write",
     )
-    request_service = TokenExchangeRequestService(source_service, request)
+    request_service = TokenExchangeRequestService(source_service.audience_id, request)
     request_service._validate_pure_scopes()
 
     # Scopes from request scope are granted
@@ -385,7 +385,7 @@ def test_request_service_validate_pure_scopes_from_request_with_extra_scopes(
         audience=audience,
         scope=scope,
     )
-    request_service = TokenExchangeRequestService(source_service, request)
+    request_service = TokenExchangeRequestService(source_service.audience_id, request)
 
     with pytest.raises(
         TokenExchangeInvalidTargetError, match="You cannot request more scope than rules allow"
@@ -406,7 +406,7 @@ def test_request_service_validate_scope_action_from_request(source_service):
         audience="service:target",
         scope="action:write-to-target",
     )
-    request_service = TokenExchangeRequestService(source_service, request)
+    request_service = TokenExchangeRequestService(source_service.audience_id, request)
     request_service._validate_scope_action()
 
     # Scopes from request action are granted
@@ -442,7 +442,7 @@ def test_request_service_validate_scope_action_from_request_with_missing_require
         audience="service:target",
         scope="action:write-to-target",
     )
-    request_service = TokenExchangeRequestService(source_service, request)
+    request_service = TokenExchangeRequestService(source_service.audience_id, request)
     request_service._validate_scope_action()
 
     # Scopes from request action are granted
@@ -495,7 +495,7 @@ def test_request_service_validate_scope_action_from_request_with_granted_require
         audience="service:target",
         scope="action:update-target",
     )
-    request_service = TokenExchangeRequestService(source_service, request)
+    request_service = TokenExchangeRequestService(source_service.audience_id, request)
     request_service._validate_scope_action()
 
     # Scopes from request action are granted
@@ -532,7 +532,7 @@ def test_request_service_validate_scope_action_from_request_when_action_cannot_b
         audience="service:target",
         scope="action:update-target",
     )
-    request_service = TokenExchangeRequestService(source_service, request)
+    request_service = TokenExchangeRequestService(source_service.audience_id, request)
     with pytest.raises(
         TokenExchangeInvalidActionError,
         match=r"Requested action 'action:update-target' cannot be granted\.",
@@ -553,7 +553,7 @@ def test_request_service_validate_scopes_from_pure_scopes(source_service, monkey
         TokenExchangeRequestService, "_validate_scope_action", mock_validate_scope_action
     )
 
-    request_service = TokenExchangeRequestService(source_service, request)
+    request_service = TokenExchangeRequestService(source_service.audience_id, request)
     request_service._validate_scopes()
 
     # We should not have used the validate scope action method
@@ -581,7 +581,7 @@ def test_request_service_validate_scopes_from_scope_action(source_service, monke
         TokenExchangeRequestService, "_validate_pure_scopes", mock_validate_pure_scopes
     )
 
-    request_service = TokenExchangeRequestService(source_service, request)
+    request_service = TokenExchangeRequestService(source_service.audience_id, request)
     request_service._validate_scopes()
 
     # We should not have used the validate scope action method
@@ -603,7 +603,7 @@ def test_request_service_generate_exchange_token_with_type(token_type, source_se
         audience="service:target",
         scope="target:write",
     )
-    request_service = TokenExchangeRequestService(source_service, request)
+    request_service = TokenExchangeRequestService(source_service.audience_id, request)
 
     token = request_service._generate_exchange_token(
         token_type, scope="target:write", expires_in=3600
@@ -638,7 +638,7 @@ def test_request_service_generate_exchange_token_jwt_no_sub_claim(
     monkeypatch.setattr(
         f"{settings.OIDC_RS_BACKEND_CLASS}.get_user_info_with_introspection", mock_user_info
     )
-    request_service = TokenExchangeRequestService(source_service, request)
+    request_service = TokenExchangeRequestService(source_service.audience_id, request)
 
     with pytest.raises(
         TokenExchangeIssuingError,
@@ -659,7 +659,7 @@ def test_request_service_generate_exchange_token_jwt_configuration(source_servic
         audience="service:target",
         scope="target:write",
     )
-    request_service = TokenExchangeRequestService(source_service, request)
+    request_service = TokenExchangeRequestService(source_service.audience_id, request)
 
     settings.TOKEN_EXCHANGE_JWT_CURRENT_KID = None
     with pytest.raises(TokenExchangeConfigurationError, match="JWT signing key is not configured."):
@@ -678,7 +678,7 @@ def test_request_service_generate_exchange_token_unsupported_type(source_service
         audience="service:target",
         scope="target:write",
     )
-    request_service = TokenExchangeRequestService(source_service, request)
+    request_service = TokenExchangeRequestService(source_service.audience_id, request)
 
     with pytest.raises(
         TokenExchangeConfigurationError, match="Configured request token type is not supported."
@@ -698,7 +698,7 @@ def test_request_service_generate_exchange_token_jwt_invalid_token(source_servic
         audience="service:target",
         scope="target:write",
     )
-    request_service = TokenExchangeRequestService(source_service, request)
+    request_service = TokenExchangeRequestService(source_service.audience_id, request)
 
     monkeypatch.setattr(TokenGenerator, "generate_jwt", Mock(side_effect=ValueError()))
 
@@ -722,7 +722,7 @@ def test_request_service_generate_exchange_response(source_service, settings, to
         scope="target:write",
         requested_token_type=token_type,
     )
-    request_service = TokenExchangeRequestService(source_service, request)
+    request_service = TokenExchangeRequestService(source_service.audience_id, request)
     response = request_service.generate_exchange_response()
     assert isinstance(response.access_token, str)
     assert len(response.access_token) > 32

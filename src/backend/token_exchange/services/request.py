@@ -28,7 +28,6 @@ from ..models import (
     ActionScopeGrant,
     IntrospectionResponse,
     ScopeGrant,
-    ServiceProvider,
     TokenExchangeRule,
 )
 from ..structs import (
@@ -49,7 +48,7 @@ class TokenExchangeRequestService:
     Use this service to generate an exchange token given a token exchange request.
     """
 
-    def __init__(self, service: ServiceProvider, request: TokenExchangeRequest) -> None:
+    def __init__(self, source_audience: str, request: TokenExchangeRequest) -> None:
         """
         Initialize the service.
 
@@ -57,14 +56,14 @@ class TokenExchangeRequestService:
         instantiation. Thus instantiation may be slow.
 
         Args:
-            service: the sources service performing the token exchange request
+            source_audience: audience from the source service performing the token exchange request
             request: the token exchange request
 
         """
-        self.service: ServiceProvider = service
+        self.source_audience: str = source_audience
         self.request: TokenExchangeRequest = request
         self.requested_audiences: list = (
-            request.audiences if request.audience else [service.audience_id]
+            request.audiences if request.audience else [source_audience]
         )
         self.granted_scopes: set = set()
         self.grants: list[MenshenJWTGrantClaim] = []
@@ -78,9 +77,9 @@ class TokenExchangeRequestService:
 
     @cached_property
     def rules(self) -> QuerySet[TokenExchangeRule]:
-        """Get rules associated with the source service for the target audience."""
+        """Get rules associated with the source and target audiences."""
         return TokenExchangeRule.objects.filter(
-            source_service=self.service,
+            source_service__audience_id=self.source_audience,
             target_service__audience_id__in=self.requested_audiences,
         ).select_related("target_service")
 
@@ -141,25 +140,22 @@ class TokenExchangeRequestService:
                 "Failed to introspect subject token"
             ) from exc
 
-        if self.introspection_backend.token_origin_audience != self.service.audience_id:
+        if self.introspection_backend.token_origin_audience != self.source_audience:
             logger.error(
                 "Introspected token origin is different from requesting service: %s, %s",
                 self.introspection_backend.token_origin_audience,
-                self.service.audience_id,
+                self.source_audience,
             )
             raise SuspiciousOperation()
 
         introspection_response = IntrospectionResponse(**user_info)
 
         # Check the user audience is the same as the requesting service
-        if (
-            getattr(introspection_response, settings.OIDC_RS_AUDIENCE_CLAIM)
-            != self.service.audience_id
-        ):
+        if getattr(introspection_response, settings.OIDC_RS_AUDIENCE_CLAIM) != self.source_audience:
             logger.error(
                 "Introspected token audience is different from requesting service: %s, %s",
                 getattr(introspection_response, settings.OIDC_RS_AUDIENCE_CLAIM),
-                self.service.audience_id,
+                self.source_audience,
             )
             raise SuspiciousOperation()
 

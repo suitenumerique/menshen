@@ -72,7 +72,7 @@ class TokenExchangeView(APIView):
 
         # Forge token exchange response
         token_exchange_request_service = TokenExchangeRequestService(
-            service=source_service, request=token_exchange_request
+            source_audience=source_service.audience_id, request=token_exchange_request
         )
         exchange_response: MenshenTokenExchangeResponse = (
             token_exchange_request_service.generate_exchange_response()
