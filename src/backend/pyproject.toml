@@ -21,7 +21,7 @@ classifiers = [
 description = "An OAuth 2.0 Token Exchange autorization server build with Django."
 keywords = ["Django", "OAuth"]
 license = "MIT"
-requires-python = "~=3.14.3"
+requires-python = "~=3.14.6"
 dependencies = [
     "dj-database-url==3.1.2",
     "django==6.0.4",
