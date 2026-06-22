@@ -14,8 +14,8 @@ from token_exchange.enums import (
     TokenTypeEnum,
 )
 from token_exchange.structs import (
-    BaseStruct,
     MenshenJWTClaims,
+    MenshenStructMixin,
     TokenExchangeJWTActClaim,
     TokenExchangeJWTClaims,
     TokenExchangeRequest,
@@ -27,7 +27,7 @@ from token_exchange.structs import (
 def test_basestruct_to_dict():
     """Test the BaseStruct `to_dict` method."""
 
-    class Foo(BaseStruct):
+    class Foo(msgspec.Struct, MenshenStructMixin):
         """Foo test class."""
 
         bar: str
@@ -35,7 +35,7 @@ def test_basestruct_to_dict():
 
     assert Foo(bar="bar").to_dict() == {"bar": "bar", "lol": None}
 
-    class FooNoDefaults(BaseStruct, omit_defaults=True):
+    class FooNoDefaults(msgspec.Struct, MenshenStructMixin, omit_defaults=True):
         """Foo test class."""
 
         bar: str

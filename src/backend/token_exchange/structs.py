@@ -30,15 +30,15 @@ def str_to_list(value: str) -> list[str]:
     return out
 
 
-class BaseStruct(msgspec.Struct):
-    """Base Struct class for Menshen."""
+class MenshenStructMixin:
+    """Menshen's mixin that extends msgspect Struct class."""
 
     def to_dict(self) -> dict:
         """Convert Struct to a standard dict."""
         return msgspec.to_builtins(self)
 
 
-class TokenExchangeJWTMayActClaim(BaseStruct):
+class TokenExchangeJWTMayActClaim(msgspec.Struct, MenshenStructMixin):
     """
     JWT may_act claim.
 
@@ -52,7 +52,7 @@ class TokenExchangeJWTMayActClaim(BaseStruct):
     sub: str
 
 
-class TokenExchangeJWTActClaim(BaseStruct):
+class TokenExchangeJWTActClaim(msgspec.Struct, MenshenStructMixin):
     """
     JWT act claim.
 
@@ -70,7 +70,8 @@ class TokenExchangeJWTActClaim(BaseStruct):
 
 
 class TokenExchangeJWTClaims(
-    BaseStruct,
+    msgspec.Struct,
+    MenshenStructMixin,
     omit_defaults=True,
     forbid_unknown_fields=True,
 ):
@@ -87,13 +88,17 @@ class TokenExchangeJWTClaims(
     may_act: TokenExchangeJWTMayActClaim | None = None
 
 
-class MenshenJWTGrantClaimThrottling(BaseStruct, forbid_unknown_fields=True):
+class MenshenJWTGrantClaimThrottling(
+    msgspec.Struct, MenshenStructMixin, forbid_unknown_fields=True
+):
     """Menshen JWT grant claim throttling."""
 
     rate: str | None = None
 
 
-class MenshenJWTGrantClaim(BaseStruct, forbid_unknown_fields=True):
+class MenshenJWTGrantClaim(
+    msgspec.Struct, MenshenStructMixin, forbid_unknown_fields=True, frozen=True
+):
     """Menshen JWT grant claim."""
 
     audience_id: str
@@ -143,7 +148,8 @@ class MenshenJWTClaims(
 
 
 class IntrospectionResponse(
-    BaseStruct,
+    msgspec.Struct,
+    MenshenStructMixin,
     omit_defaults=True,
     dict=True,
 ):
@@ -179,7 +185,8 @@ class IntrospectionResponse(
 
 
 class TokenExchangeRequest(
-    BaseStruct,
+    msgspec.Struct,
+    MenshenStructMixin,
     forbid_unknown_fields=True,
     dict=True,
 ):
@@ -266,7 +273,8 @@ class TokenExchangeRequest(
 
 
 class TokenExchangeResponse(
-    BaseStruct,
+    msgspec.Struct,
+    MenshenStructMixin,
     omit_defaults=True,
     forbid_unknown_fields=True,
     kw_only=True,
@@ -294,7 +302,7 @@ class MenshenTokenExchangeResponse(TokenExchangeResponse):
     grants: list[MenshenJWTGrantClaim]
 
 
-class TokenRevocationRequest(BaseStruct, forbid_unknown_fields=True):
+class TokenRevocationRequest(msgspec.Struct, MenshenStructMixin, forbid_unknown_fields=True):
     """
     Exchanged token revocation request.
 
