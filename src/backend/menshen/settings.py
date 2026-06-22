@@ -179,7 +179,6 @@ class Base(Configuration):
         "token_exchange",
         # Third party apps
         "drf_spectacular",
-        "drf_standardized_errors",
         "corsheaders",
         "dockerflow.django",
         "rest_framework",
@@ -251,7 +250,6 @@ class Base(Configuration):
             # will generate a form with a field with all possible values of the FK).
             "rest_framework.renderers.JSONRenderer",
         ],
-        "EXCEPTION_HANDLER": "drf_standardized_errors.handler.exception_handler",
         "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
         "PAGE_SIZE": 20,
         "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.URLPathVersioning",

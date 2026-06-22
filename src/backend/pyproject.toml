@@ -32,7 +32,6 @@ dependencies = [
     "djangorestframework==3.17.1",
     "dockerflow==2026.3.4",
     "drf-spectacular==0.29.0",
-    "drf-standardized-errors==0.15.0",
     "msgspec==0.21.1",
     "psycopg[binary]==3.3.3",
     "sentry-sdk==2.58.0",
