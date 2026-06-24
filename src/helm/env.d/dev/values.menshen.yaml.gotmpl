@@ -1,0 +1,117 @@
+oidc:
+    clientId: menshen
+    clientSecret: ThisIsAnExampleKeyForDevPurposeOnly
+
+image:
+  repository: localhost:5001/menshen
+  pullPolicy: Always
+  tag: "backend-development"
+
+backend:
+  replicas: 1
+  envVars:
+    DJANGO_CSRF_TRUSTED_ORIGINS: https://menshen.127.0.0.1.nip.io
+    DJANGO_CONFIGURATION: Production
+    DJANGO_ALLOWED_HOSTS: menshen.127.0.0.1.nip.io
+    DJANGO_SECRET_KEY: ThisIsAnExampleKeyForDevPurposeOnly
+    DJANGO_SETTINGS_MODULE: menshen.settings
+    DJANGO_SUPERUSER_EMAIL: admin@example.com
+    DJANGO_SUPERUSER_PASSWORD: admin
+    DJANGO_SUPERUSER_USERNAME: admin
+    LOGGING_LEVEL_LOGGERS_ROOT: INFO
+    LOGGING_LEVEL_LOGGERS_APP: INFO
+    OIDC_OP_TOKEN_ENDPOINT: https://menshen-keycloak.127.0.0.1.nip.io/realms/menshen/protocol/openid-connect/token
+    OIDC_OP_USER_ENDPOINT: https://menshen-keycloak.127.0.0.1.nip.io/realms/menshen/protocol/openid-connect/userinfo
+    OIDC_OP_URL: https://menshen-keycloak.127.0.0.1.nip.io/realms/menshen
+    OIDC_OP_INTROSPECTION_ENDPOINT: https://menshen-keycloak.127.0.0.1.nip.io/realms/menshen/protocol/openid-connect/token/introspect
+    OIDC_RP_CLIENT_ID: menshen
+    OIDC_RP_CLIENT_SECRET: ThisIsAnExampleKeyForDevPurposeOnly
+    OIDC_RS_CLIENT_ID: menshen
+    OIDC_RS_CLIENT_SECRET: ThisIsAnExampleKeyForDevPurposeOnly
+    DB_HOST: dev-backend-postgres
+    DB_NAME:
+      secretKeyRef:
+        name: dev-backend-postgres
+        key: database
+    DB_USER:
+      secretKeyRef:
+        name: dev-backend-postgres
+        key: username
+    DB_PASSWORD:
+      secretKeyRef:
+        name: dev-backend-postgres
+        key: password
+    DB_PORT: 5432
+    REDIS_URL: redis://user:pass@dev-backend-redis:6379/1
+    STORAGES_STATICFILES_BACKEND: django.contrib.staticfiles.storage.StaticFilesStorage
+    CACHES_DEFAULT_KEY_PREFIX: "{{ now | unixEpoch }}"
+
+  django:
+    envVars:
+      WEB_CONCURRENCY: 1
+      DB_PSYCOPG_POOL_MIN_SIZE: 10
+
+  migrate:
+    command:
+      - "/bin/sh"
+      - "-c"
+      - |
+        while ! uv run python manage.py check --database default > /dev/null 2>&1
+        do
+          echo "Database not ready"
+          sleep 2
+        done
+
+        echo "Database is ready"
+
+        uv run python manage.py migrate --no-input
+    restartPolicy: Never
+
+  command:
+    - uv 
+    - run 
+    - uvicorn
+    - --app-dir=/app
+    - --host=0.0.0.0
+    - --lifespan=off
+    - --reload
+    - --reload-dir=/app
+    - "menshen.asgi:application"
+
+  createsuperuser:
+    command:
+      - "/bin/sh"
+      - "-c"
+      - |
+        while ! uv run python manage.py check --database default > /dev/null 2>&1
+        do
+          echo "Database not ready"
+          sleep 2
+        done
+
+        echo "Database is ready"
+        uv run python manage.py createsuperuser --no-input
+    restartPolicy: Never
+
+  # Extra volume mounts to manage our local custom CA and avoid to set ssl_verify: false
+  extraVolumeMounts:
+    - name: certs
+      mountPath: /cert/cacert.pem
+      subPath: cacert.pem
+
+  # Extra volumes to manage our local custom CA and avoid to set ssl_verify: false
+  extraVolumes:
+    - name: certs
+      configMap:
+        name: certifi
+        items:
+        - key: cacert.pem
+          path: cacert.pem
+
+ingress:
+  enabled: true
+  host: menshen.127.0.0.1.nip.io
+
+ingressAdmin:
+  enabled: true
+  host: menshen.127.0.0.1.nip.io

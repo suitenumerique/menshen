@@ -1,0 +1,39 @@
+postgres:
+  enabled: true
+  name: postgres
+  #serviceNameOverride: postgres
+  image: postgres:16-alpine
+  username: dinum
+  password: pass
+  database: menshen
+  size: 1Gi
+
+redis:
+  enabled: true
+  name: redis
+  image: redis:8.2-alpine
+  username: user
+  password: pass
+
+keycloak:
+  enabled: true
+  image: quay.io/keycloak/keycloak:20.0.1
+  name: keycloak
+  #serviceNameOverride: keycloak
+  hostname: menshen-keycloak.127.0.0.1.nip.io
+  username: admin
+  password: pass
+  tls:
+    enabled: true
+    secretName: menshen-tls
+  db:
+    username: dinum
+    password: pass
+    database: keycloak
+    size: 1Gi
+    image: postgres:16-alpine
+  realm: 
+    name: menshen
+    username: menshen
+    password: menshen
+    email: menshen@example.com

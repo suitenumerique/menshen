@@ -1,0 +1,22 @@
+environments:
+  dev:
+    values:
+      - version: 0.1.0
+---
+repositories:
+- name: dev-backends
+  url: https://suitenumerique.github.io/helm-dev-backend
+---
+releases:
+  - name: dev-backend
+    namespace: {{ .Namespace }}
+    chart: dev-backends/dev-backend
+    version: 0.0.8
+    values:
+      - env.d/{{ .Environment.Name }}/values.dev-backend.yaml.gotmpl
+  - name: menshen
+    version: {{ .Values.version }}
+    namespace: {{ .Namespace }}
+    chart: ./menshen
+    values:
+      - env.d/{{ .Environment.Name }}/values.menshen.yaml.gotmpl
