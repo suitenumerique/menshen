@@ -111,20 +111,23 @@ FROM core AS backend-production
 
 ARG MENSHEN_STATIC_ROOT=/data/static
 
-# Gunicorn
-RUN mkdir -p /usr/local/etc/gunicorn
-COPY docker/files/usr/local/etc/gunicorn/menshen.py /usr/local/etc/gunicorn/menshen.py
-
 # Un-privileged user running the application
 ARG DOCKER_USER
 USER ${DOCKER_USER}
 
 ENV PATH="/app/.venv/bin:$PATH"
 
-# The default command runs gunicorn WSGI server in menshen's main module
-CMD [ \
-  "gunicorn", \
-  "-c", \
-  "/usr/local/etc/gunicorn/menshen.py", \
-  "menshen.wsgi:application" \
+# The default command runs uvicorn ASGI server in Menshen's main module
+# WEB_CONCURRENCY: number of workers to run <=> --workers=4
+ENV WEB_CONCURRENCY=4
+CMD [\
+  "uv", \
+  "run", \
+  "uvicorn",\
+  "--app-dir=/app",\
+  "--host=0.0.0.0",\
+  "--timeout-graceful-shutdown=300",\
+  "--limit-max-requests=20000",\
+  "--lifespan=off",\
+  "menshen.asgi:application"\
 ]
