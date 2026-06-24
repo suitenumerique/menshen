@@ -1,0 +1,49 @@
+name: Docker Hub Workflow
+run-name: Docker Hub Workflow
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "main"
+    tags:
+      - "v*"
+  pull_request:
+    branches:
+      - "main"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-push-backend:
+    uses: ./.github/workflows/_docker-publish.yml
+    permissions:
+      contents: read
+    secrets:
+      DOCKER_HUB_USER: ${{ secrets.DOCKER_HUB_USER }}
+      DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
+    with:
+      image_name: lasuite/menshen-backend
+      context: .
+      file: src/backend/Dockerfile
+      target: backend-production
+      should_push: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'preview') }}
+      docker_user: 1001:127
+
+  notify-argocd:
+    needs:
+      - build-and-push-backend
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'preview')
+    steps:
+      - uses: numerique-gouv/action-argocd-webhook-notification@cac2ee67896eb13e84e804f60c4271370424eaa8 # main
+        id: notify
+        with:
+          deployment_repo_path: "${{ secrets.DEPLOYMENT_REPO_URL }}"
+          argocd_webhook_secret: "${{ secrets.ARGOCD_PREPROD_WEBHOOK_SECRET }}"
+          argocd_url: "${{ vars.ARGOCD_PREPROD_WEBHOOK_URL }}"
