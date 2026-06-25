@@ -1,4 +1,4 @@
-"""Authentication Backends for the Impress core app."""
+"""Authentication Backends for the Menshen app."""
 
 import logging
 
