@@ -300,10 +300,25 @@ class Base(Configuration):
     OIDC_VERIFY_SSL = values.BooleanValue(
         default=True, environ_name="OIDC_VERIFY_SSL", environ_prefix=None
     )
+    OIDC_FALLBACK_TO_EMAIL_FOR_IDENTIFICATION = values.BooleanValue(
+        default=False,
+        environ_name="OIDC_FALLBACK_TO_EMAIL_FOR_IDENTIFICATION",
+        environ_prefix=None,
+    )
     OIDC_TIMEOUT = values.PositiveIntegerValue(3, environ_name="OIDC_TIMEOUT", environ_prefix=None)
     OIDC_PROXY = values.Value(None, environ_name="OIDC_PROXY", environ_prefix=None)
     OIDC_OP_INTROSPECTION_ENDPOINT = values.Value(
         None, environ_name="OIDC_OP_INTROSPECTION_ENDPOINT", environ_prefix=None
+    )
+    OIDC_OP_TOKEN_ENDPOINT = values.Value(
+        None, environ_name="OIDC_OP_TOKEN_ENDPOINT", environ_prefix=None
+    )
+    OIDC_OP_USER_ENDPOINT = values.Value(
+        None, environ_name="OIDC_OP_USER_ENDPOINT", environ_prefix=None
+    )
+    OIDC_RP_CLIENT_ID = values.Value(None, environ_name="OIDC_RP_CLIENT_ID", environ_prefix=None)
+    OIDC_RP_CLIENT_SECRET = values.Value(
+        None, environ_name="OIDC_RP_CLIENT_SECRET", environ_prefix=None
     )
 
     # Resource server backend class is used for token introspection
