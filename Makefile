@@ -298,6 +298,18 @@ resetdb: ## flush database and create a superuser "admin"
 	@${MAKE} superuser
 .PHONY: resetdb
 
+# -- K8S
+#
+build-k8s-cluster: ## build the kubernetes cluster using kind
+	curl \
+		https://raw.githubusercontent.com/numerique-gouv/tools/refs/heads/main/kind/create_cluster.sh | \
+		bash -s -- menshen
+.PHONY: build-k8s-cluster
+
+k8s-dev: ## start developing locally using Tilt
+	tilt up
+.PHONY: k8s-dev
+
 # -- Misc
 clean: ## restore repository state as it was freshly cloned
 	git clean -idx

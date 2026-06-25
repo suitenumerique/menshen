@@ -17,6 +17,17 @@ Run Menshen locally for development and testing.
 - Docker
 - Docker Compose
 - GNU Make
+- Curl
+
+If you plan to work on the Helm chart, you should also be able to run a local
+Kubernetes cluster. This requires extra dependencies:
+
+- `mkcert`
+- [`kubectl`](https://kubernetes.io/fr/docs/tasks/tools/install-kubectl/)
+- [Kind](https://kind.sigs.k8s.io/)
+- [Helm](https://helm.sh/docs/intro/install)
+- [Helmfile](https://github.com/helmfile/helmfile)
+- [Tilt](https://tilt.dev/)
 
 Verify installation:
 
@@ -74,6 +85,36 @@ make superuser
 make test
 make lint
 ```
+
+### Working on the Helm chart
+
+If you plan to work on the Helm chart, please consider installing optional
+dependencies first (see _Prerequisites_ sub-section). Once ready, you can
+bootstrap a local Kubernetes cluster using the following command:
+
+```bash
+make build-k8s-cluster
+```
+
+This rule will run a script that creates CA for "127.0.0.1.nip.io" sub-domains
+and builds a local Kubernetes cluster using Kind.
+
+Once it's done (and your cluster is up), you can start working using Tilt:
+
+```bash
+make k8s-dev  # or "tilt up"
+```
+
+This will initialize and check the helmfile (and related resources), build
+Docker images to publish them to the local registry, and apply the Helm chart
+and its dependencies to the local Kubernetes cluster (in the `menshen`
+namespace).
+
+If you update the helmfile, the service Docker image, backend sources or any
+Chart resource, Tilt will synchronize everything with your runnings pods and
+configurations.
+
+Happy coding!
 
 ### Playground: a demo for Menshen
 
