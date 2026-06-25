@@ -36,6 +36,35 @@ COPY src/backend /app
 RUN --mount=type=cache,target=/root/.cache/uv \
       uv sync --locked --no-dev
 
+# ---- static link collector ----
+FROM back-builder AS link-collector
+
+ARG MENSHEN_STATIC_ROOT=/data/static
+
+# Install pango & rdfind
+RUN apk add --no-cache \
+  pango \
+  rdfind
+
+# Copy the application from the builder
+COPY --from=back-builder /app /app
+
+WORKDIR /app
+
+ENV PATH="/app/.venv/bin:$PATH"
+
+# collectstatic
+RUN DJANGO_CONFIGURATION=Build \
+  uv run python manage.py collectstatic --noinput
+
+# Replace duplicated file by a symlink to decrease the overall size of the
+# final image
+RUN rdfind \
+  -makesymlinks true \
+  -followsymlinks true \
+  -makeresultsfile false \
+  ${MENSHEN_STATIC_ROOT}
+
 # ---- Core application image ----
 FROM base AS core
 
@@ -73,6 +102,9 @@ FROM core AS backend-development
 
 ARG DOCKER_USER
 
+# Staticfiles root directory (used by whitenoise)
+ARG MENSHEN_STATIC_ROOT=/data/static
+
 # Configure uv
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
@@ -98,6 +130,9 @@ RUN uv sync --all-extras --locked && \
 # Restore the un-privileged user running the application
 USER ${DOCKER_USER}
 
+# Copy statics
+COPY --from=link-collector ${MENSHEN_STATIC_ROOT} ${MENSHEN_STATIC_ROOT}
+
 # Target database host (e.g. database engine following docker compose services
 # name) & port
 ENV DB_HOST=postgresql \
@@ -109,10 +144,12 @@ CMD ["uv", "run", "python", "manage.py", "runserver", "0.0.0.0:8000"]
 # ---- Production image ----
 FROM core AS backend-production
 
-ARG MENSHEN_STATIC_ROOT=/data/static
-
 # Un-privileged user running the application
 ARG DOCKER_USER
+
+# Staticfiles root directory (used by whitenoise)
+ARG MENSHEN_STATIC_ROOT=/data/static
+
 USER ${DOCKER_USER}
 
 # Copy dependencies
