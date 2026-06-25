@@ -56,7 +56,7 @@ backend:
       - "/bin/sh"
       - "-c"
       - |
-        while ! uv run python manage.py check --database default > /dev/null 2>&1
+        while ! /app/.venv/bin/python manage.py check --database default > /dev/null 2>&1
         do
           echo "Database not ready"
           sleep 2
@@ -64,13 +64,11 @@ backend:
 
         echo "Database is ready"
 
-        uv run python manage.py migrate --no-input
+        /app/.venv/bin/python manage.py migrate --no-input
     restartPolicy: Never
 
   command:
-    - uv 
-    - run 
-    - uvicorn
+    - /app/.venv/bin/uvicorn
     - --app-dir=/app
     - --host=0.0.0.0
     - --lifespan=off
@@ -83,14 +81,14 @@ backend:
       - "/bin/sh"
       - "-c"
       - |
-        while ! uv run python manage.py check --database default > /dev/null 2>&1
+        while ! /app/.venv/bin/python manage.py check --database default > /dev/null 2>&1
         do
           echo "Database not ready"
           sleep 2
         done
 
         echo "Database is ready"
-        uv run python manage.py createsuperuser --no-input
+        /app/.venv/bin/python manage.py createsuperuser --no-input
     restartPolicy: Never
 
   # Extra volume mounts to manage our local custom CA and avoid to set ssl_verify: false

@@ -115,15 +115,17 @@ ARG MENSHEN_STATIC_ROOT=/data/static
 ARG DOCKER_USER
 USER ${DOCKER_USER}
 
-ENV PATH="/app/.venv/bin:$PATH"
+# Copy dependencies
+COPY --from=back-builder /app/.venv /app/.venv
+
+# Copy statics
+COPY --from=link-collector ${MENSHEN_STATIC_ROOT} ${MENSHEN_STATIC_ROOT}
 
 # The default command runs uvicorn ASGI server in Menshen's main module
 # WEB_CONCURRENCY: number of workers to run <=> --workers=4
 ENV WEB_CONCURRENCY=4
 CMD [\
-  "uv", \
-  "run", \
-  "uvicorn",\
+  "/app/.venv/bin/uvicorn",\
   "--app-dir=/app",\
   "--host=0.0.0.0",\
   "--timeout-graceful-shutdown=300",\
