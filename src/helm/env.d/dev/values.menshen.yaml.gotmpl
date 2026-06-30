@@ -49,7 +49,10 @@ backend:
   django:
     envVars:
       WEB_CONCURRENCY: 1
+      DB_PSYCOPG_POOL_ENABLED: true
       DB_PSYCOPG_POOL_MIN_SIZE: 10
+      DB_PSYCOPG_POOL_MAX_SIZE: 30
+      DB_PSYCOPG_POOL_TIMEOUT: 5
 
   migrate:
     command:
