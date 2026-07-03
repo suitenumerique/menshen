@@ -59,9 +59,17 @@ class TokenExchangeView(APIView):
         # !!!!!!!!!!!!
         #
         # This is a temporary parsing solution preparing the django-bolt migration
+        if request.content_type != "application/json":
+            return Response(
+                {
+                    "error": "invalid_request",
+                    "error_description": "Request content-type is not JSON.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         try:
             token_exchange_request = msgspec.json.decode(request.body, type=TokenExchangeRequest)
-        except msgspec.ValidationError as err:
+        except (msgspec.ValidationError, msgspec.DecodeError) as err:
             return Response(
                 {
                     "error": "invalid_request",

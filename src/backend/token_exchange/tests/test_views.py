@@ -28,6 +28,28 @@ def test_exchange_view_auth():
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
+def test_exchange_view_invalid_content_type(source_api_client):
+    """Test the TokenExchangeView with an invalid request content-type."""
+    response = source_api_client.post("/auth/token/exchange/", data={"token": "invalid"})
+    json_response = response.json()
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert json_response["error"] == "invalid_request"
+    assert json_response["error_description"] == "Request content-type is not JSON."
+
+
+def test_exchange_view_invalid_payload(source_api_client):
+    """Test the TokenExchangeView with a valid content-type but an invalid payload."""
+    response = source_api_client.post(
+        "/auth/token/exchange/",
+        data=b"token=invalid",
+        content_type="application/json",
+    )
+    json_response = response.json()
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert json_response["error"] == "invalid_request"
+    assert json_response["error_description"] == "JSON is malformed: invalid character (byte 4)"
+
+
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     "payload",
