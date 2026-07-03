@@ -136,7 +136,14 @@ class TokenExchangeRequestService:
                 "Failed to introspect subject token."
             ) from exc
 
-        introspection_response = IntrospectionResponse(**user_info)
+        # Ignore extra fields
+        introspection_response = IntrospectionResponse(
+            **{
+                key: user_info[key]
+                for key in IntrospectionResponse.__struct_fields__
+                if key in user_info
+            }
+        )
 
         # Check the user audience is the same as the requesting service
         if getattr(introspection_response, settings.OIDC_RS_AUDIENCE_CLAIM) != self.source_audience:
