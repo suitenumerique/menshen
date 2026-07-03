@@ -317,10 +317,6 @@ class Base(Configuration):
     OIDC_OP_USER_ENDPOINT = values.Value(
         None, environ_name="OIDC_OP_USER_ENDPOINT", environ_prefix=None
     )
-    OIDC_RP_CLIENT_ID = values.Value(None, environ_name="OIDC_RP_CLIENT_ID", environ_prefix=None)
-    OIDC_RP_CLIENT_SECRET = values.Value(
-        None, environ_name="OIDC_RP_CLIENT_SECRET", environ_prefix=None
-    )
 
     # Resource server backend class is used for token introspection
     OIDC_RS_CLIENT_ID = values.Value(None, environ_name="OIDC_RS_CLIENT_ID", environ_prefix=None)
