@@ -60,6 +60,7 @@ class BackupView(FormView):
             "subject_token": request.session.get("oidc_access_token"),
             "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
             "audience": "playground-target",
+            "scope": "openid",
         }
         response = requests.post(
             settings.OIDC_TX_TOKEN_ENDPOINT,
