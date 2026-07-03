@@ -186,6 +186,11 @@ class TokenExchangeRequestService:
 
         # Service cannot ask for more scopes than rules allow
         if not requested_accesses.issubset(set(rules_accesses.keys())):
+            logger.warning(
+                "Unsatisfied requested accesses (%s) given rules (%s)",
+                requested_accesses,
+                set(rules_accesses.keys()),
+            )
             raise TokenExchangeInvalidScopesError("You cannot request more scope than rules allow.")
 
         for requested_access in requested_accesses:
@@ -220,6 +225,11 @@ class TokenExchangeRequestService:
 
         # Service cannot ask for more scopes than rules allow
         if not requested_accesses.issubset(set(rules_accesses.keys())):
+            logger.warning(
+                "Unsatisfied requested accesses (%s) given rules (%s)",
+                requested_accesses,
+                set(rules_accesses.keys()),
+            )
             raise TokenExchangeInvalidScopesError("You cannot request more scope than rules allow.")
         required_source_scopes = {
             scope
