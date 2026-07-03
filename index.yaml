@@ -3,6 +3,15 @@ entries:
   menshen:
   - apiVersion: v2
     appVersion: latest
+    created: "2026-07-03T08:18:47.242395591Z"
+    digest: 779664fcf823b50a880ac619565009ed4236db5bda07b3f52b94a208ec7f47e3
+    name: menshen
+    type: application
+    urls:
+    - https://suitenumerique.github.io/menshen/menshen-0.1.1.tgz
+    version: 0.1.1
+  - apiVersion: v2
+    appVersion: latest
     created: "2026-07-01T11:10:49.565060396Z"
     digest: f0846e5c7f43b9579366c2404080bbd0661dfc973f990286bcddc3ed0769b789
     name: menshen
@@ -10,4 +19,4 @@ entries:
     urls:
     - https://suitenumerique.github.io/menshen/menshen-0.1.0.tgz
     version: 0.1.0
-generated: "2026-07-01T11:10:49.563924695Z"
+generated: "2026-07-03T08:18:47.241500035Z"
