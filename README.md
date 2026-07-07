@@ -18,6 +18,7 @@ Run Menshen locally for development and testing.
 - Docker Compose
 - GNU Make
 - Curl
+- [uv](https://docs.astral.sh/uv/) (for the client)
 
 If you plan to work on the Helm chart, you should also be able to run a local
 Kubernetes cluster. This requires extra dependencies:

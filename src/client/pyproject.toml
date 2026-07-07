@@ -1,0 +1,134 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "menshen-client"
+version = "0.1.0"
+description = "An API client for Menshen, the OAuth 2.0 token exchange server"
+readme = "README.md"
+requires-python = ">=3.11,<4.0.0"
+license = {file = "LICENSE"}
+keywords = [
+  "token-exchange",
+  "oauth 2.0",
+  "api",
+  "client",
+]
+authors = [
+    {name = "DINUM", email = "dev@mail.numerique.gouv.fr"},
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+dependencies = [
+    "requests>=2.32.3",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/suitenumerique/menshen"
+"Bug Tracker" = "https://github.com/suitenumerique/menshen/issues"
+
+[dependency-groups]
+dev = [
+    "pytest==9.1.0",
+    "pytest-cov==7.1.0",
+    "pytest-responses==0.6.0",
+    "responses==0.26.2",
+    "ruff==0.15.17",
+    "ty==0.0.49",
+]
+
+[tool.hatch.build.targets.sdist]
+only-include = ["menshen_client"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+lint.select = [
+    # pycodestyle
+    "E", "W",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+    # flake8-logging-format
+    "G",
+    # flake8-pie
+    "PIE",
+    # flake8-comprehensions
+    "C4",
+    # flake8-django
+    "DJ",
+    # flake8-bandit
+    "S",
+    # flake8-builtins
+    "A",
+    # flake8-datetimez
+    "DTZ",
+    # flake8-gettext
+    "INT",
+    # Pylint
+    "PL",
+    # flake8-fixme
+    "FIX",
+    # flake8-self
+    "SLF",
+    # flake8-return
+    "RET",
+    # pep8-naming (N)
+    "N",
+    # pydocstyle
+    "D",
+    # flake8-pytest-style (PT)
+    "PT",
+]
+lint.ignore = [
+    # undocumented-magic-method
+    "D105",
+    # incorrect-blank-line-before-class
+    "D203",
+    # missing-blank-line-after-summary
+    "D205",
+    # multi-line-summary-first-line
+    "D212",
+]
+lint.per-file-ignores = { "**/tests/*" = [
+    # flake8-bandit
+    "S",
+    # flake8-self
+    "SLF",
+    # magic-value-comparison
+    "PLR2004",
+  ], "__init__.py" = [
+    # Missing docstring in public package
+    "D104"
+]}
+
+[tool.pytest.ini_options]
+addopts = [
+    "-v",
+    "--cov-report",
+    "term-missing",
+    "--cov",
+    "menshen_client",
+    # Allow test files to have the same name in different directories.
+    "--import-mode=importlib",
+]
+python_files = [
+    "test_*.py",
+    "tests.py",
+]

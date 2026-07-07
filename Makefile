@@ -52,6 +52,10 @@ COMPOSE_RUN_APP_UV  = $(COMPOSE_RUN_APP) uv run
 # -- Backend
 MANAGE              = $(COMPOSE_RUN_APP_UV) python manage.py
 
+# -- Client
+CLIENT_UV           = cd src/client && uv
+CLIENT_UV_RUN       = $(CLIENT_UV) run
+
 # ==============================================================================
 # RULES
 
@@ -213,48 +217,82 @@ watch: ## watch changes in source code (development mode)
 	@$(COMPOSE) watch
 .PHONY: watch 
 
+# -- Quality checks
+#
+lint: ## run project linters
+lint: \
+  lint-back \
+  lint-client
+.PHONY: lint
+
+lint-back: ## lint back-end python sources
+lint-back: \
+  lint-back-ruff-format \
+  lint-back-ruff-check \
+  lint-back-ty-check
+.PHONY: lint-back
+
+lint-back-ruff-format: ## format back-end python sources with ruff
+	@echo 'lint-back:ruff-format started…'
+	@$(COMPOSE_RUN_APP_UV) ruff format .
+.PHONY: lint-back-ruff-format
+
+lint-back-ruff-check: ## lint back-end python sources with ruff
+	@echo 'lint-back:ruff-check started…'
+	@$(COMPOSE_RUN_APP_UV) ruff check . --fix
+.PHONY: lint-back-ruff-check
+
+lint-back-ty-check: ## lint back-end python sources with ty
+	@echo 'lint-back:ty-check started…'
+	@$(COMPOSE_RUN_APP_UV) ty check
+.PHONY: lint-back-ty-check
+
+lint-client: ## lint client python sources
+lint-client: \
+  lint-client-ruff-format \
+  lint-client-ruff-check \
+  lint-client-ty-check
+.PHONY: lint-client
+
+lint-client-ruff-format: ## format client python sources with ruff
+	@echo 'lint-client:ruff-format started…'
+	@$(CLIENT_UV_RUN) ruff format .
+.PHONY: lint-client-ruff-format
+
+lint-client-ruff-check: ## lint client python sources with ruff
+	@echo 'lint-client:ruff-check started…'
+	@$(CLIENT_UV_RUN) ruff check . --fix
+.PHONY: lint-client-ruff-check
+
+lint-client-ty-check: ## lint client python sources with ty
+	@echo 'lint-client:ty-check started…'
+	@$(CLIENT_UV_RUN) ty check
+.PHONY: lint-client-ty-check
+
+test: ## run project tests
+test: \
+  test-back \
+  test-client
+.PHONY: test
+
+test-back: ## run back-end tests
+	bin/pytest
+.PHONY: test-back
+
+test-back-parallel: ## run all back-end tests in parallel
+	bin/pytest -n auto
+.PHONY: test-back-parallel
+
+test-client: ## run client tests 
+	$(CLIENT_UV_RUN) pytest
+.PHONY: test-client
+
 # -- Backend
+#
 demo: ## flush db then create a demo for load testing purpose
 	@$(MAKE) resetdb
 	@$(MANAGE) create_demo
 .PHONY: demo
-
-# Nota bene: Black should come after isort just in case they don't agree...
-lint: ## lint back-end python sources
-lint: \
-  lint-ruff-format \
-  lint-ruff-check \
-  lint-ty-check
-.PHONY: lint
-
-lint-ruff-format: ## format back-end python sources with ruff
-	@echo 'lint:ruff-format started…'
-	@$(COMPOSE_RUN_APP_UV) ruff format .
-.PHONY: lint-ruff-format
-
-lint-ruff-check: ## lint back-end python sources with ruff
-	@echo 'lint:ruff-check started…'
-	@$(COMPOSE_RUN_APP_UV) ruff check . --fix
-.PHONY: lint-ruff-check
-
-lint-ty-check: ## lint back-end python sources with ty
-	@echo 'lint:ty-check started…'
-	@$(COMPOSE_RUN_APP_UV) ty check
-.PHONY: lint-ty-check
-
-test: ## run project tests
-	@$(MAKE) test-back-parallel
-.PHONY: test
-
-test-back: ## run back-end tests
-	@args="$(filter-out $@,$(MAKECMDGOALS))" && \
-	bin/pytest $${args:-${1}}
-.PHONY: test-back
-
-test-back-parallel: ## run all back-end tests in parallel
-	@args="$(filter-out $@,$(MAKECMDGOALS))" && \
-	bin/pytest -n auto $${args:-${1}}
-.PHONY: test-back-parallel
 
 makemigrations:  ## run django makemigrations for the menshen project.
 	@echo -e "$(BOLD)Running makemigrations$(RESET)"
