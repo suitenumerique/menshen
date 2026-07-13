@@ -12,8 +12,7 @@ from rest_framework.views import APIView
 from .authentication import ServiceProviderBasicAuthentication
 from .models import ExchangedToken
 from .permissions import IsServiceProviderAuthenticated
-from .serializers import TokenRevocationSerializer
-from .services.introspection import TokenExchangeIntrospectionService
+from .services.introspection import IntrospectionService
 from .services.request import RequestService
 from .structs import (
     IntrospectionRequest,
@@ -128,19 +127,14 @@ class TokenIntrospectionView(APIView):
         #
         # This is a temporary parsing solution preparing the django-bolt migration
         try:
-            token_introspection_request = msgspec.json.decode(
-                request.body, type=IntrospectionRequest
-            )
+            introspection_request = msgspec.json.decode(request.body, type=IntrospectionRequest)
         except msgspec.ValidationError:
             return Response(
                 IntrospectionResponse(active=False).to_dict(),
                 status=status.HTTP_200_OK,
             )
-        token_exchange_introspection_service = TokenExchangeIntrospectionService(
-            service=source_service, request=token_introspection_request
-        )
-        introspection_response: IntrospectionResponse = (
-            token_exchange_introspection_service.generate_introspection_response()
+        introspection_response = IntrospectionService.introspect(
+            introspection_request.token, source_service.audience_id
         )
 
         return Response(introspection_response.to_dict(), status=status.HTTP_200_OK)

@@ -63,5 +63,5 @@ class TokenExchangeInvalidActionError(APIException):
     default_code = "invalid_action"
 
 
-class ExchangedTokenInstrospectionError(TokenExchangeError):
+class ExchangedTokenIntrospectionError(TokenExchangeError):
     """Exception raised when exchanged token introspection failed."""

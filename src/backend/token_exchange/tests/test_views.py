@@ -306,7 +306,7 @@ def test_introspect_view_with_unknown_token(target_api_client, caplog):
         )
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {"active": False}
-    assert "Introspected token not found." in caplog.messages
+    assert "Token not found." in caplog.messages
 
 
 @pytest.mark.django_db
@@ -346,7 +346,7 @@ def test_introspect_view_invalid_token(  # noqa: PLR0913
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {"active": False}
     assert (
-        f"Token introspected (invalid): token_jti={exchanged_token.subject_token_jti}, "
+        f"Token is invalid: token_jti={exchanged_token.subject_token_jti}, "
         f"type={token_type}, kid=N/A"
     ) in caplog.messages
 
@@ -368,9 +368,7 @@ def test_introspect_view_invalid_jwt_signature(target_api_client, target_service
         )
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {"active": False}
-    assert (
-        "Token introspected: JWT signature verification failed: wrong signature" in caplog.messages
-    )
+    assert "JWT signature verification failed (wrong signature)" in caplog.messages
 
 
 @pytest.mark.django_db
@@ -388,8 +386,7 @@ def test_introspect_view_invalid_audience(target_api_client, caplog):
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {"active": False}
     assert (
-        "'service:target' service tried to introspect an "
-        "exchanged token that is beyond its audience"
+        "'service:target' service tried to act on an exchanged token that is beyond its audience"
     ) in caplog.messages
 
 
