@@ -141,6 +141,6 @@ class TokenGenerator:
         try:
             MenshenJWTClaims.to_jwt_claims_registry().validate(decoded.claims)
         except ClaimError as exc:
-            raise ValueError(f"Invalid JWT claims: {exc}") from exc
+            raise ValueError(exc) from exc
 
         return decoded

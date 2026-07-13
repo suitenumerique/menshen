@@ -99,5 +99,5 @@ def test_token_generator_verify_jwt_invalid_claims(settings):
         expires_in=-1,
         kid=settings.TOKEN_EXCHANGE_JWT_CURRENT_KID,
     )
-    with pytest.raises(ValueError, match="Invalid JWT claims: expired_token: The token is expired"):
+    with pytest.raises(ValueError, match="expired_token: The token is expired"):
         TokenGenerator.verify_jwt(token)
