@@ -15,10 +15,10 @@ from token_exchange.enums import (
     TokenTypeEnum,
 )
 from token_exchange.structs import (
-    ExchangedTokenRevocationRequest,
     IntrospectionRequest,
     MenshenJWTClaims,
     MenshenStructMixin,
+    RevocationRequest,
     TokenExchangeJWTActClaim,
     TokenExchangeJWTClaims,
     TokenExchangeRequest,
@@ -342,7 +342,7 @@ def test_tokenexchangeresponse_struct_expires_in(settings):
     "token_request_struc",
     [
         IntrospectionRequest,
-        ExchangedTokenRevocationRequest,
+        RevocationRequest,
     ],
 )
 @pytest.mark.parametrize(
@@ -354,7 +354,7 @@ def test_tokenexchangeresponse_struct_expires_in(settings):
     ],
 )
 def test_token_request_struct_decoding(token_request_struc, token_type_hint):
-    """Test IntrospectionRequest & ExchangedTokenRevocationRequeststruct decoding."""
+    """Test IntrospectionRequest & RevocationRequest struct decoding."""
     token = secrets.token_urlsafe(32)
     payload = {
         "token": token,
@@ -379,7 +379,7 @@ def test_token_request_struct_decoding(token_request_struc, token_type_hint):
     "token_request_struc",
     [
         IntrospectionRequest,
-        ExchangedTokenRevocationRequest,
+        RevocationRequest,
     ],
 )
 def test_token_request_struct_with_invalid_token_type_hint(token_type_hint, token_request_struc):
@@ -408,7 +408,7 @@ def test_token_request_struct_with_invalid_token_type_hint(token_type_hint, toke
     "token_request_struc",
     [
         IntrospectionRequest,
-        ExchangedTokenRevocationRequest,
+        RevocationRequest,
     ],
 )
 def test_token_request_struct_invalid_token(token, token_request_struc):
@@ -427,7 +427,7 @@ def test_token_request_struct_invalid_token(token, token_request_struc):
     "token_request_struc",
     [
         IntrospectionRequest,
-        ExchangedTokenRevocationRequest,
+        RevocationRequest,
     ],
 )
 def test_token_request_struct_valid_access_token(token_request_struc):

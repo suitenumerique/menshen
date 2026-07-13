@@ -10,13 +10,14 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from .authentication import ServiceProviderBasicAuthentication
-from .models import ExchangedToken
 from .permissions import IsServiceProviderAuthenticated
 from .services.introspection import IntrospectionService
 from .services.request import RequestService
+from .services.revocation import RevocationService
 from .structs import (
     IntrospectionRequest,
     IntrospectionResponse,
+    RevocationRequest,
     TokenExchangeRequest,
 )
 
@@ -160,34 +161,20 @@ class TokenRevocationView(APIView):
 
         Accepts a token and revokes it.
         """
-        # Validate request
-        serializer = TokenRevocationSerializer(data=request.data)
-        if not serializer.is_valid():
+        # Retrieve authenticated service provider
+        source_service = request.user
+
+        # !!!!!!!!!!!!
+        # EXPERIMENTAL
+        # !!!!!!!!!!!!
+        #
+        # This is a temporary parsing solution preparing the django-bolt migration
+        try:
+            token_revocation_request = msgspec.json.decode(request.body, type=RevocationRequest)
+        except msgspec.ValidationError:
             # RFC 7009: Return 200 even for invalid requests
             return Response(status=status.HTTP_200_OK)
 
-        token = serializer.validated_data["token"]
-
-        # Look up the token
-        try:
-            exchanged_token = ExchangedToken.objects.get(
-                token=token,
-            )
-        except ExchangedToken.DoesNotExist:
-            # RFC 7009: Silent success even if token doesn't exist
-            logger.info("Token revocation attempted: token not found")
-            return Response(status=status.HTTP_200_OK)
-
-        # Revoke the token
-        exchanged_token.revoke()
-
-        logger.info(
-            "Token revoked: token_jti=%s, sub=%s, email=%s, type=%s, audiences=%s",
-            exchanged_token.subject_token_jti,
-            exchanged_token.subject_sub,
-            exchanged_token.subject_email,
-            exchanged_token.token_type,
-            exchanged_token.audiences,
-        )
+        RevocationService.revoke(token_revocation_request.token, source_service.audience_id)
 
         return Response(status=status.HTTP_200_OK)

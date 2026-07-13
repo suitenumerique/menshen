@@ -65,3 +65,7 @@ class TokenExchangeInvalidActionError(APIException):
 
 class ExchangedTokenIntrospectionError(TokenExchangeError):
     """Exception raised when exchanged token introspection failed."""
+
+
+class ExchangedTokenRevocationError(TokenExchangeError):
+    """Exception raised when echanged token revocation failed."""

@@ -316,9 +316,7 @@ class IntrospectionRequest(msgspec.Struct, MenshenStructMixin, forbid_unknown_fi
     token_type_hint: TokenExchangeTokenTypeHint | None = None
 
 
-class ExchangedTokenRevocationRequest(
-    msgspec.Struct, MenshenStructMixin, forbid_unknown_fields=True
-):
+class RevocationRequest(msgspec.Struct, MenshenStructMixin, forbid_unknown_fields=True):
     """
     Exchanged token revocation request.
 
