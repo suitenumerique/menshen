@@ -1,11 +1,13 @@
 """Menshen: services:request for the token_exchange application."""
 
 import logging
-from functools import cached_property
+from collections.abc import Callable
+from datetime import timedelta
 
 from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
 from django.db.models import F
+from django.utils import timezone
 from django.utils.module_loading import import_string
 from lasuite.oidc_resource_server.backend import ResourceServerBackend
 from requests import RequestException
@@ -26,6 +28,7 @@ from ..exceptions import (
 )
 from ..models import (
     ActionScopeGrant,
+    ExchangedToken,
     ScopeGrant,
     TokenExchangeRule,
 )
@@ -41,68 +44,17 @@ from .token import TokenGenerator
 logger = logging.getLogger(__name__)
 
 
-class TokenExchangeRequestService:
+class RequestService:
     """
     Token exchange request service.
 
     Use this service to generate an exchange token given a token exchange request.
     """
 
-    def __init__(self, source_audience: str, request: TokenExchangeRequest) -> None:
-        """
-        Initialize the service.
+    kid: str = settings.TOKEN_EXCHANGE_JWT_CURRENT_KID
 
-        Args:
-            source_audience: audience from the source service performing the token exchange request
-            request: the token exchange request
-
-        """
-        self.source_audience: str = source_audience
-        self.request: TokenExchangeRequest = request
-        self.requested_audiences: list = (
-            request.audiences if request.audience else [source_audience]
-        )
-        self.grants: list[MenshenJWTGrantClaim] = []
-        self.kid: str = settings.TOKEN_EXCHANGE_JWT_CURRENT_KID
-        self.audiences: list[str] = (
-            self.requested_audiences
-            if settings.TOKEN_EXCHANGE_MULTI_AUDIENCES_ALLOWED
-            else self.requested_audiences[:1]
-        )
-
-    @cached_property
-    def user_info(self) -> IntrospectionResponse:
-        """Get subject token introspection response."""
-        return self._introspect_subject_token()
-
-    @property
-    def granted_scopes(self) -> set[str]:
-        """Get granted scopes from grants."""
-        return {grant.scope for grant in self.grants}
-
-    @cached_property
-    def rules(self) -> list[TokenExchangeRule]:
-        """Get active rules associated with the source and target audiences."""
-        return list(
-            TokenExchangeRule.objects.filter(
-                source_service__audience_id=self.source_audience,
-                target_service__audience_id__in=self.requested_audiences,
-                is_active=True,
-            ).select_related("target_service")
-        )
-
-    @cached_property
-    def introspection_backend(self) -> ResourceServerBackend:
-        """Return the resource server backend class based on the settings."""
-        backend_class = import_string(settings.OIDC_RS_BACKEND_CLASS)
-        backend = backend_class()
-        # Prevent backend from enforcing scopes
-        backend._scopes = [  # noqa: SLF001
-            "openid"
-        ]
-        return backend
-
-    def _validate_target(self) -> None:
+    @staticmethod
+    def _validate_target(requested_audiences: list[str], rules: list) -> None:
         """
         Validate target service given source service associated rules and requested audiences.
 
@@ -114,23 +66,31 @@ class TokenExchangeRequestService:
             TokenExchangeInvalidTargetError: if target service is invalid (see above).
 
         """
-        rules_audiences = {rule.target_service.audience_id for rule in self.rules}
+        rules_audiences = {rule.target_service.audience_id for rule in rules}
         if not rules_audiences:
-            logger.error(
-                "Only unknown audience(s) requested: %s", ", ".join(self.requested_audiences)
-            )
+            logger.error("Only unknown audience(s) requested: %s", ", ".join(requested_audiences))
             raise TokenExchangeInvalidTargetError("Only unknown audience(s) requested.")
 
-        if unknown_audiences := (set(self.requested_audiences) - rules_audiences):
+        if unknown_audiences := (set(requested_audiences) - rules_audiences):
             logger.error("Unknown audience(s) requested: %s", ", ".join(unknown_audiences))
             raise TokenExchangeInvalidTargetError("Unknown audience(s) requested.")
 
-    def _introspect_subject_token(self) -> IntrospectionResponse:
+    @classmethod
+    def _introspection_backend(cls) -> ResourceServerBackend:
+        """Cache the introspection backend loading (given configuration)."""
+        # Get configured introspection backend
+        introspection_backend = import_string(settings.OIDC_RS_BACKEND_CLASS)()
+        # Prevent backend from enforcing scopes
+        introspection_backend._scopes = [  # noqa: SLF001
+            "openid"
+        ]
+        return introspection_backend
+
+    @classmethod
+    def _introspect_subject_token(cls, token: str, source_audience: str) -> IntrospectionResponse:
         """Introspect the token exchange request subject token."""
         try:
-            user_info = self.introspection_backend.get_user_info_with_introspection(
-                self.request.subject_token
-            )
+            user_info = cls._introspection_backend().get_user_info_with_introspection(token)
         except RequestException as exc:
             raise TokenExchangeResourceServerIntrospectionError(
                 "Failed to introspect subject token."
@@ -146,11 +106,11 @@ class TokenExchangeRequestService:
         )
 
         # Check the user audience is the same as the requesting service
-        if getattr(introspection_response, settings.OIDC_RS_AUDIENCE_CLAIM) != self.source_audience:
+        if getattr(introspection_response, settings.OIDC_RS_AUDIENCE_CLAIM) != source_audience:
             logger.error(
                 "Introspected token audience is different from requesting service: %s, %s",
                 getattr(introspection_response, settings.OIDC_RS_AUDIENCE_CLAIM),
-                self.source_audience,
+                source_audience,
             )
             raise SuspiciousOperation()
 
@@ -163,19 +123,22 @@ class TokenExchangeRequestService:
 
         return introspection_response
 
-    def _validate_pure_scopes(self) -> None:
+    @staticmethod
+    def _validate_pure_scopes(
+        requested_scopes: set[str],
+        requested_audiences: list[str],
+        rules: list[TokenExchangeRule],
+        user_scopes: list[str],
+    ) -> list[MenshenJWTGrantClaim]:
         """Validate requested scopes that are not actions."""
-        # If no scope is specifically required, we switch to "best-effort" mode by returning
-        # the same scopes as the subject token and ignoring the ones not allowed.
-        requested_scopes = set(self.request.scopes or self.user_info.scopes)
         requested_accesses = {
             f"{audience_id}:{requested_scope}"
-            for audience_id in self.requested_audiences
+            for audience_id in requested_audiences
             for requested_scope in requested_scopes
         }
 
         scope_grants = ScopeGrant.objects.filter(
-            rule__in=self.rules, source_scope__in=self.user_info.scopes
+            rule__in=rules, source_scope__in=user_scopes
         ).annotate(
             audience_id=F("rule__target_service__audience_id"),
         )
@@ -193,9 +156,10 @@ class TokenExchangeRequestService:
             )
             raise TokenExchangeInvalidScopesError("You cannot request more scope than rules allow.")
 
+        grants: list[MenshenJWTGrantClaim] = []
         for requested_access in requested_accesses:
             scope_grant = rules_accesses[requested_access]
-            self.grants.append(
+            grants.append(
                 MenshenJWTGrantClaim(
                     audience_id=scope_grant.audience_id,
                     scope=scope_grant.granted_scope,
@@ -204,19 +168,25 @@ class TokenExchangeRequestService:
                     else None,
                 )
             )
+        return grants
 
-    def _validate_scope_action(self) -> None:
+    @staticmethod
+    def _validate_scope_action(
+        requested_scopes: set[str],
+        requested_audiences: list[str],
+        rules: list[TokenExchangeRule],
+        user_scopes: list[str],
+    ) -> list[MenshenJWTGrantClaim]:
         """Validate requested action scope."""
-        requested_scopes = set(self.request.scopes or self.user_info.scopes)
         requested_accesses = {
             f"{audience_id}:{requested_scope}"
-            for audience_id in self.requested_audiences
+            for audience_id in requested_audiences
             for requested_scope in requested_scopes
         }
 
         action_grants = ActionScopeGrant.objects.filter(
-            action__permissions__rule__in=self.rules,
-            target_service__audience_id__in=self.requested_audiences,
+            action__permissions__rule__in=rules,
+            target_service__audience_id__in=requested_audiences,
         ).select_related("action", "target_service")
         rules_accesses: dict = {
             f"{action_grant.target_service.audience_id}:{action_grant.action.name}": action_grant
@@ -241,9 +211,7 @@ class TokenExchangeRequestService:
         }
 
         # Check if user has required source scope for this action
-        if required_source_scopes and not required_source_scopes.issubset(
-            set(self.user_info.scopes)
-        ):
+        if required_source_scopes and not required_source_scopes.issubset(set(user_scopes)):
             logger.error(
                 "Missing required source scope(s): %s",
                 ",".join(required_source_scopes - requested_scopes),
@@ -252,9 +220,10 @@ class TokenExchangeRequestService:
                 "All required source scopes are not satisfied for this action."
             )
 
+        grants: list[MenshenJWTGrantClaim] = []
         for requested_access in requested_accesses:
             action_grant = rules_accesses[requested_access]
-            self.grants.append(
+            grants.append(
                 MenshenJWTGrantClaim(
                     audience_id=action_grant.target_service.audience_id,
                     scope=action_grant.granted_scope,
@@ -263,26 +232,37 @@ class TokenExchangeRequestService:
                     else None,
                 )
             )
+        return grants
 
-    def _validate_scopes(self):
+    @classmethod
+    def _validate_scopes(
+        cls,
+        requested_scopes: set[str],
+        requested_audiences: list[str],
+        rules: list[TokenExchangeRule],
+        user_scopes: list[str],
+        is_action: bool = False,
+    ) -> list[MenshenJWTGrantClaim]:
         """Validate scopes globally (pure scopes or actions)."""
-        if self.request.action:
-            self._validate_scope_action()
-        else:
-            self._validate_pure_scopes()
+        validation_fn: Callable = cls._validate_pure_scopes
+        if is_action:
+            validation_fn = cls._validate_scope_action
 
-        # If action was requested, validate it's granted
-        if not len(self.grants):
-            missing_actions = ",".join(self.request.scopes)
-            logger.error("Requested action '%s' cannot be granted", missing_actions)
-            raise TokenExchangeInvalidActionError(
-                f"Requested action '{missing_actions}' cannot be granted."
-            )
+        return validation_fn(
+            requested_scopes,
+            requested_audiences,
+            rules,
+            user_scopes,
+        )
 
-    def _generate_exchange_token(
-        self,
+    @classmethod
+    def _generate_exchange_token(  # noqa: PLR0913
+        cls,
         token_type: AllowedRequestedTokenTypeEnum,
+        user_info: IntrospectionResponse,
         scope: str,
+        audiences: list[str],
+        grants: list[MenshenJWTGrantClaim],
         expires_in: int,
     ) -> str:
         """Generate an exchange token given a token exchange request."""
@@ -290,19 +270,19 @@ class TokenExchangeRequestService:
             case TokenTypeEnum.ACCESS_TOKEN:
                 return TokenGenerator.generate_opaque_token()
             case TokenTypeEnum.JWT:
-                if not self.kid:
+                if not cls.kid:
                     raise TokenExchangeConfigurationError("JWT signing key is not configured.")
                 try:
                     return TokenGenerator.generate_jwt(
                         # user_info.sub cannot be None (enforced during instrospection)
-                        sub=self.user_info.sub,  # ty: ignore
-                        email=self.user_info.email,
-                        audiences=self.audiences,
+                        sub=user_info.sub,  # ty: ignore
+                        email=user_info.email,
+                        audiences=audiences,
                         scope=scope,
                         expires_in=expires_in,
                         may_act=None,  # TODO: Parse from actor_token if needed  # noqa: FIX002
-                        kid=self.kid,
-                        grants=self.grants,
+                        kid=cls.kid,
+                        grants=grants,
                     )
                 except ValueError as exc:
                     raise TokenExchangeIssuingError("An error occurred while issuing JWT.") from exc
@@ -311,29 +291,99 @@ class TokenExchangeRequestService:
                     "Configured request token type is not supported."
                 )
 
-    def generate_exchange_response(self) -> MenshenTokenExchangeResponse:
-        """Generate an exchange response."""
-        self._validate_target()
-        self._validate_scopes()
-
-        expires_in: int = (
-            int(min(rule.exchanged_token_duration.total_seconds() for rule in self.rules))
-            or settings.TOKEN_EXCHANGE_DEFAULT_EXPIRES_IN
+    @classmethod
+    def _save(
+        cls,
+        request: TokenExchangeRequest,
+        response: MenshenTokenExchangeResponse,
+        user_info: IntrospectionResponse,
+        audiences: list[str],
+    ) -> ExchangedToken:
+        """Save exchanged token."""
+        expires_at = timezone.now() + timedelta(seconds=response.expires_in)
+        return ExchangedToken.objects.create(
+            token=response.access_token,
+            token_type=response.issued_token_type,
+            jwt_kid=cls.kid,
+            subject_sub=user_info.sub,
+            subject_email=user_info.email,
+            audiences=audiences,
+            scope=response.scope,
+            grants=[grant.to_dict() for grant in response.grants],
+            expires_at=expires_at,
+            actor_token=request.actor_token if request.actor_token is not None else "",
+            may_act=None,  # TODO: Parse from actor_token if needed  # noqa: FIX002
+            subject_token_jti=user_info.jti,
+            subject_token_scope=user_info.scope,
         )
-        scope = " ".join(sorted(self.granted_scopes))
+
+    @classmethod
+    def exchange(
+        cls, source_audience: str, request: TokenExchangeRequest, persist: bool = False
+    ) -> tuple[MenshenTokenExchangeResponse, ExchangedToken | None]:
+        """Generate a token exchange response."""
+        requested_audiences: list[str] = (
+            request.audiences if request.audience else [source_audience]
+        )
+        rules = list(
+            TokenExchangeRule.objects.filter(
+                source_service__audience_id=source_audience,
+                target_service__audience_id__in=requested_audiences,
+                is_active=True,
+            ).select_related("target_service")
+        )
+
+        # Validate target service given requested audiences and defined rules
+        cls._validate_target(requested_audiences, rules)
+
+        # Introspect request subject token
+        user_info: IntrospectionResponse = cls._introspect_subject_token(
+            request.subject_token, source_audience
+        )
+
+        # If no scope is specifically required, we switch to "best-effort" mode by returning
+        # the same scopes as the subject token and ignoring the ones not allowed.
+        requested_scopes = set(request.scopes or user_info.scopes)
+        grants = cls._validate_scopes(
+            requested_scopes,
+            requested_audiences,
+            rules,
+            user_info.scopes,
+            is_action=request.action is not None,
+        )
+
+        # Prepare exchange token parameters
         requested_token_type = (
-            self.request.requested_token_type
-            if self.request.requested_token_type
+            request.requested_token_type
+            if request.requested_token_type
             else AllowedRequestedTokenTypeEnum(TokenTypeEnum.ACCESS_TOKEN)
         )
-        access_token: str = self._generate_exchange_token(requested_token_type, scope, expires_in)
-
-        return MenshenTokenExchangeResponse(
+        scope = " ".join(sorted({grant.scope for grant in grants}))
+        audiences: list[str] = (
+            requested_audiences
+            if settings.TOKEN_EXCHANGE_MULTI_AUDIENCES_ALLOWED
+            else requested_audiences[:1]
+        )
+        expires_in: int = (
+            int(min(rule.exchanged_token_duration.total_seconds() for rule in rules))
+            or settings.TOKEN_EXCHANGE_DEFAULT_EXPIRES_IN
+        )
+        access_token: str = cls._generate_exchange_token(
+            requested_token_type, user_info, scope, audiences, grants, expires_in
+        )
+        response = MenshenTokenExchangeResponse(
             access_token=access_token,
             issued_token_type=requested_token_type,
             token_type=TokenExchangeResponseTokenType.BEARER,
             expires_in=expires_in,
             scope=scope,
             refresh_token=None,
-            grants=self.grants,
+            grants=grants,
         )
+
+        if not persist:
+            return (response, None)
+
+        # Save exchanged token to database
+        exchanged_token = cls._save(request, response, user_info, audiences)
+        return (response, exchanged_token)

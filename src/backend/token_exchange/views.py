@@ -1,10 +1,8 @@
 """Menshen: views for the token_exchange application."""
 
 import logging
-from datetime import timedelta
 
 import msgspec
-from django.utils import timezone
 from rest_framework import status
 from rest_framework.parsers import FormParser, JSONParser
 from rest_framework.response import Response
@@ -12,17 +10,14 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from .authentication import ServiceProviderBasicAuthentication
-from .models import (
-    ExchangedToken,
-)
+from .models import ExchangedToken
 from .permissions import IsServiceProviderAuthenticated
 from .serializers import TokenRevocationSerializer
 from .services.introspection import TokenExchangeIntrospectionService
-from .services.request import TokenExchangeRequestService
+from .services.request import RequestService
 from .structs import (
     IntrospectionRequest,
     IntrospectionResponse,
-    MenshenTokenExchangeResponse,
     TokenExchangeRequest,
 )
 
@@ -82,47 +77,23 @@ class TokenExchangeView(APIView):
             )
 
         # Forge token exchange response
-        token_exchange_request_service = TokenExchangeRequestService(
-            source_audience=source_service.audience_id, request=token_exchange_request
-        )
-        exchange_response: MenshenTokenExchangeResponse = (
-            token_exchange_request_service.generate_exchange_response()
-        )
-
-        # Create ExchangedToken record
-        expires_at = timezone.now() + timedelta(seconds=exchange_response.expires_in)
-
-        exchanged_token = ExchangedToken.objects.create(
-            token=exchange_response.access_token,
-            token_type=exchange_response.issued_token_type,
-            jwt_kid=token_exchange_request_service.kid,
-            subject_sub=token_exchange_request_service.user_info.sub,
-            subject_email=token_exchange_request_service.user_info.email,
-            audiences=token_exchange_request_service.audiences,
-            scope=exchange_response.scope,
-            grants=[grant.to_dict() for grant in exchange_response.grants],
-            expires_at=expires_at,
-            actor_token=token_exchange_request.actor_token
-            if token_exchange_request.actor_token is not None
-            else "",
-            may_act=None,  # TODO: Parse from actor_token if needed  # noqa: FIX002
-            subject_token_jti=token_exchange_request_service.user_info.jti,
-            subject_token_scope=token_exchange_request_service.user_info.scope,
+        exchange_response, exchanged_token = RequestService.exchange(
+            source_audience=source_service.audience_id, request=token_exchange_request, persist=True
         )
 
         # Log the exchange
         logger.info(
             "Token exchanged: sub=%s, email=%s, audiences=%s, token_type=%s, "
             "expires_at=%s, subject_jti=%s, kid=%s, scopes_granted=%s, grants=%s",
-            exchanged_token.subject_sub,
-            exchanged_token.subject_email,
-            exchanged_token.audiences,
-            exchanged_token.token_type,
-            exchanged_token.expires_at,
-            exchanged_token.subject_token_jti,
-            exchanged_token.jwt_kid,
-            exchanged_token.scope,
-            exchanged_token.grants,
+            exchanged_token.subject_sub,  # ty: ignore
+            exchanged_token.subject_email,  # ty: ignore
+            exchanged_token.audiences,  # ty: ignore
+            exchanged_token.token_type,  # ty: ignore
+            exchanged_token.expires_at,  # ty: ignore
+            exchanged_token.subject_token_jti,  # ty: ignore
+            exchanged_token.jwt_kid,  # ty: ignore
+            exchanged_token.scope,  # ty: ignore
+            exchanged_token.grants,  # ty: ignore
         )
 
         return Response(exchange_response.to_dict(), status=status.HTTP_200_OK)
