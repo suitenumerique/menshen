@@ -143,7 +143,7 @@ class RequestService:
             audience_id=F("rule__target_service__audience_id"),
         )
         rules_accesses: dict = {
-            f"{scope_grant.audience_id}:{scope_grant.granted_scope}": scope_grant
+            f"{scope_grant.audience_id}:{scope_grant.granted_scope}": scope_grant  # ty: ignore
             for scope_grant in scope_grants
         }
 
@@ -204,7 +204,7 @@ class RequestService:
         required_source_scopes = {
             scope
             for action_grant in action_grants
-            for scope in action_grant.action.permissions.values_list(
+            for scope in action_grant.action.permissions.values_list(  # ty: ignore
                 "required_source_scope", flat=True
             )
             if len(scope)

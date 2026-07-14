@@ -8,6 +8,15 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 
 ## [Unreleased]
 
+### Changed 
+
+#### Dependencies
+
+- Upgrade `django-lasuite` to `0.0.27`
+- Upgrade `drf-spectacular` to `0.30.0`
+- Upgrade `sentry-sdk` to `2.64.0`
+- Upgrade `uvicorn` to `0.50.2`
+
 ## [0.1.0] - 2026-07-14
 
 ### Added
