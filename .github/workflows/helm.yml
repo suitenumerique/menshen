@@ -16,7 +16,7 @@ jobs:
   helmfile-lint:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/helmfile/helmfile:v1.5.2
+      image: ghcr.io/helmfile/helmfile:v1.7.0
     steps:
 
     - name: Checkout repository
