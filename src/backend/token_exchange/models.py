@@ -89,6 +89,11 @@ class ServiceProvider(BaseModel):
         verbose_name = _("service provider")
         verbose_name_plural = _("service providers")
 
+    def __init__(self, *args, **kwargs) -> None:
+        """Add extra instance attribute for user-like compatibility."""
+        super().__init__(*args, **kwargs)
+        self.is_authenticated: bool = False
+
     def __str__(self) -> str:
         return self.name
 
