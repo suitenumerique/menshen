@@ -10,7 +10,7 @@ from requests import HTTPError
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from token_exchange.enums import TokenTypeEnum
+from token_exchange.enums import TokenType
 from token_exchange.factories import (
     ExchangedTokenFactory,
     ServiceProviderFactory,
@@ -128,7 +128,7 @@ def test_exchange_view_with_introspection_error(source_api_client, monkeypatch, 
     payload = {
         "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
         "subject_token": "fake-access-token",
-        "subject_token_type": TokenTypeEnum.ACCESS_TOKEN,
+        "subject_token_type": TokenType.ACCESS_TOKEN,
         "audience": "service:target",
     }
 
@@ -175,8 +175,8 @@ def test_exchange_view_with_inactive_rule(source_api_client, source_service, cap
     ("subject_token", "subject_token_type"),
     [
         # Could be fake since it won't be introspected
-        ("fake-access-token", TokenTypeEnum.ACCESS_TOKEN),
-        ("{}", TokenTypeEnum.JWT),
+        ("fake-access-token", TokenType.ACCESS_TOKEN),
+        ("{}", TokenType.JWT),
     ],
 )
 def test_exchange_view_with_subject_token_type(
@@ -218,7 +218,7 @@ def test_exchange_view_with_subject_token_type(
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     "requested_token_type",
-    [TokenTypeEnum.ACCESS_TOKEN, TokenTypeEnum.JWT],
+    [TokenType.ACCESS_TOKEN, TokenType.JWT],
 )
 def test_exchange_view_with_requested_token_type(requested_token_type, source_api_client):
     """Test the TokenExchangeView with different requested token types."""

@@ -13,9 +13,9 @@ from lasuite.oidc_resource_server.backend import ResourceServerBackend
 from requests import RequestException
 
 from ..enums import (
-    AllowedRequestedTokenTypeEnum,
+    AllowedRequestedTokenType,
     TokenExchangeResponseTokenType,
-    TokenTypeEnum,
+    TokenType,
 )
 from ..exceptions import (
     TokenExchangeConfigurationError,
@@ -258,7 +258,7 @@ class RequestService:
     @classmethod
     def _generate_exchange_token(  # noqa: PLR0913
         cls,
-        token_type: AllowedRequestedTokenTypeEnum,
+        token_type: AllowedRequestedTokenType,
         user_info: IntrospectionResponse,
         scope: str,
         audiences: list[str],
@@ -267,9 +267,9 @@ class RequestService:
     ) -> str:
         """Generate an exchange token given a token exchange request."""
         match token_type:
-            case TokenTypeEnum.ACCESS_TOKEN:
+            case TokenType.ACCESS_TOKEN:
                 return TokenGenerator.generate_opaque_token()
-            case TokenTypeEnum.JWT:
+            case TokenType.JWT:
                 if not cls.kid:
                     raise TokenExchangeConfigurationError("JWT signing key is not configured.")
                 try:
@@ -356,7 +356,7 @@ class RequestService:
         requested_token_type = (
             request.requested_token_type
             if request.requested_token_type
-            else AllowedRequestedTokenTypeEnum(TokenTypeEnum.ACCESS_TOKEN)
+            else AllowedRequestedTokenType(TokenType.ACCESS_TOKEN)
         )
         scope = " ".join(sorted({grant.scope for grant in grants}))
         audiences: list[str] = (

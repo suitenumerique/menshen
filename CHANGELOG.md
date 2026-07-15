@@ -10,6 +10,8 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 
 ### Changed 
 
+- Remove enums `Enum` suffix
+
 #### Dependencies
 
 - Upgrade `django-lasuite` to `0.0.27`

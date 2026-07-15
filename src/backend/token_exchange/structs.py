@@ -12,12 +12,12 @@ from django.utils import timezone
 from joserfc.jwt import ClaimsOption, JWTClaimsRegistry
 
 from .enums import (
-    AllowedActorTokenTypeEnum,
-    AllowedRequestedTokenTypeEnum,
-    AllowedSubjectTokenTypeEnum,
+    AllowedActorTokenType,
+    AllowedRequestedTokenType,
+    AllowedSubjectTokenType,
     TokenExchangeResponseTokenType,
     TokenExchangeTokenTypeHint,
-    TokenTypeEnum,
+    TokenType,
 )
 
 
@@ -167,7 +167,7 @@ class IntrospectionResponse(
     iat: int | None = None
     iss: str | None = None
     aud: str | None = None
-    token_type: TokenTypeEnum | None = None
+    token_type: TokenType | None = None
 
     # Optionnal
     email: str | None = None
@@ -199,16 +199,16 @@ class TokenExchangeRequest(
     """
 
     subject_token: Annotated[str, msgspec.Meta(min_length=1)]
-    subject_token_type: AllowedSubjectTokenTypeEnum
+    subject_token_type: AllowedSubjectTokenType
     grant_type: Literal["urn:ietf:params:oauth:grant-type:token-exchange"] = (
         "urn:ietf:params:oauth:grant-type:token-exchange"
     )
     resource: str | None = None
     audience: str | None = None
     scope: str | None = None
-    requested_token_type: AllowedRequestedTokenTypeEnum | None = None
+    requested_token_type: AllowedRequestedTokenType | None = None
     actor_token: str | None = None
-    actor_token_type: AllowedActorTokenTypeEnum | None = None
+    actor_token_type: AllowedActorTokenType | None = None
 
     @property
     def audiences(self) -> list[str]:
@@ -288,7 +288,7 @@ class TokenExchangeResponse(
     """
 
     access_token: str
-    issued_token_type: AllowedRequestedTokenTypeEnum
+    issued_token_type: AllowedRequestedTokenType
     token_type: TokenExchangeResponseTokenType
     expires_in: Annotated[int, msgspec.Meta(le=settings.TOKEN_EXCHANGE_MAX_EXPIRES_IN)] = (
         settings.TOKEN_EXCHANGE_DEFAULT_EXPIRES_IN

@@ -5,7 +5,7 @@ from enum import StrEnum
 from django.conf import settings
 
 
-class TokenTypeEnum(StrEnum):
+class TokenType(StrEnum):
     """Token type identifier for RFC 8693."""
 
     ACCESS_TOKEN = "urn:ietf:params:oauth:token-type:access_token"  # noqa: S105
@@ -37,24 +37,24 @@ class TokenExchangeTokenTypeHint(StrEnum):
 #
 # Dynamic enums depending on project settings
 #
-AllowedRequestedTokenTypeEnum = StrEnum(
-    "AllowedRequestedTokenTypeEnum",
+AllowedRequestedTokenType = StrEnum(
+    "AllowedRequestedTokenType",
     {
-        TokenTypeEnum(type_).name: TokenTypeEnum(type_).value
+        TokenType(type_).name: TokenType(type_).value
         for type_ in settings.TOKEN_EXCHANGE_ALLOWED_REQUESTED_TOKEN_TYPES
     },
 )
-AllowedActorTokenTypeEnum = StrEnum(
-    "AllowedActorTokenTypeEnum",
+AllowedActorTokenType = StrEnum(
+    "AllowedActorTokenType",
     {
-        TokenTypeEnum(type_).name: TokenTypeEnum(type_).value
+        TokenType(type_).name: TokenType(type_).value
         for type_ in settings.TOKEN_EXCHANGE_ALLOWED_ACTOR_TOKEN_TYPES
     },
 )
-AllowedSubjectTokenTypeEnum = StrEnum(
-    "AllowedSubjectTokenTypeEnum",
+AllowedSubjectTokenType = StrEnum(
+    "AllowedSubjectTokenType",
     {
-        TokenTypeEnum(type_).name: TokenTypeEnum(type_).value
+        TokenType(type_).name: TokenType(type_).value
         for type_ in settings.TOKEN_EXCHANGE_ALLOWED_SUBJECT_TOKEN_TYPES
     },
 )
