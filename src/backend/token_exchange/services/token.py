@@ -3,6 +3,7 @@
 import secrets
 from datetime import timedelta
 from functools import cache
+from uuid import UUID
 
 from django.conf import settings
 from django.utils import timezone
@@ -11,7 +12,7 @@ from joserfc.errors import ClaimError, InvalidKeyIdError
 from joserfc.jwk import KeySet, RSAKey
 from joserfc.jwt import Token
 
-from token_exchange.structs import (
+from token_exchange.schemas import (
     MenshenJWTClaims,
     MenshenJWTGrantClaim,
     TokenExchangeJWTActClaim,
@@ -51,7 +52,7 @@ class TokenGenerator:
     @classmethod
     def generate_jwt(  # noqa: PLR0913
         cls,
-        sub: str,
+        sub: UUID | str,
         email: str | None,
         audiences: list[str],
         scope: str | list[str],
@@ -111,7 +112,7 @@ class TokenGenerator:
         }
 
         # Sign the JWT
-        token = jwt.encode(header, claims.to_dict(), cls.key_set)
+        token = jwt.encode(header, claims.model_dump(exclude_none=True), cls.key_set)
         return token.decode("utf-8") if isinstance(token, bytes) else token
 
     @classmethod

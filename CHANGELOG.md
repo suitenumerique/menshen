@@ -11,6 +11,7 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 ### Changed 
 
 - Remove enums `Enum` suffix
+- Switch from DRF to Django-Ninja API framework
 
 #### Dependencies
 

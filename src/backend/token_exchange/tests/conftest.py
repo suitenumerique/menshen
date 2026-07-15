@@ -4,8 +4,9 @@ import base64
 from uuid import uuid4
 
 import pytest
-from rest_framework.test import APIClient
+from ninja.testing import TestClient
 
+from token_exchange.api import api
 from token_exchange.factories import (
     ActionScopeFactory,
     ActionScopeGrantFactory,
@@ -81,25 +82,23 @@ def configure_token_exchange_fixture(db, target_service, source_target_rule) -> 
     TokenExchangeActionPermissionFactory(rule=source_target_rule, action=write_target_action)
 
 
-def token_exchange_api_client(service_provider: ServiceProvider) -> APIClient:
+def token_exchange_api_client(service_provider: ServiceProvider) -> TestClient:
     """Get TokenExchange API client logged in for a service provider."""
     credentials = ServiceProviderCredentialsFactory(service_provider=service_provider)
     encoded_credentials = base64.b64encode(
         bytes(f"{credentials.client_id}:{credentials.client_secret}", encoding="utf-8")
     )
-    client = APIClient()
-    client.credentials(HTTP_AUTHORIZATION=b"Basic " + encoded_credentials)
-    return client
+    return TestClient(api, headers={"Authorization": "Basic " + encoded_credentials.decode()})
 
 
 @pytest.fixture
-def source_api_client(configure_token_exchange) -> APIClient:
+def source_api_client(configure_token_exchange) -> TestClient:
     """Source server TX API client."""
     return token_exchange_api_client(ServiceProvider.objects.get(audience_id="service:source"))
 
 
 @pytest.fixture
-def target_api_client(configure_token_exchange) -> APIClient:
+def target_api_client(configure_token_exchange) -> TestClient:
     """Target server TX API client."""
     return token_exchange_api_client(ServiceProvider.objects.get(audience_id="service:target"))
 

@@ -71,7 +71,7 @@ def test_token_generator_generate_jwt(monkeypatch, settings):
         "kid": settings.TOKEN_EXCHANGE_JWT_CURRENT_KID,
         "typ": "JWT",
     }
-    assert validated.claims["act"] == {"act": None, "sub": "actor"}
+    assert validated.claims["act"] == {"sub": "actor"}
     assert validated.claims["aud"] == ["service0.example.org"]
     assert validated.claims["email"] == "john.doe@example.org"
     assert validated.claims["exp"] == now_as_timestamp + 30

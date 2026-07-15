@@ -1,34 +1,30 @@
 """Menshen: authentication backends for the token_exchange application."""
 
-from rest_framework.authentication import BasicAuthentication
-from rest_framework.exceptions import AuthenticationFailed
-from rest_framework.request import Request
+from django.http import HttpRequest
+from ninja.errors import AuthenticationError
+from ninja.security import HttpBasicAuth
 
 from .models import ServiceProviderCredentials
 
 
-class ServiceProviderBasicAuthentication(BasicAuthentication):
+class ServiceProviderBasicAuthentication(HttpBasicAuth):
     """
     Authentication backend for the token exchanges API endpoints.
 
     A Service Provider can authenticate to have access to the endpoints.
     """
 
-    www_authenticate_realm = "token-exchange"
-
-    def authenticate_credentials(self, userid: str, password: str, request: Request | None = None):
+    def authenticate(self, request: HttpRequest, username: str, password: str):
         """Authenticate a service provider."""
         try:
             credentials = ServiceProviderCredentials.objects.select_related("service_provider").get(
-                client_id=userid,
+                client_id=username,
                 client_secret=password,
             )
         except ServiceProviderCredentials.DoesNotExist as exc:
-            raise AuthenticationFailed("Service provider does not exist.") from exc
+            raise AuthenticationError(message="Service provider does not exist.") from exc
 
         if not credentials.is_active:
-            raise AuthenticationFailed("Service provider inactive or deleted.")
+            raise AuthenticationError(message="Service provider inactive or deleted.")
 
-        credentials.service_provider.is_authenticated = True
-
-        return (credentials.service_provider, None)
+        return credentials.service_provider

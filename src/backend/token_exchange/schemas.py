@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 from functools import cache
-from typing import Annotated, Literal, cast
+from typing import Annotated, Literal, Self
 from uuid import UUID, uuid4
 
-import msgspec
 from django.conf import settings
 from django.utils import timezone
 from joserfc.jwt import ClaimsOption, JWTClaimsRegistry
+from ninja import Field, Schema
+from pydantic import ConfigDict, PlainSerializer, field_validator, model_validator
+from pydantic_core import PydanticUndefined
 
 from .enums import (
     AllowedActorTokenType,
@@ -31,15 +33,7 @@ def str_to_list(value: str) -> list[str]:
     return out
 
 
-class MenshenStructMixin:
-    """Menshen's mixin that extends msgspect Struct class."""
-
-    def to_dict(self) -> dict:
-        """Convert Struct to a standard dict."""
-        return msgspec.to_builtins(self)
-
-
-class TokenExchangeJWTMayActClaim(msgspec.Struct, MenshenStructMixin):
+class TokenExchangeJWTMayActClaim(Schema):
     """
     JWT may_act claim.
 
@@ -53,7 +47,7 @@ class TokenExchangeJWTMayActClaim(msgspec.Struct, MenshenStructMixin):
     sub: str
 
 
-class TokenExchangeJWTActClaim(msgspec.Struct, MenshenStructMixin):
+class TokenExchangeJWTActClaim(Schema):
     """
     JWT act claim.
 
@@ -70,12 +64,7 @@ class TokenExchangeJWTActClaim(msgspec.Struct, MenshenStructMixin):
     act: TokenExchangeJWTActClaim | None = None
 
 
-class TokenExchangeJWTClaims(
-    msgspec.Struct,
-    MenshenStructMixin,
-    omit_defaults=True,
-    forbid_unknown_fields=True,
-):
+class TokenExchangeJWTClaims(Schema):
     """
     Token Exchange JWT claims.
 
@@ -89,41 +78,39 @@ class TokenExchangeJWTClaims(
     may_act: TokenExchangeJWTMayActClaim | None = None
 
 
-class MenshenJWTGrantClaimThrottling(
-    msgspec.Struct, MenshenStructMixin, forbid_unknown_fields=True
-):
+class MenshenJWTGrantClaimThrottling(Schema):
     """Menshen JWT grant claim throttling."""
 
     rate: str | None = None
 
 
-class MenshenJWTGrantClaim(
-    msgspec.Struct, MenshenStructMixin, forbid_unknown_fields=True, frozen=True
-):
+class MenshenJWTGrantClaim(Schema):
     """Menshen JWT grant claim."""
 
     audience_id: str
     scope: str
     throttle: MenshenJWTGrantClaimThrottling | None = None
 
+    model_config = ConfigDict(frozen=True)
 
-class MenshenJWTClaims(
-    TokenExchangeJWTClaims,
-    omit_defaults=True,
-    forbid_unknown_fields=True,
-    kw_only=True,
-):
+
+# Define a UUID serializer to maximize compatibility with various libraries that JSON encode
+# dictionnaries and are not able to deal with UUIDs.
+UUIDStr = Annotated[UUID, PlainSerializer(str, return_type=str)]
+
+
+class MenshenJWTClaims(TokenExchangeJWTClaims):
     """
     Menshen JWT claims.
 
     Inherits from standard JWT claims and Token Exchange claims.
     """
 
-    sub: str
+    sub: UUIDStr | str
     aud: list[str]
     exp: int
-    iat: int = msgspec.field(default_factory=lambda: int(timezone.now().timestamp()))
-    jti: UUID = msgspec.field(default_factory=uuid4)
+    iat: int = Field(default_factory=lambda: int(timezone.now().timestamp()))
+    jti: UUIDStr = Field(default_factory=uuid4)
 
     email: str | None = None
     grants: list[MenshenJWTGrantClaim] | None = None
@@ -133,34 +120,35 @@ class MenshenJWTClaims(
     def to_jwt_claims_registry(cls) -> JWTClaimsRegistry:
         """Convert claims to the joserfc's JWTClaimsRegistry spec."""
         options = {}
-        for field in cast(msgspec.inspect.StructType, msgspec.inspect.type_info(cls)).fields:
+        for name, field in cls.model_fields.items():
             claims = {
-                "essential": field.required
+                "essential": field.is_required()
                 or (
                     # Having a default factory with no default means
                     # that this field is essentiel
-                    field.default == msgspec.NODEFAULT and field.default_factory != msgspec.UNSET
+                    field.default_factory != PydanticUndefined
+                    and field.default == PydanticUndefined
                 ),
             }
-            if field.default != msgspec.NODEFAULT:
+            if field.default != PydanticUndefined:
                 claims["value"] = field.default
-            options[field.name] = ClaimsOption(**claims)
+            options[name] = ClaimsOption(**claims)
         return JWTClaimsRegistry(now=None, leeway=0, **options)
 
 
-class IntrospectionResponse(
-    msgspec.Struct,
-    MenshenStructMixin,
-    omit_defaults=True,
-    dict=True,
-):
-    """Introspection response."""
+class IntrospectionResponse(Schema):
+    """
+    Introspection response.
+
+    Reference:
+    https://www.rfc-editor.org/info/rfc7662/#section-2.2
+    """
 
     # Required
     active: bool
 
     # Recommended
-    sub: str | None = None
+    sub: UUID | str | None = None
     client_id: str | None = None
     scope: str | None = None
     exp: int | None = None
@@ -172,7 +160,7 @@ class IntrospectionResponse(
     # Optionnal
     email: str | None = None
     username: str | None = None
-    jti: str | None = None
+    jti: UUID | str | None = None
 
     @property
     def scopes(self) -> list[str]:
@@ -184,13 +172,20 @@ class IntrospectionResponse(
         """Access to audiences as a list of strings."""
         return str_to_list(self.aud) if self.aud else []
 
+    @field_validator("aud", mode="before")
+    @classmethod
+    def list_str_to_str(cls, value):
+        """Convert list of strings to strings."""
+        if not isinstance(value, list):
+            return value
+        if not all(isinstance(aud, str) for aud in value):
+            return value
+        return " ".join(value)
 
-class TokenExchangeRequest(
-    msgspec.Struct,
-    MenshenStructMixin,
-    forbid_unknown_fields=True,
-    dict=True,
-):
+    model_config = ConfigDict(frozen=True)
+
+
+class TokenExchangeRequest(Schema):
     """
     Token exchange request.
 
@@ -198,11 +193,9 @@ class TokenExchangeRequest(
     https://www.rfc-editor.org/info/rfc8693/#name-request
     """
 
-    subject_token: Annotated[str, msgspec.Meta(min_length=1)]
+    subject_token: str = Field(min_length=1)
     subject_token_type: AllowedSubjectTokenType
-    grant_type: Literal["urn:ietf:params:oauth:grant-type:token-exchange"] = (
-        "urn:ietf:params:oauth:grant-type:token-exchange"
-    )
+    grant_type: Literal["urn:ietf:params:oauth:grant-type:token-exchange"]
     resource: str | None = None
     audience: str | None = None
     scope: str | None = None
@@ -241,45 +234,32 @@ class TokenExchangeRequest(
             return None
         return self._actions[0]
 
-    def _validate_actions(self) -> None:
+    @model_validator(mode="after")
+    def validate_actions(self) -> Self:
         """Validate actions defined in the scope field."""
         if not self.scopes:
-            return
+            return self
 
         actions_count = len(self._actions)
         if actions_count > 1:
-            raise msgspec.ValidationError(
-                "Only one action scope is allowed per token exchange request"
-            )
+            raise ValueError("Only one action scope is allowed per token exchange request")
 
         has_action = actions_count > 0
         if has_action and len(self.scopes) > 1:
-            raise msgspec.ValidationError("Actions cannot be combined with other scopes")
+            raise ValueError("Actions cannot be combined with other scopes")
+        return self
 
-    def _validate_actor_token_requirements(self):
+    @model_validator(mode="after")
+    def validate_actor_token_requirements(self) -> Self:
         """When an actor token is provided, an actor token type should be defined."""
         if self.actor_token and not self.actor_token_type:
-            raise msgspec.ValidationError(
-                "An actor_token_type is required when actor_token is provided"
-            )
+            raise ValueError("An actor_token_type is required when actor_token is provided")
         if self.actor_token_type and not self.actor_token:
-            raise msgspec.ValidationError(
-                "An actor_token is required when actor_token_type is provided"
-            )
-
-    def __post_init__(self):
-        """Perform post initialization validation."""
-        self._validate_actions()
-        self._validate_actor_token_requirements()
+            raise ValueError("An actor_token is required when actor_token_type is provided")
+        return self
 
 
-class TokenExchangeResponse(
-    msgspec.Struct,
-    MenshenStructMixin,
-    omit_defaults=True,
-    forbid_unknown_fields=True,
-    kw_only=True,
-):
+class TokenExchangeResponse(Schema):
     """
     Token exchange response.
 
@@ -290,8 +270,9 @@ class TokenExchangeResponse(
     access_token: str
     issued_token_type: AllowedRequestedTokenType
     token_type: TokenExchangeResponseTokenType
-    expires_in: Annotated[int, msgspec.Meta(le=settings.TOKEN_EXCHANGE_MAX_EXPIRES_IN)] = (
-        settings.TOKEN_EXCHANGE_DEFAULT_EXPIRES_IN
+    expires_in: int = Field(
+        default=settings.TOKEN_EXCHANGE_DEFAULT_EXPIRES_IN,
+        le=settings.TOKEN_EXCHANGE_MAX_EXPIRES_IN,
     )
     scope: str | None = None
     refresh_token: str | None = None
@@ -303,7 +284,23 @@ class MenshenTokenExchangeResponse(TokenExchangeResponse):
     grants: list[MenshenJWTGrantClaim]
 
 
-class IntrospectionRequest(msgspec.Struct, MenshenStructMixin, forbid_unknown_fields=True):
+class BaseTokenRequest(Schema):
+    """Base token request."""
+
+    # When striped the token should be at least 32 characters long (opaque token)
+    token: str = Field(pattern=r"^\s*\S{32,}\s*$")
+    token_type_hint: TokenExchangeTokenTypeHint | None = None
+
+    @field_validator("token_type_hint", mode="before")
+    @classmethod
+    def reset_to_none(cls, value):
+        """Ignore unsupported token type hint (reset to None)."""
+        if value in TokenExchangeTokenTypeHint:
+            return value
+        return None
+
+
+class IntrospectionRequest(BaseTokenRequest):
     """
     Exchanged token introspection request.
 
@@ -311,19 +308,11 @@ class IntrospectionRequest(msgspec.Struct, MenshenStructMixin, forbid_unknown_fi
     https://www.rfc-editor.org/info/rfc7662/#section-2.1
     """
 
-    # When striped the token should be at least 32 characters long (opaque token)
-    token: Annotated[str, msgspec.Meta(pattern=r"^\s*\S{32,}\s*$")]
-    token_type_hint: TokenExchangeTokenTypeHint | None = None
 
-
-class RevocationRequest(msgspec.Struct, MenshenStructMixin, forbid_unknown_fields=True):
+class RevocationRequest(BaseTokenRequest):
     """
     Exchanged token revocation request.
 
     Reference:
     https://www.rfc-editor.org/info/rfc7009/#section-2.1
     """
-
-    # When striped the token should be at least 32 characters long (opaque token)
-    token: Annotated[str, msgspec.Meta(pattern=r"^\s*\S{32,}\s*$")]
-    token_type_hint: TokenExchangeTokenTypeHint | None = None

@@ -32,7 +32,7 @@ from ..models import (
     ScopeGrant,
     TokenExchangeRule,
 )
-from ..structs import (
+from ..schemas import (
     IntrospectionResponse,
     MenshenJWTGrantClaim,
     MenshenJWTGrantClaimThrottling,
@@ -96,14 +96,7 @@ class RequestService:
                 "Failed to introspect subject token."
             ) from exc
 
-        # Ignore extra fields
-        introspection_response = IntrospectionResponse(
-            **{
-                key: user_info[key]
-                for key in IntrospectionResponse.__struct_fields__
-                if key in user_info
-            }
-        )
+        introspection_response = IntrospectionResponse(**user_info)
 
         # Check the user audience is the same as the requesting service
         if getattr(introspection_response, settings.OIDC_RS_AUDIENCE_CLAIM) != source_audience:
@@ -309,7 +302,7 @@ class RequestService:
             subject_email=user_info.email,
             audiences=audiences,
             scope=response.scope,
-            grants=[grant.to_dict() for grant in response.grants],
+            grants=[grant.model_dump() for grant in response.grants],
             expires_at=expires_at,
             actor_token=request.actor_token if request.actor_token is not None else "",
             may_act=None,  # TODO: Parse from actor_token if needed  # noqa: FIX002
@@ -386,4 +379,20 @@ class RequestService:
 
         # Save exchanged token to database
         exchanged_token = cls._save(request, response, user_info, audiences)
+
+        # Log the exchange
+        logger.info(
+            "Token exchanged: sub=%s, email=%s, audiences=%s, token_type=%s, "
+            "expires_at=%s, subject_jti=%s, kid=%s, scopes_granted=%s, grants=%s",
+            exchanged_token.subject_sub,
+            exchanged_token.subject_email,
+            exchanged_token.audiences,
+            exchanged_token.token_type,
+            exchanged_token.expires_at,
+            exchanged_token.subject_token_jti,
+            exchanged_token.jwt_kid,
+            exchanged_token.scope,
+            exchanged_token.grants,
+        )
+
         return (response, exchanged_token)

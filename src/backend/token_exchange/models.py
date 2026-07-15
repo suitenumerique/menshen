@@ -15,7 +15,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from .enums import TokenExchangeTokenTypeHint, TokenType
-from .structs import IntrospectionResponse
+from .schemas import IntrospectionResponse
 
 logger = logging.getLogger(__name__)
 

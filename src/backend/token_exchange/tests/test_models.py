@@ -24,7 +24,7 @@ from token_exchange.models import (
     TokenTypeChoices,
     validate_action_scope_name,
 )
-from token_exchange.structs import IntrospectionResponse
+from token_exchange.schemas import IntrospectionResponse
 
 
 @pytest.mark.parametrize("value", ["action:foo", "action:bar"])
