@@ -6,7 +6,7 @@ import factory.fuzzy
 from django.conf import settings
 from faker import Faker
 
-from token_exchange.enums import AllowedRequestedTokenTypeEnum
+from token_exchange.enums import AllowedRequestedTokenType
 from token_exchange.services.token import TokenGenerator
 from token_exchange.structs import MenshenJWTGrantClaim
 
@@ -69,7 +69,7 @@ class JWTExchangedTokenFactory(ExchangedTokenFactory):
             ],
         )
     )
-    token_type = AllowedRequestedTokenTypeEnum.JWT
+    token_type = AllowedRequestedTokenType.JWT
     subject_sub = "ef7d37b4-080c-4df7-b0f8-3560dc7138aa"
     subject_email = "jane.doe@example.org"
     audiences = ["service:target"]

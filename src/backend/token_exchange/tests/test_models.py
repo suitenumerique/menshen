@@ -8,7 +8,7 @@ import pytest
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from token_exchange.enums import AllowedRequestedTokenTypeEnum
+from token_exchange.enums import AllowedRequestedTokenType
 from token_exchange.factories import (
     ActionScopeFactory,
     ActionScopeGrantFactory,
@@ -275,12 +275,12 @@ def test_exchangedtoken_to_introspection_response_invalid_token(expires_at, revo
 
 def test_exchangedtoken_to_introspection_response(settings):
     """Test the ExchangedToken to_introspection_response method."""
-    token = ExchangedTokenFactory.create(token_type=AllowedRequestedTokenTypeEnum.ACCESS_TOKEN)
+    token = ExchangedTokenFactory.create(token_type=AllowedRequestedTokenType.ACCESS_TOKEN)
     assert token.to_introspection_response() == IntrospectionResponse(
         active=True,
         scope=token.scope,
         username=token.subject_email or token.subject_sub,
-        token_type=AllowedRequestedTokenTypeEnum.ACCESS_TOKEN,
+        token_type=AllowedRequestedTokenType.ACCESS_TOKEN,
         exp=int(token.expires_at.timestamp()),
         iat=int(token.created_at.timestamp()),
         sub=token.subject_sub,

@@ -14,7 +14,7 @@ from django.db.models import JSONField
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from .enums import TokenExchangeTokenTypeHint, TokenTypeEnum
+from .enums import TokenExchangeTokenTypeHint, TokenType
 from .structs import IntrospectionResponse
 
 logger = logging.getLogger(__name__)
@@ -29,8 +29,8 @@ def validate_action_scope_name(value: str) -> None:
 class TokenTypeChoices(models.TextChoices):
     """Token type choices for RFC 8693."""
 
-    ACCESS_TOKEN = TokenTypeEnum.ACCESS_TOKEN, _("Access Token")
-    JWT = TokenTypeEnum.JWT, _("JWT")
+    ACCESS_TOKEN = TokenType.ACCESS_TOKEN, _("Access Token")
+    JWT = TokenType.JWT, _("JWT")
 
 
 # Mapping between token type hint and token type choices
@@ -552,7 +552,7 @@ class ExchangedToken(BaseModel):
             active=True,
             scope=self.scope,
             username=self.subject_email or self.subject_sub,
-            token_type=TokenTypeEnum(self.token_type),
+            token_type=TokenType(self.token_type),
             exp=int(self.expires_at.timestamp()),
             iat=int(self.created_at.timestamp()),
             sub=self.subject_sub,

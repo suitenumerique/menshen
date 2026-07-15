@@ -9,10 +9,10 @@ import pytest
 from joserfc.jwt import ClaimsOption, JWTClaimsRegistry
 
 from token_exchange.enums import (
-    AllowedActorTokenTypeEnum,
+    AllowedActorTokenType,
     TokenExchangeResponseTokenType,
     TokenExchangeTokenTypeHint,
-    TokenTypeEnum,
+    TokenType,
 )
 from token_exchange.structs import (
     IntrospectionRequest,
@@ -124,7 +124,7 @@ def test_tokenexchangerequest_struct_decoding():
     """Test the TokenExchangeRequest struct decoding from JSON string."""
     payload = {
         "subject_token": "fake",
-        "subject_token_type": TokenTypeEnum.ACCESS_TOKEN,
+        "subject_token_type": TokenType.ACCESS_TOKEN,
         "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
         "resource": "https://target-service.com",
         "audience": " target1  target2 ",
@@ -145,7 +145,7 @@ def test_tokenexchangerequest_struct_decoding_with_only_required_fields():
     """Test the TokenExchangeRequest struct with only required fields."""
     payload = {
         "subject_token": "fake",
-        "subject_token_type": TokenTypeEnum.ACCESS_TOKEN,
+        "subject_token_type": TokenType.ACCESS_TOKEN,
         "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
     }
 
@@ -173,7 +173,7 @@ def test_tokenexchangerequest_struct_scope_invalid_actions(scope, match):
     """Test the TokenExchangeRequest struct action validation rules (invalid cases)."""
     payload = {
         "subject_token": "fake",
-        "subject_token_type": TokenTypeEnum.ACCESS_TOKEN,
+        "subject_token_type": TokenType.ACCESS_TOKEN,
         "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
         "scope": scope,
     }
@@ -186,7 +186,7 @@ def test_tokenexchangerequest_struct_scope_valid_actions():
     """Test the TokenExchangeRequest struct action validation rules (valid case)."""
     payload = {
         "subject_token": "fake",
-        "subject_token_type": TokenTypeEnum.ACCESS_TOKEN,
+        "subject_token_type": TokenType.ACCESS_TOKEN,
         "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
         "scope": "action:foo",
     }
@@ -199,7 +199,7 @@ def test_tokenexchangerequest_struct_ensure_actor_token_requirements():
     """Test the TokenExchangeRequest struct ensures actor_token requirements."""
     payload = {
         "subject_token": "fake",
-        "subject_token_type": TokenTypeEnum.ACCESS_TOKEN,
+        "subject_token_type": TokenType.ACCESS_TOKEN,
         "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
         "resource": "https://target-service.com",
         "scope": "action:foo",
@@ -214,22 +214,22 @@ def test_tokenexchangerequest_struct_ensure_actor_token_requirements():
         msgspec.json.decode(json.dumps(payload), type=TokenExchangeRequest)
 
     # Now add a token type
-    payload.update({"actor_token_type": AllowedActorTokenTypeEnum.ACCESS_TOKEN})
+    payload.update({"actor_token_type": AllowedActorTokenType.ACCESS_TOKEN})
     token_exchanged_request = msgspec.json.decode(json.dumps(payload), type=TokenExchangeRequest)
     assert token_exchanged_request.actor_token == "foo"
-    assert token_exchanged_request.actor_token_type == AllowedActorTokenTypeEnum.ACCESS_TOKEN
+    assert token_exchanged_request.actor_token_type == AllowedActorTokenType.ACCESS_TOKEN
 
 
 def test_tokenexchangerequest_struct_ensure_actor_token_type_requirements():
     """Test the TokenExchangeRequest struct ensures actor_token_type requirements."""
     payload = {
         "subject_token": "fake",
-        "subject_token_type": TokenTypeEnum.ACCESS_TOKEN,
+        "subject_token_type": TokenType.ACCESS_TOKEN,
         "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
         "resource": "https://target-service.com",
         "scope": "action:foo",
         "audience": " target1  target2 ",
-        "actor_token_type": TokenTypeEnum.ACCESS_TOKEN,
+        "actor_token_type": TokenType.ACCESS_TOKEN,
     }
 
     with pytest.raises(
@@ -242,24 +242,24 @@ def test_tokenexchangerequest_struct_ensure_actor_token_type_requirements():
     payload.update({"actor_token": "foo"})
     token_exchanged_request = msgspec.json.decode(json.dumps(payload), type=TokenExchangeRequest)
     assert token_exchanged_request.actor_token == "foo"
-    assert token_exchanged_request.actor_token_type == AllowedActorTokenTypeEnum.ACCESS_TOKEN
+    assert token_exchanged_request.actor_token_type == AllowedActorTokenType.ACCESS_TOKEN
 
 
 @pytest.mark.parametrize(
     ("subject_token_type", "requested_token_type", "actor_token", "actor_token_type"),
     [
-        (TokenTypeEnum.REFRESH_TOKEN, None, None, None),
-        (TokenTypeEnum.ID_TOKEN, None, None, None),
-        (TokenTypeEnum.SAML1, None, None, None),
-        (TokenTypeEnum.SAML2, None, None, None),
-        (TokenTypeEnum.ACCESS_TOKEN, TokenTypeEnum.REFRESH_TOKEN, None, None),
-        (TokenTypeEnum.ACCESS_TOKEN, TokenTypeEnum.ID_TOKEN, None, None),
-        (TokenTypeEnum.ACCESS_TOKEN, TokenTypeEnum.SAML1, None, None),
-        (TokenTypeEnum.ACCESS_TOKEN, TokenTypeEnum.SAML2, None, None),
-        (TokenTypeEnum.ACCESS_TOKEN, None, "foo", TokenTypeEnum.REFRESH_TOKEN),
-        (TokenTypeEnum.ACCESS_TOKEN, None, "foo", TokenTypeEnum.ID_TOKEN),
-        (TokenTypeEnum.ACCESS_TOKEN, None, "foo", TokenTypeEnum.SAML1),
-        (TokenTypeEnum.ACCESS_TOKEN, None, "foo", TokenTypeEnum.SAML2),
+        (TokenType.REFRESH_TOKEN, None, None, None),
+        (TokenType.ID_TOKEN, None, None, None),
+        (TokenType.SAML1, None, None, None),
+        (TokenType.SAML2, None, None, None),
+        (TokenType.ACCESS_TOKEN, TokenType.REFRESH_TOKEN, None, None),
+        (TokenType.ACCESS_TOKEN, TokenType.ID_TOKEN, None, None),
+        (TokenType.ACCESS_TOKEN, TokenType.SAML1, None, None),
+        (TokenType.ACCESS_TOKEN, TokenType.SAML2, None, None),
+        (TokenType.ACCESS_TOKEN, None, "foo", TokenType.REFRESH_TOKEN),
+        (TokenType.ACCESS_TOKEN, None, "foo", TokenType.ID_TOKEN),
+        (TokenType.ACCESS_TOKEN, None, "foo", TokenType.SAML1),
+        (TokenType.ACCESS_TOKEN, None, "foo", TokenType.SAML2),
     ],
 )
 def test_tokenexchangerequest_struct_not_allowed_token_types(
@@ -289,13 +289,13 @@ def test_tokenexchangeresponse_struct_decoding_with_only_required_fields():
     """Test the TokenExchangeResponse struct decoding withn only required fields."""
     payload = {
         "access_token": "fake_access",
-        "issued_token_type": TokenTypeEnum.ACCESS_TOKEN,
+        "issued_token_type": TokenType.ACCESS_TOKEN,
         "token_type": TokenExchangeResponseTokenType.BEARER,
     }
 
     token_exchanged_response = msgspec.json.decode(json.dumps(payload), type=TokenExchangeResponse)
     assert token_exchanged_response.access_token == "fake_access"
-    assert token_exchanged_response.issued_token_type == TokenTypeEnum.ACCESS_TOKEN
+    assert token_exchanged_response.issued_token_type == TokenType.ACCESS_TOKEN
     assert token_exchanged_response.token_type == TokenExchangeResponseTokenType.BEARER
     assert token_exchanged_response.expires_in == 3600
     assert token_exchanged_response.scope is None
@@ -306,7 +306,7 @@ def test_tokenexchangeresponse_struct_decoding_with_optional_fields():
     """Test the TokenExchangeResponse struct decoding with optional fields."""
     payload = {
         "access_token": "fake_access",
-        "issued_token_type": TokenTypeEnum.ACCESS_TOKEN,
+        "issued_token_type": TokenType.ACCESS_TOKEN,
         "token_type": TokenExchangeResponseTokenType.BEARER,
         "expires_in": 1800,
         "scope": "foo",
@@ -315,7 +315,7 @@ def test_tokenexchangeresponse_struct_decoding_with_optional_fields():
 
     token_exchanged_response = msgspec.json.decode(json.dumps(payload), type=TokenExchangeResponse)
     assert token_exchanged_response.access_token == "fake_access"
-    assert token_exchanged_response.issued_token_type == TokenTypeEnum.ACCESS_TOKEN
+    assert token_exchanged_response.issued_token_type == TokenType.ACCESS_TOKEN
     assert token_exchanged_response.token_type == TokenExchangeResponseTokenType.BEARER
     assert token_exchanged_response.expires_in == 1800
     assert token_exchanged_response.scope == "foo"
@@ -326,7 +326,7 @@ def test_tokenexchangeresponse_struct_expires_in(settings):
     """Test the TokenExchangeResponse struct expiracy."""
     payload = {
         "access_token": "fake_access",
-        "issued_token_type": TokenTypeEnum.ACCESS_TOKEN,
+        "issued_token_type": TokenType.ACCESS_TOKEN,
         "token_type": TokenExchangeResponseTokenType.BEARER,
         "expires_in": settings.TOKEN_EXCHANGE_MAX_EXPIRES_IN + 1,
     }
