@@ -23,7 +23,7 @@ ENV UV_LINK_MODE=copy
 ENV UV_PYTHON_DOWNLOADS=0
 
 # Install uv
-COPY --from=ghcr.io/astral-sh/uv:0.11.28 /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.11.29 /uv /uvx /bin/
 
 WORKDIR /app
 
