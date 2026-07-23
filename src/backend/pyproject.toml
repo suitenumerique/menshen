@@ -34,7 +34,7 @@ dependencies = [
     "drf-spectacular==0.30.0",
     "msgspec==0.21.1",
     "psycopg[binary,pool]==3.3.4",
-    "sentry-sdk==2.64.0",
+    "sentry-sdk[django]==2.64.0",
     "uvicorn==0.50.2",
     "whitenoise==6.12.0",
 ]
