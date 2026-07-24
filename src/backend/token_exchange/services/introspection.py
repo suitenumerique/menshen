@@ -3,7 +3,7 @@
 import logging
 
 from token_exchange.exceptions import TokenExchangeError
-from token_exchange.structs import IntrospectionResponse
+from token_exchange.schemas import IntrospectionResponse
 
 from .mixins import ExchangedTokenMixin
 

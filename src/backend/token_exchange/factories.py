@@ -7,8 +7,8 @@ from django.conf import settings
 from faker import Faker
 
 from token_exchange.enums import AllowedRequestedTokenType
+from token_exchange.schemas import MenshenJWTGrantClaim
 from token_exchange.services.token import TokenGenerator
-from token_exchange.structs import MenshenJWTGrantClaim
 
 from . import models
 

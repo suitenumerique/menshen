@@ -4,9 +4,9 @@ import logging
 from datetime import UTC, datetime
 
 from token_exchange.factories import JWTExchangedTokenFactory
+from token_exchange.schemas import IntrospectionResponse
 from token_exchange.services.introspection import IntrospectionService
 from token_exchange.services.token import TokenGenerator
-from token_exchange.structs import IntrospectionResponse
 
 
 def test_instrospection_service_revoke_with_an_unknown_token(target_service, caplog):
@@ -61,7 +61,7 @@ def test_introspection_service_introspect_with_valid_jwt(target_service, caplog)
     # iat should be ~ now
     assert response.iat >= now - 2
     assert response.iat <= now + 2
-    assert response.aud == ["service:target"]
+    assert response.aud == "service:target"
     assert response.jti == exchanged_token.subject_token_jti
     assert response.client_id == "menshen"
     assert (

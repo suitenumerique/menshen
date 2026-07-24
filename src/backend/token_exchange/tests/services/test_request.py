@@ -30,9 +30,9 @@ from token_exchange.factories import (
     TokenExchangeActionPermissionFactory,
 )
 from token_exchange.models import ExchangedToken
+from token_exchange.schemas import MenshenJWTGrantClaim, TokenExchangeRequest
 from token_exchange.services.request import RequestService
 from token_exchange.services.token import TokenGenerator
-from token_exchange.structs import MenshenJWTGrantClaim, TokenExchangeRequest
 
 
 def test_request_service_validate_target_only_unknown_audiences(source_service, caplog):
@@ -40,6 +40,7 @@ def test_request_service_validate_target_only_unknown_audiences(source_service, 
     request = TokenExchangeRequest(
         subject_token="foo",
         subject_token_type=AllowedSubjectTokenType(TokenType.ACCESS_TOKEN),
+        grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
         audience="service:foo",
     )
     with (
@@ -58,6 +59,7 @@ def test_request_service_validate_target_with_unknown_audience(source_service, c
     request = TokenExchangeRequest(
         subject_token="foo",
         subject_token_type=AllowedSubjectTokenType(TokenType.ACCESS_TOKEN),
+        grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
         audience="service:target service:foo",
     )
     with (
@@ -78,6 +80,7 @@ def test_request_service_introspect_subject_token_request_failure(
     request = TokenExchangeRequest(
         subject_token="foo",
         subject_token_type=AllowedSubjectTokenType(TokenType.ACCESS_TOKEN),
+        grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
         audience="service:target",
     )
 
@@ -114,6 +117,7 @@ def test_request_service_introspect_subject_token_suspicious_introspection_respo
     request = TokenExchangeRequest(
         subject_token="foo",
         subject_token_type=AllowedSubjectTokenType(TokenType.ACCESS_TOKEN),
+        grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
         audience="service:target",
     )
 
@@ -141,6 +145,7 @@ def test_request_service_introspect_subject_token_missing_identity(
     request = TokenExchangeRequest(
         subject_token="foo",
         subject_token_type=AllowedSubjectTokenType(TokenType.ACCESS_TOKEN),
+        grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
         audience="service:target",
     )
 
@@ -174,6 +179,7 @@ def test_request_service_validate_pure_scopes_from_request(source_service):
     request = TokenExchangeRequest(
         subject_token="foo",
         subject_token_type=AllowedSubjectTokenType(TokenType.ACCESS_TOKEN),
+        grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
         audience="service:target",
         scope="target:read target:write",
     )
@@ -192,6 +198,7 @@ def test_request_service_validate_pure_scopes_from_request_with_extra_scopes(sou
     request = TokenExchangeRequest(
         subject_token="foo",
         subject_token_type=AllowedSubjectTokenType(TokenType.ACCESS_TOKEN),
+        grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
         audience="service:target",
         scope="target:read target:write extra",
     )
@@ -241,6 +248,7 @@ def test_request_service_validate_scope_action_from_request_with_granted_require
     request = TokenExchangeRequest(
         subject_token="foo",
         subject_token_type=AllowedSubjectTokenType(TokenType.ACCESS_TOKEN),
+        grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
         audience="service:target",
         scope="action:update-target",
     )
@@ -273,6 +281,7 @@ def test_request_service_validate_scope_action_from_request_when_action_has_no_p
     request = TokenExchangeRequest(
         subject_token="foo",
         subject_token_type=AllowedSubjectTokenType(TokenType.ACCESS_TOKEN),
+        grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
         audience="service:target",
         scope="action:update-target",
     )
@@ -316,6 +325,7 @@ def test_request_service_validate_scope_action_from_request_when_action_cannot_b
     request = TokenExchangeRequest(
         subject_token="foo",
         subject_token_type=AllowedSubjectTokenType(TokenType.ACCESS_TOKEN),
+        grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
         audience="service:target",
         scope="action:update-target",
     )
@@ -338,6 +348,7 @@ def test_request_service_generate_exchange_token_with_type(token_type, source_se
     request = TokenExchangeRequest(
         subject_token="foo",
         subject_token_type=AllowedSubjectTokenType.ACCESS_TOKEN,
+        grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
         audience="service:target",
         scope="target:write",
         requested_token_type=token_type,
@@ -354,6 +365,7 @@ def test_request_service_generate_exchange_token_jwt_no_sub_claim(
     request = TokenExchangeRequest(
         subject_token="foo",
         subject_token_type=AllowedSubjectTokenType.ACCESS_TOKEN,
+        grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
         audience="service:target",
         scope="target:write",
         requested_token_type=AllowedRequestedTokenType.JWT,
@@ -386,6 +398,7 @@ def test_request_service_generate_exchange_token_jwt_configuration(source_servic
     request = TokenExchangeRequest(
         subject_token="foo",
         subject_token_type=AllowedSubjectTokenType.ACCESS_TOKEN,
+        grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
         audience="service:target",
         scope="target:write",
         requested_token_type=AllowedSubjectTokenType.JWT,
@@ -397,12 +410,13 @@ def test_request_service_generate_exchange_token_jwt_configuration(source_servic
 
 def test_request_service_generate_exchange_token_unsupported_type(source_service):
     """Test the request service generate exchange token method with an unsupported token type."""
-    request = TokenExchangeRequest(
+    request = TokenExchangeRequest.model_construct(
         subject_token="foo",
         subject_token_type=AllowedSubjectTokenType.ACCESS_TOKEN,
+        grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
         audience="service:target",
         scope="target:write",
-        requested_token_type=TokenType.REFRESH_TOKEN,  # ty: ignore
+        requested_token_type=TokenType.REFRESH_TOKEN,
     )
     with pytest.raises(
         TokenExchangeConfigurationError, match="Configured request token type is not supported."
@@ -415,6 +429,7 @@ def test_request_service_generate_exchange_token_jwt_invalid_token(source_servic
     request = TokenExchangeRequest(
         subject_token="foo",
         subject_token_type=AllowedSubjectTokenType.ACCESS_TOKEN,
+        grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
         audience="service:target",
         scope="target:write",
         requested_token_type=AllowedSubjectTokenType.JWT,
@@ -432,6 +447,7 @@ def test_request_service_generate_exchange_response(source_service, token_type):
     request = TokenExchangeRequest(
         subject_token="foo",
         subject_token_type=AllowedSubjectTokenType.ACCESS_TOKEN,
+        grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
         audience="service:target",
         scope="target:write",
         requested_token_type=token_type,
@@ -460,6 +476,7 @@ def test_request_service_generate_exchange_response_with_persist(source_service,
     request = TokenExchangeRequest(
         subject_token="foo",
         subject_token_type=AllowedSubjectTokenType.ACCESS_TOKEN,
+        grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
         audience="service:target",
         scope="target:write",
         requested_token_type=token_type,

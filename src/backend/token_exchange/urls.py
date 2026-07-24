@@ -2,10 +2,8 @@
 
 from django.urls import path
 
-from .views import TokenExchangeView, TokenIntrospectionView, TokenRevocationView
+from .api import api
 
 urlpatterns = [
-    path("token/exchange/", TokenExchangeView.as_view(), name="token-exchange"),
-    path("token/introspect/", TokenIntrospectionView.as_view(), name="token-introspect"),
-    path("token/revoke/", TokenRevocationView.as_view(), name="token-revoke"),
+    path("token/", api.urls),
 ]

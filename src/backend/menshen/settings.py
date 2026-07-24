@@ -61,8 +61,6 @@ class Base(Configuration):
 
     DEBUG = False
 
-    API_VERSION = "v1.0"
-
     # Security
     ALLOWED_HOSTS = values.ListValue([])
     SECRET_KEY = SecretFileValue(None)
@@ -179,10 +177,8 @@ class Base(Configuration):
     INSTALLED_APPS = [
         "token_exchange",
         # Third party apps
-        "drf_spectacular",
         "corsheaders",
         "dockerflow.django",
-        "rest_framework",
         # Django
         "django.contrib.admin",
         "django.contrib.auth",
@@ -234,34 +230,6 @@ class Base(Configuration):
             "OPTIONS": {
                 "CLIENT_CLASS": "django_redis.client.DefaultClient",
             },
-        },
-    }
-
-    REST_FRAMEWORK = {
-        "DEFAULT_AUTHENTICATION_CLASSES": (
-            "mozilla_django_oidc.contrib.drf.OIDCAuthentication",
-            "rest_framework.authentication.SessionAuthentication",
-        ),
-        "DEFAULT_PARSER_CLASSES": [
-            "rest_framework.parsers.JSONParser",
-        ],
-        "DEFAULT_RENDERER_CLASSES": [
-            # 🔒️ Disable BrowsableAPIRenderer which provides forms allowing a user to
-            # see all the data in the database (ie a serializer with a ForeignKey field
-            # will generate a form with a field with all possible values of the FK).
-            "rest_framework.renderers.JSONRenderer",
-        ],
-        "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
-        "PAGE_SIZE": 20,
-        "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.URLPathVersioning",
-        "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-        "DEFAULT_THROTTLE_CLASSES": ["rest_framework.throttling.ScopedRateThrottle"],
-        "DEFAULT_THROTTLE_RATES": {
-            "token_exchange": values.Value(
-                default="20/minute",
-                environ_name="TOKEN_EXCHANGE_THROTTLE_RATES",
-                environ_prefix=None,
-            ),
         },
     }
 
@@ -404,6 +372,11 @@ class Base(Configuration):
         environ_name="TOKEN_EXCHANGE_ALLOWED_SCHEMES",
         environ_prefix=None,
     )
+    TOKEN_EXCHANGE_EXCHANGE_ENDPOINT_THROTTLE_RATE = values.Value(
+        default="20/min",
+        environ_name="TOKEN_EXCHANGE_EXCHANGE_ENDPOINT_THROTTLE_RATE",
+        environ_prefix=None,
+    )
 
     # Logging
     # We want to make it easy to log to console but by default we log production
@@ -431,7 +404,7 @@ class Base(Configuration):
             ),
         },
         "loggers": {
-            "core": {
+            "token_exchange": {
                 "handlers": ["console"],
                 "level": values.Value(
                     "INFO",
