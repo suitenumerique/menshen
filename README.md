@@ -1,9 +1,10 @@
 # La Suite Menshen: the Token Exchange server.
 
+## Using Menshen
 
-> [!WARNING]
-> We are bootstrapping this project. Nothing is really usable in a production
-> context at this time.
+- Documentation:
+  - Integration with LaSuite services [docs/lasuite](./docs/la-suite.md)
+  - Using the Python client [src/client/README](./src/client/README.md)
 
 ## Local Development (for contributors)
 
@@ -66,8 +67,9 @@ Default credentials (development only):
 
 ```md
 username: admin
-password: admin 
+password: admin
 ```
+
 ### Django admin
 
 To access the Django administration console, you should create a superuser
@@ -130,6 +132,7 @@ demo fixtures using the eponym command:
 ```bash
 make demo
 ```
+
 You can start the playground using the dedicated command:
 
 ```bash
@@ -190,7 +193,6 @@ To check all available Make rules:
 ```bash
 make help
 ```
-
 
 ## License 📝
 
