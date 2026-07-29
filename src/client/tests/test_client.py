@@ -1,4 +1,4 @@
-"""Tests for the MenshenClient."""
+"""Tests for the TokenExchangeClient."""
 
 import logging
 from dataclasses import asdict
@@ -6,26 +6,26 @@ from dataclasses import asdict
 import pytest
 from requests import HTTPError
 
-from menshen_client.client import MenshenClient
-from menshen_client.enums import MenshenSupportedTokenType, TokenExchangeResponseTokenType
+from menshen_client.client import TokenExchangeClient
+from menshen_client.enums import TokenExchangeResponseTokenType, TokenType
 from menshen_client.exceptions import ResponseParsingError
 from menshen_client.schemas import (
+    Configuration,
     IntrospectionRequest,
     IntrospectionResponse,
-    MenshenConfiguration,
     RevocationRequest,
     TokenExchangeResponse,
 )
 
 
 def test_client_init():
-    """Test the MenshenClient instantiation."""
-    config = MenshenConfiguration(
+    """Test the TokenExchangeClient instantiation."""
+    config = Configuration(
         client_id="foo",
         client_secret="bar",
         server_root_url="https://menshen.example.org",
     )
-    client = MenshenClient(config=config)
+    client = TokenExchangeClient(config=config)
     assert client.config == config
     assert client.session
     assert client.session.auth.username == config.client_id  # ty: ignore
@@ -34,7 +34,7 @@ def test_client_init():
 
 @pytest.mark.parametrize("status", [401, 403, 500, 502])
 def test_client_exchange_raises_for_status(client, responses, status, token_exchange_request):
-    """Test the MenshenClient exchange method with an invalid response status."""
+    """Test the TokenExchangeClient exchange method with an invalid response status."""
     responses.post(
         "https://menshen.example.org/auth/token/exchange/",
         status=status,
@@ -44,7 +44,7 @@ def test_client_exchange_raises_for_status(client, responses, status, token_exch
 
 
 def test_client_exchange_token(client, responses, token_exchange_request, token_exchange_response):
-    """Test the MenshenClient exchange method with an invalid response status."""
+    """Test the TokenExchangeClient exchange method with an invalid response status."""
     responses.post(
         "https://menshen.example.org/auth/token/exchange/",
         status=200,
@@ -54,7 +54,7 @@ def test_client_exchange_token(client, responses, token_exchange_request, token_
 
     assert isinstance(exchanged_token, TokenExchangeResponse)
     assert exchanged_token.access_token == "foo"
-    assert exchanged_token.issued_token_type == MenshenSupportedTokenType.ACCESS_TOKEN
+    assert exchanged_token.issued_token_type == TokenType.ACCESS_TOKEN
     assert exchanged_token.token_type == TokenExchangeResponseTokenType.BEARER
     assert exchanged_token.expires_in == 3600
     assert exchanged_token.grants[0].audience_id == "service:target"
@@ -67,7 +67,7 @@ def test_client_exchange_token(client, responses, token_exchange_request, token_
 def test_client_exchange_token_with_extra_field_in_response_payload(
     client, responses, token_exchange_request, token_exchange_response, caplog
 ):
-    """Test the MenshenClient exchange method with an extra field in the response."""
+    """Test the TokenExchangeClient exchange method with an extra field in the response."""
     payload = asdict(token_exchange_response)
     payload.update({"foo": "bar"})  # add an extra field
     responses.post(
@@ -97,7 +97,7 @@ def test_client_exchange_token_with_extra_field_in_response_payload(
 def test_client_exchange_token_with_missing_fields_in_response_payload(  # noqa: PLR0913
     client, responses, token_exchange_request, payload, missing, caplog
 ):
-    """Test the MenshenClient exchange method with missing fields in the response."""
+    """Test the TokenExchangeClient exchange method with missing fields in the response."""
     responses.post(
         "https://menshen.example.org/auth/token/exchange/",
         status=200,
@@ -118,7 +118,7 @@ def test_client_exchange_token_with_missing_fields_in_response_payload(  # noqa:
 def test_client_exchange_token_with_invalid_response_body(
     client, responses, token_exchange_request, caplog, body
 ):
-    """Test the MenshenClient exchange method with an invalid response body."""
+    """Test the TokenExchangeClient exchange method with an invalid response body."""
     responses.post(
         "https://menshen.example.org/auth/token/exchange/",
         status=200,
@@ -137,7 +137,7 @@ def test_client_exchange_token_with_invalid_response_body(
 
 @pytest.mark.parametrize("status", [401, 403, 500, 502])
 def test_client_introspect_raises_for_status(client, responses, status):
-    """Test the MenshenClient introspect method with an invalid response status."""
+    """Test the TokenExchangeClient introspect method with an invalid response status."""
     responses.post(
         "https://menshen.example.org/auth/token/introspect/",
         status=status,
@@ -147,7 +147,7 @@ def test_client_introspect_raises_for_status(client, responses, status):
 
 
 def test_client_introspect_token(client, responses):
-    """Test the MenshenClient introspect method with an invalid response status."""
+    """Test the TokenExchangeClient introspect method with an invalid response status."""
     responses.post(
         "https://menshen.example.org/auth/token/introspect/",
         status=200,
@@ -160,7 +160,7 @@ def test_client_introspect_token(client, responses):
 
 
 def test_client_introspect_token_with_extra_field_in_response_payload(client, responses, caplog):
-    """Test the MenshenClient introspect method with an extra field in the response."""
+    """Test the TokenExchangeClient introspect method with an extra field in the response."""
     payload = asdict(IntrospectionResponse(active=True))
     payload.update({"foo": "bar"})  # add an extra field
     responses.post(
@@ -182,7 +182,7 @@ def test_client_introspect_token_with_extra_field_in_response_payload(client, re
 def test_client_introspect_token_with_missing_fields_in_response_payload(  # noqa: PLR0913
     client, responses, caplog
 ):
-    """Test the MenshenClient introspect method with missing fields in the response."""
+    """Test the TokenExchangeClient introspect method with missing fields in the response."""
     responses.post(
         "https://menshen.example.org/auth/token/introspect/",
         status=200,
@@ -201,7 +201,7 @@ def test_client_introspect_token_with_missing_fields_in_response_payload(  # noq
 
 @pytest.mark.parametrize("body", ["not json", None, ""])
 def test_client_introspect_token_with_invalid_response_body(client, responses, caplog, body):
-    """Test the MenshenClient introspect method with an invalid response body."""
+    """Test the TokenExchangeClient introspect method with an invalid response body."""
     responses.post(
         "https://menshen.example.org/auth/token/introspect/",
         status=200,
@@ -220,7 +220,7 @@ def test_client_introspect_token_with_invalid_response_body(client, responses, c
 
 @pytest.mark.parametrize("status", [401, 403, 500, 502])
 def test_client_revoke_raises_for_status(client, responses, status):
-    """Test the MenshenClient revoke method with an invalid response status."""
+    """Test the TokenExchangeClient revoke method with an invalid response status."""
     responses.post(
         "https://menshen.example.org/auth/token/revoke/",
         status=status,
@@ -231,7 +231,7 @@ def test_client_revoke_raises_for_status(client, responses, status):
 
 @pytest.mark.parametrize("body", [None, "", "{}", '{"foo": "bar"}'])
 def test_client_revoke_token(client, responses, body):
-    """Test the MenshenClient revoke method with various response content."""
+    """Test the TokenExchangeClient revoke method with various response content."""
     responses.post(
         "https://menshen.example.org/auth/token/revoke/",
         status=200,
