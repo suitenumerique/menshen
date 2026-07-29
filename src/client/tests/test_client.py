@@ -7,7 +7,7 @@ import pytest
 from requests import HTTPError
 
 from menshen_client.client import TokenExchangeClient
-from menshen_client.enums import MenshenSupportedTokenType, TokenExchangeResponseTokenType
+from menshen_client.enums import TokenExchangeResponseTokenType, TokenType
 from menshen_client.exceptions import ResponseParsingError
 from menshen_client.schemas import (
     IntrospectionRequest,
@@ -54,7 +54,7 @@ def test_client_exchange_token(client, responses, token_exchange_request, token_
 
     assert isinstance(exchanged_token, TokenExchangeResponse)
     assert exchanged_token.access_token == "foo"
-    assert exchanged_token.issued_token_type == MenshenSupportedTokenType.ACCESS_TOKEN
+    assert exchanged_token.issued_token_type == TokenType.ACCESS_TOKEN
     assert exchanged_token.token_type == TokenExchangeResponseTokenType.BEARER
     assert exchanged_token.expires_in == 3600
     assert exchanged_token.grants[0].audience_id == "service:target"

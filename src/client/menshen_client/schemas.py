@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass
 from typing import Literal
 
-from .enums import MenshenSupportedTokenType, TokenExchangeResponseTokenType
+from .enums import TokenExchangeResponseTokenType, TokenType
 
 logger = logging.getLogger(__name__)
 
@@ -72,16 +72,16 @@ class TokenExchangeRequest:
     """
 
     subject_token: str
-    subject_token_type: MenshenSupportedTokenType
+    subject_token_type: TokenType
     grant_type: Literal["urn:ietf:params:oauth:grant-type:token-exchange"] = (
         "urn:ietf:params:oauth:grant-type:token-exchange"
     )
     resource: str | None = None
     audience: str | None = None
     scope: str | None = None
-    requested_token_type: MenshenSupportedTokenType | None = None
+    requested_token_type: TokenType | None = None
     actor_token: str | None = None
-    actor_token_type: MenshenSupportedTokenType | None = None
+    actor_token_type: TokenType | None = None
 
 
 @dataclass
@@ -115,7 +115,7 @@ class TokenExchangeResponse:
     """
 
     access_token: str
-    issued_token_type: MenshenSupportedTokenType
+    issued_token_type: TokenType
     token_type: TokenExchangeResponseTokenType
     expires_in: int
     grants: list[MenshenJWTGrantClaim]
@@ -138,7 +138,7 @@ class IntrospectionRequest:
     """
 
     token: str
-    token_type_hint: MenshenSupportedTokenType | None = None
+    token_type_hint: TokenType | None = None
 
 
 @dataclass
@@ -161,7 +161,7 @@ class IntrospectionResponse:
     iat: int | None = None
     iss: str | None = None
     aud: str | None = None
-    token_type: MenshenSupportedTokenType | None = None
+    token_type: TokenType | None = None
 
     # Optionnal
     email: str | None = None
@@ -179,4 +179,4 @@ class RevocationRequest:
     """
 
     token: str
-    token_type_hint: MenshenSupportedTokenType | None = None
+    token_type_hint: TokenType | None = None

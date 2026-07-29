@@ -3,7 +3,7 @@
 import pytest
 
 from menshen_client.client import TokenExchangeClient
-from menshen_client.enums import MenshenSupportedTokenType, TokenExchangeResponseTokenType
+from menshen_client.enums import TokenExchangeResponseTokenType, TokenType
 from menshen_client.schemas import (
     MenshenConfiguration,
     MenshenJWTGrantClaim,
@@ -50,7 +50,7 @@ def token_exchange_request():
     """Generate a token exchange request."""
     return TokenExchangeRequest(
         subject_token="foo",
-        subject_token_type=MenshenSupportedTokenType.ACCESS_TOKEN,
+        subject_token_type=TokenType.ACCESS_TOKEN,
     )
 
 
@@ -59,7 +59,7 @@ def token_exchange_response():
     """Generate a token exchange response."""
     return TokenExchangeResponse(
         access_token="foo",
-        issued_token_type=MenshenSupportedTokenType.ACCESS_TOKEN,
+        issued_token_type=TokenType.ACCESS_TOKEN,
         token_type=TokenExchangeResponseTokenType.BEARER,
         expires_in=3600,
         grants=[
