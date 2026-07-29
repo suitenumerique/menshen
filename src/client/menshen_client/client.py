@@ -21,8 +21,8 @@ from .schemas import (
 logger = logging.getLogger(__name__)
 
 
-class MenshenClient:
-    """Menshen API client."""
+class TokenExchangeClient:
+    """Token Exchange API client."""
 
     def __init__(self, config: MenshenConfiguration) -> None:
         """Instantiate the API client."""
