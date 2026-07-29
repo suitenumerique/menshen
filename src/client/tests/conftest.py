@@ -2,7 +2,7 @@
 
 import pytest
 
-from menshen_client.client import MenshenClient
+from menshen_client.client import TokenExchangeClient
 from menshen_client.enums import MenshenSupportedTokenType, TokenExchangeResponseTokenType
 from menshen_client.schemas import (
     MenshenConfiguration,
@@ -42,7 +42,7 @@ def config(client_id, client_secret, server_root_url) -> MenshenConfiguration:
 @pytest.fixture
 def client(config):
     """Get configured Menshen client."""
-    return MenshenClient(config=config)
+    return TokenExchangeClient(config=config)
 
 
 @pytest.fixture

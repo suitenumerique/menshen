@@ -10,7 +10,7 @@ The API client is available from PyPI and can be added to your project using:
 
 ```bash
 uv add menshen_client
-# or 
+# or
 pip install menshen_client
 ```
 
@@ -20,8 +20,8 @@ pip install menshen_client
 
 You can create your client configuration using the following snippet:
 
-```python 
-from menshen_client import MenshenClient, MenshenConfiguration
+```python
+from menshen_client import MenshenConfiguration, TokenExchangeClient
 
 # Configure the client
 config = MenshenConfiguration(
@@ -31,7 +31,7 @@ config = MenshenConfiguration(
 )
 
 # Create the client instance
-client = MenshenClient(config=config)
+client = TokenExchangeClient(config=config)
 ```
 
 In this example, the client identifier and secret are those provided by your
@@ -41,7 +41,7 @@ for your service. The `server_root_url` is the root URL of your Menshen server.
 ### Token exchange request
 
 To generate an exchange token given a subject token and a related token type
-use: 
+use:
 
 ```python
 from menshen_client import (
@@ -92,9 +92,9 @@ tokens _via_ your autorization server instance using:
 
 ```python
 from menshen_client import (
-    MenshenSupportedTokenType,
     IntrospectionRequest,
     IntrospectionResponse,
+    MenshenSupportedTokenType,
 )
 
 # Create the token instrospection request
