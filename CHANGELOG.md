@@ -12,6 +12,10 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 
 - Remove `--app` flag in the container production command
 
+### Removed
+
+- clean unused `django-cors-headers` configured dependency
+
 ## [0.2.0] - 2026-07-29
 
 ### Changed

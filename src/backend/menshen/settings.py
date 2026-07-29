@@ -160,7 +160,6 @@ class Base(Configuration):
         "django.contrib.sessions.middleware.SessionMiddleware",
         "django.middleware.locale.LocaleMiddleware",
         "django.middleware.clickjacking.XFrameOptionsMiddleware",
-        "corsheaders.middleware.CorsMiddleware",
         "django.middleware.common.CommonMiddleware",
         "django.middleware.csrf.CsrfViewMiddleware",
         "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -177,7 +176,6 @@ class Base(Configuration):
     INSTALLED_APPS = [
         "token_exchange",
         # Third party apps
-        "corsheaders",
         "dockerflow.django",
         # Django
         "django.contrib.admin",
@@ -244,12 +242,6 @@ class Base(Configuration):
     EMAIL_USE_TLS = values.BooleanValue(False)
     EMAIL_USE_SSL = values.BooleanValue(False)
     EMAIL_FROM = values.Value("from@example.com")
-
-    # CORS
-    CORS_ALLOW_CREDENTIALS = True
-    CORS_ALLOW_ALL_ORIGINS = values.BooleanValue(False)
-    CORS_ALLOWED_ORIGINS = values.ListValue([])
-    CORS_ALLOWED_ORIGIN_REGEXES = values.ListValue([])
 
     # Sentry
     SENTRY_DSN = values.URLValue(None, environ_name="SENTRY_DSN", environ_prefix=None)
@@ -520,7 +512,6 @@ class Development(Base):
     """
 
     ALLOWED_HOSTS = ["*"]
-    CORS_ALLOW_ALL_ORIGINS = True
     CSRF_TRUSTED_ORIGINS = ["http://localhost:8072", "http://localhost:3000"]
     DEBUG = True
 
