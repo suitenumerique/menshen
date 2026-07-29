@@ -38,12 +38,12 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "pytest==9.1.0",
+    "pytest==9.1.1",
     "pytest-cov==7.1.0",
     "pytest-responses==0.6.0",
     "responses==0.26.2",
-    "ruff==0.15.17",
-    "ty==0.0.49",
+    "ruff==0.15.22",
+    "ty==0.0.62",
 ]
 
 [tool.hatch.build.targets.sdist]
