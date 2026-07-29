@@ -3,7 +3,7 @@
 from enum import StrEnum
 
 
-class MenshenSupportedTokenType(StrEnum):
+class TokenType(StrEnum):
     """
     Token type identifier for RFC 8693.
 

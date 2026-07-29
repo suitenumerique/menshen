@@ -1,7 +1,7 @@
 """Menshen client."""
 
 from .client import TokenExchangeClient
-from .enums import MenshenSupportedTokenType, TokenExchangeResponseTokenType
+from .enums import TokenExchangeResponseTokenType, TokenType
 from .schemas import (
     IntrospectionRequest,
     IntrospectionResponse,
@@ -16,7 +16,7 @@ __all__ = (
     "IntrospectionResponse",
     "TokenExchangeClient",
     "MenshenConfiguration",
-    "MenshenSupportedTokenType",
+    "TokenType",
     "RevocationRequest",
     "TokenExchangeRequest",
     "TokenExchangeResponse",

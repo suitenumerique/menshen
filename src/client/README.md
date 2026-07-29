@@ -45,15 +45,15 @@ use:
 
 ```python
 from menshen_client import (
-    MenshenSupportedTokenType,
     TokenExchangeRequest,
     TokenExchangeResponse,
+    TokenType,
 )
 
 # Create the token exchange request
 exchange_request = TokenExchangeRequest(
     subject_token="exampletoken",
-    subject_token_type=MenshenSupportedTokenType.ACCESS_TOKEN,
+    subject_token_type=TokenType.ACCESS_TOKEN,
     audience="https://target.example.org",
     scope="target:write",
 )
@@ -94,13 +94,13 @@ tokens _via_ your autorization server instance using:
 from menshen_client import (
     IntrospectionRequest,
     IntrospectionResponse,
-    MenshenSupportedTokenType,
+    TokenType,
 )
 
 # Create the token instrospection request
 introspection_request = IntrospectionRequest(
     token="exampletoken",
-    token_type_hint=MenshenSupportedTokenType.ACCESS_TOKEN,
+    token_type_hint=TokenType.ACCESS_TOKEN,
 )
 
 # Get the token introspection response
@@ -124,14 +124,14 @@ Menshen instance dedicated endpoint:
 
 ```python
 from menshen_client import (
-    MenshenSupportedTokenType,
     RevocationRequest,
+    TokenType,
 )
 
 # Create the token revocation request
 revocation_request = RevocationRequest(
     token="exampletoken",
-    token_type_hint=MenshenSupportedTokenType.ACCESS_TOKEN,
+    token_type_hint=TokenType.ACCESS_TOKEN,
 )
 
 # Token revocation response is empty
