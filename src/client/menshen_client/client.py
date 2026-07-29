@@ -10,9 +10,9 @@ from requests.exceptions import JSONDecodeError
 
 from .exceptions import ResponseParsingError
 from .schemas import (
+    Configuration,
     IntrospectionRequest,
     IntrospectionResponse,
-    MenshenConfiguration,
     RevocationRequest,
     TokenExchangeRequest,
     TokenExchangeResponse,
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 class TokenExchangeClient:
     """Token Exchange API client."""
 
-    def __init__(self, config: MenshenConfiguration) -> None:
+    def __init__(self, config: Configuration) -> None:
         """Instantiate the API client."""
         self.config = config
         self.session = requests.Session()

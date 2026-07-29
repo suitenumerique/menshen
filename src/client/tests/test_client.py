@@ -10,9 +10,9 @@ from menshen_client.client import TokenExchangeClient
 from menshen_client.enums import TokenExchangeResponseTokenType, TokenType
 from menshen_client.exceptions import ResponseParsingError
 from menshen_client.schemas import (
+    Configuration,
     IntrospectionRequest,
     IntrospectionResponse,
-    MenshenConfiguration,
     RevocationRequest,
     TokenExchangeResponse,
 )
@@ -20,7 +20,7 @@ from menshen_client.schemas import (
 
 def test_client_init():
     """Test the TokenExchangeClient instantiation."""
-    config = MenshenConfiguration(
+    config = Configuration(
         client_id="foo",
         client_secret="bar",
         server_root_url="https://menshen.example.org",
