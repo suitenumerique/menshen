@@ -8,6 +8,10 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 
 ## [Unreleased]
 
+### Changed
+
+- Remove `--app` flag in the container production command
+
 ## [0.2.0] - 2026-07-29
 
 ### Changed

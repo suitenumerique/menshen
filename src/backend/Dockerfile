@@ -154,6 +154,7 @@ USER ${DOCKER_USER}
 
 # Copy dependencies
 COPY --from=back-builder /app/.venv /app/.venv
+ENV PATH="/app/.venv/bin:$PATH"
 
 # Copy statics
 COPY --from=link-collector ${MENSHEN_STATIC_ROOT} ${MENSHEN_STATIC_ROOT}
@@ -162,9 +163,10 @@ COPY --from=link-collector ${MENSHEN_STATIC_ROOT} ${MENSHEN_STATIC_ROOT}
 # WEB_CONCURRENCY: number of workers to run <=> --workers=4
 ENV WEB_CONCURRENCY=4
 CMD [\
-  "/app/.venv/bin/uvicorn",\
-  "--app-dir=/app",\
+  "uvicorn",\
   "--host=0.0.0.0",\
+  "--port=8000",\
+  "--proxy-headers",\
   "--timeout-graceful-shutdown=300",\
   "--limit-max-requests=20000",\
   "--lifespan=off",\
