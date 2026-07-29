@@ -5,7 +5,7 @@ import pytest
 from menshen_client.client import TokenExchangeClient
 from menshen_client.enums import TokenExchangeResponseTokenType, TokenType
 from menshen_client.schemas import (
-    MenshenConfiguration,
+    Configuration,
     MenshenJWTGrantClaim,
     MenshenJWTGrantClaimThrottling,
     TokenExchangeRequest,
@@ -32,9 +32,9 @@ def server_root_url() -> str:
 
 
 @pytest.fixture
-def config(client_id, client_secret, server_root_url) -> MenshenConfiguration:
+def config(client_id, client_secret, server_root_url) -> Configuration:
     """Menshen client test configuration."""
-    return MenshenConfiguration(
+    return Configuration(
         client_id=client_id, client_secret=client_secret, server_root_url=server_root_url
     )
 

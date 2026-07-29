@@ -12,15 +12,15 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class MenshenConfiguration:
+class Configuration:
     """
-    Menshen server configuration.
+    Token exchange server configuration.
 
     Expected configuration:
 
-        - client_id: the client identifier for the menshen-registered service
-        - client_secret: the client secret for the menshen-registered service
-        - server_root_url: target menshen server root URL, e.g. https://menshen.example.org
+        - client_id: the client identifier for the registered service
+        - client_secret: the client secret for the registered service
+        - server_root_url: target token-exchange server root URL, e.g. https://menshen.example.org
         - token_endpoint: the token exchange API endpoint path
         - introspection: the exchanged token introspection API endpoint path
         - revocation_endpoint: the exchanged token revocation API endpoint path

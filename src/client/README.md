@@ -21,10 +21,10 @@ pip install menshen_client
 You can create your client configuration using the following snippet:
 
 ```python
-from menshen_client import MenshenConfiguration, TokenExchangeClient
+from menshen_client import Configuration, TokenExchangeClient
 
 # Configure the client
-config = MenshenConfiguration(
+config = Configuration(
    client_id="acme",
    client_secret="super-secret",
    server_root_url="https://menshen.example.org",
