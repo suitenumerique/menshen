@@ -168,10 +168,6 @@ services:
       menshen:
         condition: service_healthy
 
-  # Utils
-  openssl:
-    image: alpine/openssl:3.5.7
-
 networks:
   default: {}
   lasuite:
