@@ -30,6 +30,7 @@ services:
     image: menshen:backend-development
     environment:
       - DJANGO_CONFIGURATION=Development
+      - HOME=/tmp
     env_file:
       - env.d/development/common
       - env.d/development/common.local
@@ -166,10 +167,6 @@ services:
         condition: service_healthy
       menshen:
         condition: service_healthy
-
-  # Utils
-  openssl:
-    image: alpine/openssl:3.5.7
 
 networks:
   default: {}
