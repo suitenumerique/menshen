@@ -30,6 +30,7 @@ services:
     image: menshen:backend-development
     environment:
       - DJANGO_CONFIGURATION=Development
+      - HOME=/tmp
     env_file:
       - env.d/development/common
       - env.d/development/common.local
