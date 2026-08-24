@@ -11,6 +11,8 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 ### Changed
 
 - Remove `--app` flag in the container production command
+- Use standard JWK set serialization for the `TOKEN_EXCHANGE_JWT_SIGNING_KEYS`
+  setting
 
 ### Removed
 

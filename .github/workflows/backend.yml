@@ -162,7 +162,8 @@ jobs:
         run: uv sync --locked --all-extras --dev
 
       - name: Define required environment variables
-        run: ../../bin/local-env
+        run: |
+          cd ../.. && make create-env-local-files
 
       - name: Run tests
         run: uv run pytest -n 2

@@ -9,7 +9,7 @@ from django.conf import settings
 from django.utils import timezone
 from joserfc import jwt
 from joserfc.errors import ClaimError, InvalidKeyIdError
-from joserfc.jwk import KeySet, RSAKey
+from joserfc.jwk import KeySet
 from joserfc.jwt import Token
 
 from token_exchange.schemas import (
@@ -29,12 +29,7 @@ class TokenGenerator:
     @cache
     def _load_key_set(cls):
         """Load configured key set and init the class key_set attribute."""
-        cls.key_set = KeySet(
-            [
-                RSAKey.import_key(pem, {"use": "sig", "kid": kid})
-                for kid, pem in settings.TOKEN_EXCHANGE_JWT_SIGNING_KEYS.items()
-            ]
-        )
+        cls.key_set = KeySet.import_key_set(settings.TOKEN_EXCHANGE_JWT_SIGNING_KEYS)
         if cls.key_set is None or not len(cls.key_set.keys):
             raise ValueError("TOKEN_EXCHANGE_JWT_SIGNING_KEYS is empty.")
 

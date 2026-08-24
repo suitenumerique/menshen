@@ -2,17 +2,27 @@
 
 echo -e "⚙️ Generating local environment variable files…"
 
-declare rsa_key
+declare keyset
+declare kid
 declare common_env_path=${GITHUB_ENV:-"env.d/development/common.local"}
-declare kid="d5b6a7fd-891d-40ab-833d-c2923b029e29"
 
-# Generate a RSA private key
-rsa_key=$(\
-  docker compose run --rm openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 | \
-  sed 's/$/\\n/' | \
-  tr -d "\n" \
+declare snippet='
+import json
+import sys
+from joserfc.jwk import KeySet
+keyset = KeySet.generate_key_set("RSA", 2048, count=2, parameters={"use": "sig"})
+sys.stdout.write(json.dumps(keyset.as_dict()) + "\n")
+sys.stdout.write(keyset.keys[0].kid)
+'
+
+# Generate a RSA private keys
+output=$(\
+  echo "${snippet}" | \
+  docker compose run --no-deps --rm -i menshen uv run python - | \
+  grep -v 🐳\
 )
+keyset=$(echo "${output}" | head -n 1)
+kid=$(echo "${output}" | tail -n 1)
 
-
-echo "TOKEN_EXCHANGE_JWT_SIGNING_KEYS={\"${kid}\": \"${rsa_key}\"}" >> ${common_env_path}
+echo "TOKEN_EXCHANGE_JWT_SIGNING_KEYS=${keyset}" >> ${common_env_path}
 echo "TOKEN_EXCHANGE_JWT_CURRENT_KID=${kid}" >> ${common_env_path}

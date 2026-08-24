@@ -27,7 +27,7 @@ def test_token_generator_generate_opaque_token():
 def test_token_generator_load_key_set_configuration_not_set(settings):
     """Test the signing keys importation from settings when it's not configured."""
     settings.TOKEN_EXCHANGE_JWT_SIGNING_KEYS = {}
-    with pytest.raises(ValueError, match="TOKEN_EXCHANGE_JWT_SIGNING_KEYS is empty."):
+    with pytest.raises(KeyError, match="keys"):
         TokenGenerator._load_key_set()
 
 
