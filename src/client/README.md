@@ -10,7 +10,7 @@ The API client is available from PyPI and can be added to your project using:
 
 ```bash
 uv add menshen_client
-# or 
+# or
 pip install menshen_client
 ```
 
@@ -20,18 +20,18 @@ pip install menshen_client
 
 You can create your client configuration using the following snippet:
 
-```python 
-from menshen_client import MenshenClient, MenshenConfiguration
+```python
+from menshen_client import Configuration, TokenExchangeClient
 
 # Configure the client
-config = MenshenConfiguration(
+config = Configuration(
    client_id="acme",
    client_secret="super-secret",
    server_root_url="https://menshen.example.org",
 )
 
 # Create the client instance
-client = MenshenClient(config=config)
+client = TokenExchangeClient(config=config)
 ```
 
 In this example, the client identifier and secret are those provided by your
@@ -41,19 +41,19 @@ for your service. The `server_root_url` is the root URL of your Menshen server.
 ### Token exchange request
 
 To generate an exchange token given a subject token and a related token type
-use: 
+use:
 
 ```python
 from menshen_client import (
-    MenshenSupportedTokenType, 
-    TokenExchangeRequest, 
+    TokenExchangeRequest,
     TokenExchangeResponse,
+    TokenType,
 )
 
 # Create the token exchange request
 exchange_request = TokenExchangeRequest(
     subject_token="exampletoken",
-    subject_token_type=MenshenSupportedTokenType.ACCESS_TOKEN,
+    subject_token_type=TokenType.ACCESS_TOKEN,
     audience="https://target.example.org",
     scope="target:write",
 )
@@ -70,10 +70,10 @@ The token exchange response contains the exchanged token that can be used to
 query the target resource server:
 
 ```python
-import requests 
+import requests
 
 resources = requests.get(
-    "https://target.example.org/external_api/v1.0/resource/", 
+    "https://target.example.org/external_api/v1.0/resource/",
     headers={
         "Authorization": f"Bearer {exchange_response.access_token}",
         "Content-Type": "application/json",
@@ -92,15 +92,15 @@ tokens _via_ your autorization server instance using:
 
 ```python
 from menshen_client import (
-    MenshenSupportedTokenType, 
-    IntrospectionRequest, 
+    IntrospectionRequest,
     IntrospectionResponse,
+    TokenType,
 )
 
 # Create the token instrospection request
 introspection_request = IntrospectionRequest(
     token="exampletoken",
-    token_type_hint=MenshenSupportedTokenType.ACCESS_TOKEN,
+    token_type_hint=TokenType.ACCESS_TOKEN,
 )
 
 # Get the token introspection response
@@ -124,14 +124,14 @@ Menshen instance dedicated endpoint:
 
 ```python
 from menshen_client import (
-    MenshenSupportedTokenType, 
-    RevocationRequest, 
+    RevocationRequest,
+    TokenType,
 )
 
 # Create the token revocation request
 revocation_request = RevocationRequest(
     token="exampletoken",
-    token_type_hint=MenshenSupportedTokenType.ACCESS_TOKEN,
+    token_type_hint=TokenType.ACCESS_TOKEN,
 )
 
 # Token revocation response is empty

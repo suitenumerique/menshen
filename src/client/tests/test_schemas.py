@@ -2,7 +2,7 @@
 
 import pytest
 
-from menshen_client import MenshenConfiguration
+from menshen_client import Configuration
 
 
 @pytest.mark.parametrize("scheme", ["http", "https"])
@@ -36,8 +36,8 @@ from menshen_client import MenshenConfiguration
     ],
 )
 def test_menshen_configuration_properties(scheme, base_url, expected):
-    """Test MenshenConfiguration properties."""
-    config = MenshenConfiguration(
+    """Test Configuration properties."""
+    config = Configuration(
         client_id="foo",
         client_secret="bar",
         server_root_url=f"{scheme}://{base_url}",
@@ -48,8 +48,8 @@ def test_menshen_configuration_properties(scheme, base_url, expected):
 
 
 def test_menshen_configuration_properties_trailing_slashes():
-    """Test MenshenConfiguration properties URLs with missing trailing slashes."""
-    config = MenshenConfiguration(
+    """Test Configuration properties URLs with missing trailing slashes."""
+    config = Configuration(
         client_id="foo",
         client_secret="bar",
         server_root_url="https://menshen.example.org/",
