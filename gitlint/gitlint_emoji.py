@@ -2,11 +2,10 @@
 Gitlint extra rule to validate that the message title is of the form
 "<gitmoji>(<scope>) <subject>"
 """
-from __future__ import unicode_literals
 
+import json
 import re
-
-import requests
+import urllib.request
 
 from gitlint.rules import CommitMessageTitle, LineRule, RuleViolation
 
@@ -15,7 +14,7 @@ class GitmojiTitle(LineRule):
     """
     This rule will enforce that each commit title is of the form "<gitmoji>(<scope>) <subject>"
     where gitmoji is an emoji from the list defined in https://gitmoji.carloscuesta.me and
-    subject should be all lowercase
+    subject should be all lowercase.
     """
 
     id = "UC1"
@@ -27,11 +26,13 @@ class GitmojiTitle(LineRule):
         Download the list possible gitmojis from the project's github repository and check that
         title contains one of them.
         """
-        gitmojis = requests.get(
-            "https://raw.githubusercontent.com/carloscuesta/gitmoji/master/packages/gitmojis/src/gitmojis.json"
-        ).json()["gitmojis"]
-        emojis = [item["emoji"] for item in gitmojis]
-        pattern = r"^({:s})\(.*\)\s[a-zA-Z].*$".format("|".join(emojis))
-        if not re.search(pattern, title):
-            violation_msg = 'Title does not match regex "<gitmoji>(<scope>) <subject>"'
-            return [RuleViolation(self.id, violation_msg, title)]
+        gitmojis_url = "https://raw.githubusercontent.com/carloscuesta/gitmoji/master/packages/gitmojis/src/gitmojis.json"
+        with urllib.request.urlopen(gitmojis_url, timeout=10) as f:
+            data = json.loads(f.read().decode("utf-8"))
+            emojis = [item["emoji"] for item in data["gitmojis"]]
+            pattern = r"^({:s})\(.*\)\s[a-zA-Z].*$".format("|".join(emojis))
+            if not re.search(pattern, title):
+                violation_msg = (
+                    'Title does not match regex "<gitmoji>(<scope>) <subject>"'
+                )
+                return [RuleViolation(self.id, violation_msg, title)]
