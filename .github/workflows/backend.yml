@@ -35,13 +35,16 @@ jobs:
         run: |
           ! git log | grep 'fixup!'
 
-      - name: Install gitlint
+      - name: Install uv
         if: always()
-        run: pip install --user requests gitlint
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.31"
+          enable-cache: true
 
       - name: Lint commit messages added to main
         if: always()
-        run: ~/.local/bin/gitlint --commits "origin/${GIT_REF}..HEAD"
+        run: uvx --from "gitlint-core@0.19.1" gitlint --commits "origin/${GIT_REF}..HEAD"
         env:
           GIT_REF: ${{ github.event.pull_request.base.ref }}
 
