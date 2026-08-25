@@ -169,7 +169,6 @@ class Base(Configuration):
 
     AUTHENTICATION_BACKENDS = [
         "django.contrib.auth.backends.ModelBackend",
-        "lasuite.oidc_login.backends.OIDCAuthenticationBackend",
     ]
 
     # Django applications from the highest priority to the lowest
