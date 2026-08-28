@@ -61,7 +61,7 @@ make run
 ```
 
 As Menshen is a headless API server, once up only the admin console is
-available at: <http://localhost:8071/admin>
+available at: <http://menshen.lasuite.localhost:49000/admin>
 
 Default credentials (development only):
 
@@ -141,8 +141,8 @@ make run-playground
 
 This should fire up two new services:
 
-- `playground-source` available at: <http://source.localhost:8072>
-- `playground-target` available at: <http://target.localhost:8073>
+- `playground-source` available at: <http://source.playground.menshen.lasuite.localhost:49002>
+- `playground-target` available at: <http://target.playground.menshen.lasuite.localhost:49003>
 
 You can login from the source or target services using the "login" button in
 the page header. Once clicked, you should be redirected to the Keycloak service
@@ -150,8 +150,8 @@ that is used as the identity provider for our development environment. The test
 user credentials are:
 
 ```md
-username: menshen
-password: menshen
+email: user@lasuite.fr
+password: lasuite
 ```
 
 Once connected, you should be redirected to the original service.
