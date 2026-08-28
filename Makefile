@@ -30,7 +30,7 @@ SHELL := /bin/env bash
 
 # -- Database
 
-DB_HOST            = postgresql
+DB_HOST            = menshen-postgresql
 DB_PORT            = 5432
 
 # -- Docker
@@ -44,9 +44,9 @@ DOCKER_USER         := $(DOCKER_UID):$(DOCKER_GID)
 endif
 COMPOSE             = DOCKER_USER=$(DOCKER_USER) docker compose
 COMPOSE_EXEC        = $(COMPOSE) exec
-COMPOSE_EXEC_APP    = $(COMPOSE_EXEC) menshen
+COMPOSE_EXEC_APP    = $(COMPOSE_EXEC) menshen-backend
 COMPOSE_RUN         = $(COMPOSE) run --rm
-COMPOSE_RUN_APP     = $(COMPOSE_RUN) menshen
+COMPOSE_RUN_APP     = $(COMPOSE_RUN) menshen-backend
 COMPOSE_RUN_APP_UV  = $(COMPOSE_RUN_APP) uv run
 
 # -- Backend
@@ -56,6 +56,9 @@ MANAGE              = $(COMPOSE_RUN_APP_UV) python manage.py
 CLIENT_UV           = cd src/client && uv
 CLIENT_UV_RUN       = $(CLIENT_UV) run
 
+# -- Interop 
+INTEROP_URL         = https://github.com/suitenumerique/interop/archive/refs/heads/main.tar.gz
+
 # ==============================================================================
 # RULES
 
@@ -63,6 +66,11 @@ default: help
 
 data/static:
 	@mkdir -p data/static
+
+interop:
+	mkdir -p interop
+	curl -sL $(INTEROP_URL) | tar -xzf - --strip-components=1 -C interop
+	cd interop && make bootstrap
 
 # -- Project
 #
@@ -77,14 +85,15 @@ env.d/development/common.local:
 	@bin/local-env
 
 pre-bootstrap: \
-	data/static \
-	create-env-local-files
+  data/static \
+  interop \
+  create-env-local-files
 .PHONY: pre-bootstrap
 
 post-bootstrap: \
-	migrate \
-	demo \
-	back-i18n-compile
+  migrate \
+  demo \
+  back-i18n-compile
 .PHONY: post-bootstrap
 
 pre-beautiful-bootstrap: ## Display a welcome message before bootstrap
@@ -100,8 +109,8 @@ ifeq ($(OS),Windows_NT)
 	@echo "  - Environment configuration files"
 	@echo ""
 	@echo "  Services will be available at:"
-	@echo "  - API:      http://localhost:8071"
-	@echo "  - Admin:    http://localhost:8071/admin"
+	@echo "  - API:      http://menshen.lasuite.localhost:9000/auth/token/"
+	@echo "  - Admin:    http://menshen.lasuite.localhost:9000/admin"
 	@echo ""
 	@echo "================================================================================"
 	@echo ""
@@ -118,8 +127,8 @@ else
 	@echo "║  • Environment configuration files                                           ║"
 	@echo "║                                                                              ║"
 	@echo "║  Services will be available at:                                              ║"
-	@echo "║  • API:      http://localhost:8071                                           ║"
-	@echo "║  • Admin:    http://localhost:8071/admin                                     ║"
+	@echo "║  • API:      http://menshen.lasuite.localhost:9000/auth/token/               ║"
+	@echo "║  • Admin:    http://menshen.lasuite.localhost:9000/admin                     ║"
 	@echo "║                                                                              ║"
 	@echo "╚══════════════════════════════════════════════════════════════════════════════╝"
 	@echo -e "$(RESET)"
@@ -134,13 +143,13 @@ ifeq ($(OS),Windows_NT)
 	@echo "Bootstrap completed successfully!"
 	@echo ""
 	@echo "Next steps:"
-	@echo "  - Play with the API at http://localhost:8071"
+	@echo "  - Play with the API at http://menshen.lasuite.localhost:9000/auth/token/docs"
 	@echo "  - Run 'make help' to see all available commands"
 else
 	@echo -e "$(GREEN)🎉 Bootstrap completed successfully!$(RESET)"
 	@echo ""
 	@echo -e "$(BOLD)Next steps:$(RESET)"
-	@echo "  • Play with the API at http://localhost:8071"
+	@echo "  • Play with the API at http://menshen.lasuite.localhost:9000/auth/token/docs"
 	@echo "  • Run 'make help' to see all available commands"
 endif
 	@echo ""
@@ -165,7 +174,7 @@ build: ## build the project containers
 
 build-backend: cache ?=
 build-backend: ## build the menshen container
-	@$(COMPOSE) build menshen $(cache)
+	@$(COMPOSE) build menshen-backend $(cache)
 .PHONY: build-backend
 
 build-playground: \
@@ -176,12 +185,12 @@ build-playground:  ## build playground services container
 
 build-playground-source: cache ?=
 build-playground-source: ## build the playground-source container
-	@$(COMPOSE) build playground-source $(cache)
+	@$(COMPOSE) build menshen-playground-source $(cache)
 .PHONY: build-playground-source
 
 build-playground-target: cache ?=
 build-playground-target: ## build the playground-target container
-	@$(COMPOSE) build playground-target $(cache)
+	@$(COMPOSE) build menshen-playground-target $(cache)
 .PHONY: build-playground-target
 
 down: ## stop and remove containers, networks, images, and volumes
@@ -189,15 +198,15 @@ down: ## stop and remove containers, networks, images, and volumes
 .PHONY: down
 
 logs: ## display menshen logs (follow mode)
-	@$(COMPOSE) logs -f menshen
+	@$(COMPOSE) logs -f menshen-backend
 .PHONY: logs
 
 run-backend: ## Start only the backend application and all needed services
-	@$(COMPOSE) up --force-recreate -d menshen
+	@$(COMPOSE) up --no-recreate -d menshen-backend
 .PHONY: run-backend
 
 run-playground: ## start the playground 
-	$(COMPOSE) up --force-recreate -d playground-source playground-target
+	$(COMPOSE) up --no-recreate -d menshen-playground-source menshen-playground-target
 .PHONY: run-playground
 
 run: ## start the wsgi (production) and development server
@@ -216,6 +225,10 @@ stop: ## stop the development server using Docker
 watch: ## watch changes in source code (development mode)
 	@$(COMPOSE) watch
 .PHONY: watch 
+
+interop-update: ## update interop services
+	$(MAKE) -B interop
+.PHONY: interop-update
 
 # -- Quality checks
 #
@@ -296,13 +309,13 @@ demo: ## flush db then create a demo for load testing purpose
 
 makemigrations:  ## run django makemigrations for the menshen project.
 	@echo -e "$(BOLD)Running makemigrations$(RESET)"
-	@$(COMPOSE) up -d postgresql
+	@$(COMPOSE) up -d menshen-postgresql
 	@$(MANAGE) makemigrations
 .PHONY: makemigrations
 
 migrate:  ## run django migrations for the menshen project.
 	@echo -e "$(BOLD)Running migrations$(RESET)"
-	@$(COMPOSE) up -d postgresql
+	@$(COMPOSE) up -d menshen-postgresql
 	@$(MANAGE) migrate
 .PHONY: migrate
 
@@ -326,7 +339,7 @@ shell: ## connect to database shell
 # -- Database
 #
 dbshell: ## connect to database shell
-	docker compose exec menshen python manage.py dbshell
+	docker compose exec menshen-backend python manage.py dbshell
 .PHONY: dbshell
 
 resetdb: FLUSH_ARGS ?=

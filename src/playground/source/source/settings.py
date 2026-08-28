@@ -25,7 +25,11 @@ SECRET_KEY = "django-insecure-w6-n97$la7#i8@x7)eeg6wnm+8%zzj9^5)3)$d)i^4h2k94svg
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["localhost", "playground-source", "source.localhost"]
+ALLOWED_HOSTS = [
+    "localhost",
+    "menshen-playground-source",
+    "source.playground.menshen.lasuite.localhost",
+]
 
 
 # Application definition
@@ -146,22 +150,22 @@ LOGGING = {
 # OIDC
 OIDC_USERINFO_SHORTNAME_FIELD = "first_name"
 OIDC_OP_AUTHORIZATION_ENDPOINT = (
-    "http://localhost:8080/realms/menshen/protocol/openid-connect/auth"
+    "http://keycloak.lasuite.localhost:8004/realms/lasuite/protocol/openid-connect/auth"
 )
 OIDC_OP_INTROSPECTION_ENDPOINT = (
-    "http://keycloack:8080/realms/menshen/protocol/openid-connect/token/introspect"
+    "http://keycloack:8080/realms/lasuite/protocol/openid-connect/token/introspect"
 )
 OIDC_OP_TOKEN_ENDPOINT = (
-    "http://keycloak:8080/realms/menshen/protocol/openid-connect/token"
+    "http://keycloak:8080/realms/lasuite/protocol/openid-connect/token"
 )
 OIDC_OP_USER_ENDPOINT = (
-    "http://keycloak:8080/realms/menshen/protocol/openid-connect/userinfo"
+    "http://keycloak:8080/realms/lasuite/protocol/openid-connect/userinfo"
 )
 OIDC_OP_JWKS_ENDPOINT = (
-    "http://keycloak:8080/realms/menshen/protocol/openid-connect/certs"
+    "http://keycloak:8080/realms/lasuite/protocol/openid-connect/certs"
 )
 OIDC_OP_LOGOUT_ENDPOINT = (
-    "http://keycloak:8080/realms/menshen/protocol/openid-connect/logout"
+    "http://keycloak:8080/realms/lasuite/protocol/openid-connect/logout"
 )
 OIDC_RP_CLIENT_ID = "playground-source"
 # FIXME: should be hard-coded?
@@ -172,12 +176,12 @@ OIDC_RP_SCOPES = "openid email"
 OIDC_STORE_ACCESS_TOKEN = True
 OIDC_STORE_REFRESH_TOKEN = True
 
-LOGIN_REDIRECT_URL = "http://source.localhost:8072/"
-LOGIN_REDIRECT_URL_FAILURE = "http://source.localhost:8072/"
-LOGOUT_REDIRECT_URL = "http://source.localhost:8072/"
-OIDC_REDIRECT_ALLOWED_HOSTS = "source.localhost:8072/"
+LOGIN_REDIRECT_URL = "http://source.playground.menshen.lasuite.localhost:9002/"
+LOGIN_REDIRECT_URL_FAILURE = "http://source.playground.menshen.lasuite.localhost:9002/"
+LOGOUT_REDIRECT_URL = "http://source.playground.menshen.lasuite.localhost:9002/"
+OIDC_REDIRECT_ALLOWED_HOSTS = "source.playground.menshen.lasuite.localhost:9002/"
 
 # Token exchange
-OIDC_TX_TOKEN_ENDPOINT = "http://menshen:8000/auth/token/exchange/"
+OIDC_TX_TOKEN_ENDPOINT = "http://menshen-backend:8000/auth/token/exchange/"
 OIDC_TX_CLIENT_ID = "source"
 OIDC_TX_CLIENT_SECRET = "source_secret"
