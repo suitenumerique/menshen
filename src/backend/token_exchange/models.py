@@ -557,7 +557,7 @@ class ExchangedToken(BaseModel):
             iat=int(self.created_at.timestamp()),
             sub=self.subject_sub,
             email=self.subject_email,
-            aud=self.audiences,  # ty: ignore
+            aud=self.audiences,
             jti=self._get_jti(),
             client_id=settings.OIDC_RS_CLIENT_ID,
         )

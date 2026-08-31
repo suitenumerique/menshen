@@ -122,12 +122,12 @@ def test_introspection_response_schema_aud_field_validation():
     assert IntrospectionResponse(active=False, aud="foo bar ").aud == "foo bar "
 
     # Multiple audiences string list should be joined as a string
-    assert IntrospectionResponse(active=False, aud=["foo", "bar"]).aud == "foo bar"  # ty: ignore
-    assert IntrospectionResponse(active=False, aud=["foo", "bar "]).aud == "foo bar "  # ty: ignore
+    assert IntrospectionResponse(active=False, aud=["foo", "bar"]).aud == "foo bar"
+    assert IntrospectionResponse(active=False, aud=["foo", "bar "]).aud == "foo bar "
 
     # Multiple audiences list containing an non-string type should raise an error
     with pytest.raises(ValidationError, match="Input should be a valid string"):
-        IntrospectionResponse(active=False, aud=["foo", 1])  # ty: ignore
+        IntrospectionResponse(active=False, aud=["foo", 1])
 
 
 @pytest.mark.parametrize(

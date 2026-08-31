@@ -25,9 +25,9 @@ from menshen_client import MenshenClient, MenshenConfiguration
 
 # Configure the client
 config = MenshenConfiguration(
-   client_id="acme",
-   client_secret="super-secret",
-   server_root_url="https://menshen.example.org",
+    client_id="acme",
+    client_secret="super-secret",
+    server_root_url="https://menshen.example.org",
 )
 
 # Create the client instance
@@ -45,8 +45,8 @@ use:
 
 ```python
 from menshen_client import (
-    MenshenSupportedTokenType, 
-    TokenExchangeRequest, 
+    MenshenSupportedTokenType,
+    TokenExchangeRequest,
     TokenExchangeResponse,
 )
 
@@ -70,14 +70,14 @@ The token exchange response contains the exchanged token that can be used to
 query the target resource server:
 
 ```python
-import requests 
+import requests
 
 resources = requests.get(
-    "https://target.example.org/external_api/v1.0/resource/", 
+    "https://target.example.org/external_api/v1.0/resource/",
     headers={
         "Authorization": f"Bearer {exchange_response.access_token}",
         "Content-Type": "application/json",
-    }
+    },
 )
 ```
 
@@ -92,8 +92,8 @@ tokens _via_ your autorization server instance using:
 
 ```python
 from menshen_client import (
-    MenshenSupportedTokenType, 
-    IntrospectionRequest, 
+    MenshenSupportedTokenType,
+    IntrospectionRequest,
     IntrospectionResponse,
 )
 
@@ -124,8 +124,8 @@ Menshen instance dedicated endpoint:
 
 ```python
 from menshen_client import (
-    MenshenSupportedTokenType, 
-    RevocationRequest, 
+    MenshenSupportedTokenType,
+    RevocationRequest,
 )
 
 # Create the token revocation request

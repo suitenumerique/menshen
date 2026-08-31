@@ -94,7 +94,7 @@ def test_client_exchange_token_with_extra_field_in_response_payload(
         ({"access_token": "foo", "expires_in": 120}, 3),
     ],
 )
-def test_client_exchange_token_with_missing_fields_in_response_payload(  # noqa: PLR0913
+def test_client_exchange_token_with_missing_fields_in_response_payload(  # noqa: PLR0913,PLR0917
     client, responses, token_exchange_request, payload, missing, caplog
 ):
     """Test the MenshenClient exchange method with missing fields in the response."""

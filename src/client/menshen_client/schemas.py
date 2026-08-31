@@ -102,7 +102,7 @@ class MenshenJWTGrantClaim:
     def __post_init__(self):
         """Parse nested dataclasses."""
         if self.throttle and isinstance(self.throttle, dict):
-            self.throttle = MenshenJWTGrantClaimThrottling(**self.throttle)  # ty: ignore
+            self.throttle = MenshenJWTGrantClaimThrottling(**self.throttle)
 
 
 @dataclass

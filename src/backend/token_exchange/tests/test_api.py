@@ -459,7 +459,7 @@ def test_introspect_view_with_unknown_token(target_api_client, caplog):
         (datetime.now(tz=UTC) + timedelta(hours=1), datetime.now(tz=UTC) - timedelta(minutes=1)),
     ],
 )
-def test_introspect_view_invalid_token(  # noqa: PLR0913
+def test_introspect_view_invalid_token(  # noqa: PLR0913,PLR0917
     target_api_client,
     target_service,
     caplog,

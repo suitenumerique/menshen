@@ -50,7 +50,7 @@ class TokenGenerator:
         return secrets.token_urlsafe(32)
 
     @classmethod
-    def generate_jwt(  # noqa: PLR0913
+    def generate_jwt(  # noqa: PLR0913,PLR0917
         cls,
         sub: UUID | str,
         email: str | None,

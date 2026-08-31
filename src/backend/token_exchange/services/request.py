@@ -249,7 +249,7 @@ class RequestService:
         )
 
     @classmethod
-    def _generate_exchange_token(  # noqa: PLR0913
+    def _generate_exchange_token(  # noqa: PLR0913,PLR0917
         cls,
         token_type: AllowedRequestedTokenType,
         user_info: IntrospectionResponse,
