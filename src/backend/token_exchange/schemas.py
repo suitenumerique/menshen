@@ -17,9 +17,9 @@ from .enums import (
     AllowedActorTokenType,
     AllowedRequestedTokenType,
     AllowedSubjectTokenType,
+    IntrospectionResponseTokenType,
     TokenExchangeResponseTokenType,
     TokenExchangeTokenTypeHint,
-    TokenType,
 )
 
 
@@ -155,7 +155,7 @@ class IntrospectionResponse(Schema):
     iat: int | None = None
     iss: str | None = None
     aud: str | None = None
-    token_type: TokenType | None = None
+    token_type: IntrospectionResponseTokenType | None = None
 
     # Optionnal
     email: str | None = None
@@ -181,6 +181,14 @@ class IntrospectionResponse(Schema):
         if not all(isinstance(aud, str) for aud in value):
             return value
         return " ".join(value)
+
+    @field_validator("token_type", mode="before")
+    @classmethod
+    def to_lower(cls, value):
+        """Convert string to lower case before validating value."""
+        if not isinstance(value, str):
+            return value
+        return value.lower()
 
     model_config = ConfigDict(frozen=True)
 

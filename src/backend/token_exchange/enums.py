@@ -34,6 +34,28 @@ class TokenExchangeTokenTypeHint(StrEnum):
     JWT = "jwt"
 
 
+class IntrospectionResponseTokenType(StrEnum):
+    """
+    Introspected token type.
+
+    When introspecting a token it may be a subject or exchanged token. In the first case,
+    it may be a bearer or mac token, while in the second case, it may be one of the supported
+    exchanged token types.
+    """
+
+    # Subject token
+    BEARER = "bearer"
+    MAC = "mac"
+
+    # Exchanged token
+    ACCESS_TOKEN = "urn:ietf:params:oauth:token-type:access_token"  # noqa: S105
+    REFRESH_TOKEN = "urn:ietf:params:oauth:token-type:refresh_token"  # noqa: S105
+    JWT = "urn:ietf:params:oauth:token-type:jwt"
+    ID_TOKEN = "urn:ietf:params:oauth:token-type:id_token"  # noqa: S105
+    SAML1 = "urn:ietf:params:oauth:token-type:saml1"
+    SAML2 = "urn:ietf:params:oauth:token-type:saml2"
+
+
 #
 # Dynamic enums depending on project settings
 #

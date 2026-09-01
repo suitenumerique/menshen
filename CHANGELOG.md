@@ -13,6 +13,10 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 - Remove `--app` flag in the container production command
 - Remove unused OIDC authentication backend
 
+### Fixed
+
+- Allow bearer or mac introspected token types
+
 ### Removed
 
 - Clean unused `django-cors-headers` configured dependency

@@ -11,6 +11,7 @@ from pydantic import ValidationError
 from token_exchange.enums import (
     AllowedActorTokenType,
     AllowedSubjectTokenType,
+    IntrospectionResponseTokenType,
     TokenExchangeResponseTokenType,
     TokenExchangeTokenTypeHint,
     TokenType,
@@ -128,6 +129,22 @@ def test_introspection_response_schema_aud_field_validation():
     # Multiple audiences list containing an non-string type should raise an error
     with pytest.raises(ValidationError, match="Input should be a valid string"):
         IntrospectionResponse(active=False, aud=["foo", 1])
+
+
+def test_introspection_response_schema_token_type_validation():
+    """Test the IntrospectionResponse schema token_type field pre-validation."""
+    assert (
+        IntrospectionResponse(active=False, token_type="Bearer").token_type
+        == IntrospectionResponseTokenType.BEARER
+    )
+    assert (
+        IntrospectionResponse(active=False, token_type="bearer").token_type
+        == IntrospectionResponseTokenType.BEARER
+    )
+    # Not allowed value should raise a validation error
+    for token_type in ["foo", 1]:
+        with pytest.raises(ValidationError, match="Input should be 'bearer',"):
+            IntrospectionResponse(active=False, token_type=token_type)
 
 
 @pytest.mark.parametrize(
