@@ -99,7 +99,7 @@ function _dc_exec() {
 # options: uv command options
 # ARGS   : uv command arguments
 function _uv() {
-    _dc_run "menshen" uv "$@"
+    _dc_run "menshen-backend" uv "$@"
 }
 
 # _django_manage: wrap django's manage.py command with docker compose

@@ -73,6 +73,9 @@ db.sqlite3
 # Site media
 /data/
 
+# Interop dependencies
+interop/
+
 # IDEs
 .idea/
 .vscode/

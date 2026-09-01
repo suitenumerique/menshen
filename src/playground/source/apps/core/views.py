@@ -73,7 +73,7 @@ class BackupView(FormView):
 
         # Use exchanged token to backup recording in the configured target service
         response = requests.post(
-            "http://playground-target:8000/external_api/items/",
+            "http://menshen-playground-target:8000/external_api/items/",
             data={"name": recording.meeting, "type": "video/mpeg", "size": 10240},
             headers={"Authorization": f"Bearer {exchanged_token['access_token']}"},
         )

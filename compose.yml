@@ -1,7 +1,10 @@
-name: menshen 
+name: lasuite
+
+include:
+  - interop/compose.yml
 
 services:
-  postgresql:
+  menshen-postgresql:
     image: postgres:16
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
@@ -11,15 +14,12 @@ services:
     env_file:
       - env.d/development/postgresql
       - env.d/development/postgresql.local
+    networks:
+      - lasuite
     ports:
-      - "15432:5432"
+      - "9001:5432"
 
-  redis:
-    image: redis:5
-    ports:
-      - "6379:6379"
-
-  menshen:
+  menshen-backend:
     build:
       context: .
       dockerfile: ./src/backend/Dockerfile
@@ -35,23 +35,20 @@ services:
       - env.d/development/common.local
       - env.d/development/postgresql
       - env.d/development/postgresql.local
+    networks:
+      - lasuite
     ports:
-      - "8071:8000"
+      - "9000:8000"
     healthcheck:
       test: ["CMD-SHELL", "curl localhost:8000/__heartbeat__"]
       interval: 1s
       timeout: 2s
       retries: 300
-    networks:
-      default: {}
-      lasuite:
-        aliases:
-          - menshen
     volumes:
       - ./src/backend:/app
       - ./data/static:/data/static
     depends_on:
-      postgresql:
+      menshen-postgresql:
         condition: service_healthy
         restart: true
       redis:
@@ -59,62 +56,16 @@ services:
       keycloak:
         condition: service_healthy
 
-  kc_postgresql:
-    image: postgres:14.3
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
-      interval: 1s
-      timeout: 2s
-      retries: 300
-    ports:
-      - "5433:5432"
-    env_file:
-      - env.d/development/kc_postgresql
-      - env.d/development/kc_postgresql.local
-
-  keycloak:
-    image: quay.io/keycloak/keycloak:26.6
-    volumes:
-      - ./docker/auth/realm.json:/opt/keycloak/data/import/realm.json
-    command:
-      - start-dev
-      - --features=preview
-      - --import-realm
-      - --hostname=http://localhost:8080
-      - --hostname-strict=false
-      - --health-enabled=true
-      - --metrics-enabled=true
-    healthcheck:
-      test: ['CMD-SHELL', 'exec 3<>/dev/tcp/localhost/9000; echo -e "GET /health/live HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n" >&3; grep "HTTP/1.1 200 OK" <&3']
-      start_period: 5s
-      interval: 1s
-      timeout: 2s
-      retries: 300
-    environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-      KC_DB: postgres
-      KC_DB_URL_HOST: kc_postgresql
-      KC_DB_URL_DATABASE: keycloak
-      KC_DB_PASSWORD: pass
-      KC_DB_USERNAME: menshen
-      KC_DB_SCHEMA: public
-      PROXY_ADDRESS_FORWARDING: 'true'
-    ports:
-      - "8080:8080"
-    depends_on:
-      kc_postgresql:
-        condition: service_healthy
-        restart: true
-
-  playground-source:
+  menshen-playground-source:
     build:
       context: .
       dockerfile: ./src/playground/source/Dockerfile
       target: backend-development
     image: menshen:playground-source
+    networks:
+      - lasuite
     ports:
-      - "8072:8000"
+      - "9002:8000"
     develop:
       watch:
         - action: sync+restart
@@ -126,25 +77,22 @@ services:
           path: ./src/playground/source/uv.lock
         - action: rebuild
           path: ./src/playground/source/Dockerfile
-    networks:
-      default: {}
-      lasuite:
-        aliases:
-          - playground-source
     depends_on:
       keycloak:
         condition: service_healthy
-      menshen:
+      menshen-backend:
         condition: service_healthy
 
-  playground-target:
+  menshen-playground-target:
     build:
       context: .
       dockerfile: ./src/playground/target/Dockerfile
       target: backend-development
     image: menshen:playground-target
+    networks:
+      - lasuite
     ports:
-      - "8073:8000"
+      - "9003:8000"
     develop:
       watch:
         - action: sync+restart
@@ -156,15 +104,10 @@ services:
           path: ./src/playground/target/uv.lock
         - action: rebuild
           path: ./src/playground/target/Dockerfile
-    networks:
-      default: {}
-      lasuite:
-        aliases:
-          - playground-target
     depends_on:
       keycloak:
         condition: service_healthy
-      menshen:
+      menshen-backend:
         condition: service_healthy
 
   # Utils
@@ -172,11 +115,8 @@ services:
     image: alpine/openssl:3.5.7
 
 networks:
-  default: {}
   lasuite:
-    name: lasuite-network
-    driver: bridge
-    external: true
+    name: lasuite
 
 volumes:
   venv:
