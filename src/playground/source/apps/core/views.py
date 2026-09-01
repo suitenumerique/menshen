@@ -64,7 +64,7 @@ class BackupView(FormView):
         }
         response = requests.post(
             settings.OIDC_TX_TOKEN_ENDPOINT,
-            json=token_exchange_payload,
+            data=token_exchange_payload,
             auth=token_exchange_auth,
         )
         response.raise_for_status()

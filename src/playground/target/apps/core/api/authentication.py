@@ -27,7 +27,7 @@ class TokenExchangeAuthentication(OIDCAuthentication):
         token_introspection_payload = {"token": access_token}
         response = requests.post(
             settings.OIDC_TX_INTROSPECTION_ENDPOINT,
-            json=token_introspection_payload,
+            data=token_introspection_payload,
             auth=token_exchange_auth,
         )
         user_info = response.json()
