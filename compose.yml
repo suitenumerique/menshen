@@ -169,7 +169,7 @@ services:
 
   # Utils
   openssl:
-    image: alpine/openssl:3.5.7
+    image: alpine/openssl:3.5.8
 
 networks:
   default: {}
