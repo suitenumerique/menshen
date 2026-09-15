@@ -1,6 +1,5 @@
 # La Suite Menshen: the Token Exchange server.
 
-
 > [!WARNING]
 > We are bootstrapping this project. Nothing is really usable in a production
 > context at this time.
@@ -60,14 +59,15 @@ make run
 ```
 
 As Menshen is a headless API server, once up only the admin console is
-available at: <http://localhost:8071/admin>
+available at: <http://menshen.lasuite.localhost:9000/admin>
 
 Default credentials (development only):
 
 ```md
 username: admin
-password: admin 
+password: admin
 ```
+
 ### Django admin
 
 To access the Django administration console, you should create a superuser
@@ -130,6 +130,7 @@ demo fixtures using the eponym command:
 ```bash
 make demo
 ```
+
 You can start the playground using the dedicated command:
 
 ```bash
@@ -138,8 +139,8 @@ make run-playground
 
 This should fire up two new services:
 
-- `playground-source` available at: <http://source.localhost:8072>
-- `playground-target` available at: <http://target.localhost:8073>
+- `playground-source` available at: <http://source.playground.menshen.lasuite.localhost:9002>
+- `playground-target` available at: <http://target.playground.menshen.lasuite.localhost:9003>
 
 You can login from the source or target services using the "login" button in
 the page header. Once clicked, you should be redirected to the Keycloak service
@@ -147,8 +148,8 @@ that is used as the identity provider for our development environment. The test
 user credentials are:
 
 ```md
-username: menshen
-password: menshen
+email: user@lasuite.fr
+password: lasuite
 ```
 
 Once connected, you should be redirected to the original service.
@@ -190,7 +191,6 @@ To check all available Make rules:
 ```bash
 make help
 ```
-
 
 ## License 📝
 

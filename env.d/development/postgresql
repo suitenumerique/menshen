@@ -4,7 +4,7 @@ POSTGRES_USER=dinum
 POSTGRES_PASSWORD=pass
 
 # App database configuration
-DB_HOST=postgresql
+DB_HOST=menshen-postgresql
 DB_NAME=menshen
 DB_USER=dinum
 DB_PASSWORD=pass

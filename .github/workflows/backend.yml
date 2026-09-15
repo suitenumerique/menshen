@@ -165,7 +165,10 @@ jobs:
         run: uv sync --locked --all-extras --dev
 
       - name: Define required environment variables
-        run: ../../bin/local-env
+        working-directory: .
+        run: |
+          make interop
+          bin/local-env
 
       - name: Run tests
         run: uv run pytest -n 2

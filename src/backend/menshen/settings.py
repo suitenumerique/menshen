@@ -511,7 +511,7 @@ class Development(Base):
     """
 
     ALLOWED_HOSTS = ["*"]
-    CSRF_TRUSTED_ORIGINS = ["http://localhost:8072", "http://localhost:3000"]
+    CSRF_TRUSTED_ORIGINS = ["http://menshen.lasuite.localhost:9000"]
     DEBUG = True
 
     SESSION_COOKIE_NAME = "menshen_sessionid"
