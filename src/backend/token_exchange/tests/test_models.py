@@ -83,6 +83,41 @@ def test_serviceprovidercredentials_clean_bad_origins(allowed_origins):
         credentials.clean()
 
 
+def test_serviceprovidercredentials_set_client_secret():
+    """Test the ServiceProviderCredentials set_client_secret method."""
+    credentials = ServiceProviderCredentialsFactory.build(client_secret=None)
+    assert credentials.client_secret == ""
+
+    credentials.set_client_secret("foo")
+    assert len(credentials.client_secret)
+    assert isinstance(credentials.client_secret, str)
+    assert credentials.client_secret != "foo"
+
+
+def test_serviceprovidercredentials_set_client_secret_prevent_overwrite():
+    """Test the ServiceProviderCredentials set_client_secret method when already set."""
+    credentials = ServiceProviderCredentialsFactory.build(client_secret=None)
+    assert credentials.client_secret == ""
+
+    # When calling set_client_secret twice the client secret should NOT change
+    credentials.set_client_secret("foo")
+    client_secret = credentials.client_secret
+    assert client_secret
+    credentials.set_client_secret("bar")
+    assert credentials.client_secret == client_secret
+
+
+def test_serviceprovidercredentials_check_client_secret():
+    """Test the ServiceProviderCredentials check_client_secret method."""
+    credentials = ServiceProviderCredentialsFactory.build(client_secret=None)
+    assert credentials.client_secret == ""
+
+    client_secret = "foo"
+    credentials.set_client_secret(client_secret)
+    assert not credentials.check_client_secret("bar")
+    assert credentials.check_client_secret(client_secret)
+
+
 def test_tokenexchangerule_str():
     """Test the TokenEchangeRule str method."""
     rule = TokenExchangeRuleFactory.build()

@@ -84,9 +84,12 @@ def configure_token_exchange_fixture(db, target_service, source_target_rule) -> 
 
 def token_exchange_api_client(service_provider: ServiceProvider) -> TestClient:
     """Get TokenExchange API client logged in for a service provider."""
-    credentials = ServiceProviderCredentialsFactory(service_provider=service_provider)
+    client_secret = uuid4().hex
+    credentials = ServiceProviderCredentialsFactory(
+        service_provider=service_provider, client_secret=client_secret
+    )
     encoded_credentials = base64.b64encode(
-        bytes(f"{credentials.client_id}:{credentials.client_secret}", encoding="utf-8")
+        bytes(f"{credentials.client_id}:{client_secret}", encoding="utf-8")
     )
     return TestClient(api, headers={"Authorization": "Basic " + encoded_credentials.decode()})
 

@@ -19,12 +19,14 @@ class ServiceProviderBasicAuthentication(HttpBasicAuth):
         try:
             credentials = ServiceProviderCredentials.objects.select_related("service_provider").get(
                 client_id=username,
-                client_secret=password,
             )
         except ServiceProviderCredentials.DoesNotExist as exc:
             raise AuthenticationError(message="Service provider does not exist.") from exc
 
         if not credentials.is_active:
-            raise AuthenticationError(message="Service provider inactive or deleted.")
+            raise AuthenticationError(message="Service provider inactive.")
+
+        if not credentials.check_client_secret(password):
+            raise AuthenticationError(message="Invalid service provider credentials.")
 
         return credentials.service_provider

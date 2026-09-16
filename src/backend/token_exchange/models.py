@@ -6,6 +6,7 @@ import re
 import uuid
 
 from django.conf import settings
+from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
@@ -121,9 +122,8 @@ class ServiceProviderCredentials(BaseModel):
     )
     client_secret = models.CharField(  # Should be hashed
         max_length=255,
-        unique=True,
-        db_index=True,
         verbose_name=_("Client secret"),
+        editable=False,
     )
     allowed_origins = models.TextField(
         blank=True,
@@ -150,6 +150,18 @@ class ServiceProviderCredentials(BaseModel):
             validator = URLValidator(schemes=settings.TOKEN_EXCHANGE_ALLOWED_SCHEMES)
             for url in allowed_origins:
                 validator(url)
+
+    def set_client_secret(self, raw_secret: str, save: bool = False) -> None:
+        """Set encrypted client_secret from a raw secret."""
+        if self.client_secret:
+            return
+        self.client_secret = make_password(raw_secret)
+        if save:
+            self.save(update_fields=["client_secret"])
+
+    def check_client_secret(self, raw_secret) -> bool:
+        """Check given raw secret against encoded client secret."""
+        return check_password(raw_secret, self.client_secret)
 
 
 class TokenExchangeRule(BaseModel):

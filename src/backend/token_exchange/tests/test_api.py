@@ -31,8 +31,8 @@ from token_exchange.services.token import TokenGenerator
     ],
 )
 @pytest.mark.django_db
-def test_exchange_view_auth_without_credentials(endpoint):
-    """Test the TokenExchangeView authentication without submitting credentials."""
+def test_view_auth_without_credentials(endpoint):
+    """Test api view authentication without submitting credentials."""
     client = TestClient(api)
     response = client.post(endpoint, data={})
     assert response.status_code == 401  # UNAUTHORIZED
@@ -47,8 +47,8 @@ def test_exchange_view_auth_without_credentials(endpoint):
     ],
 )
 @pytest.mark.django_db
-def test_exchange_view_auth_with_invalid_credentials(endpoint):
-    """Test the TokenExchangeView authentication with invalid credentials."""
+def test_view_auth_with_unknown_client(endpoint):
+    """Test api view authentication with an unknown client."""
     client = TestClient(api)
     encoded_credentials = base64.b64encode(bytes("foo:bar", encoding="utf-8"))
     response = client.post(
@@ -68,18 +68,77 @@ def test_exchange_view_auth_with_invalid_credentials(endpoint):
     ],
 )
 @pytest.mark.django_db
-def test_exchange_view_auth_with_inactive_service(endpoint):
-    """Test the TokenExchangeView authentication for an inactive service provider."""
+def test_view_auth_with_invalid_credentials(endpoint):
+    """Test api view authentication with invalid credentials."""
     client = TestClient(api)
 
     # Create the inactive service
     service_provider = ServiceProviderFactory.create(audience_id="test:inactive-service")
+    client_secret = uuid4().hex
     credentials = ServiceProviderCredentialsFactory(
-        service_provider=service_provider, is_active=False
+        service_provider=service_provider, client_secret=client_secret, is_active=True
+    )
+    encoded_credentials = base64.b64encode(bytes(f"{credentials.client_id}:bar", encoding="utf-8"))
+    response = client.post(
+        endpoint,
+        headers={"Authorization": "Basic " + encoded_credentials.decode()},
+        data={},
+    )
+    assert response.status_code == 401  # UNAUTHORIZED
+
+
+@pytest.mark.parametrize(
+    "endpoint",
+    [
+        "/exchange/",
+        "/introspect/",
+        "/revoke/",
+    ],
+)
+@pytest.mark.django_db
+def test_view_auth_with_inactive_credentials(endpoint):
+    """Test api view authentication with inactive credentials."""
+    client = TestClient(api)
+
+    # Create the inactive service
+    service_provider = ServiceProviderFactory.create(audience_id="test:inactive-service")
+    client_secret = uuid4().hex
+    credentials = ServiceProviderCredentialsFactory(
+        service_provider=service_provider, client_secret=client_secret, is_active=False
+    )
+    encoded_credentials = base64.b64encode(
+        bytes(f"{credentials.client_id}:{client_secret}", encoding="utf-8")
+    )
+    response = client.post(
+        endpoint,
+        headers={"Authorization": "Basic " + encoded_credentials.decode()},
+        data={},
+    )
+    assert response.status_code == 401  # UNAUTHORIZED
+
+
+@pytest.mark.parametrize(
+    "endpoint",
+    [
+        "/exchange/",
+        "/introspect/",
+        "/revoke/",
+    ],
+)
+@pytest.mark.django_db
+def test_view_auth_with_inactive_service(endpoint):
+    """Test api view authentication for an inactive service provider."""
+    client = TestClient(api)
+
+    # Create the inactive service
+    service_provider = ServiceProviderFactory.create(audience_id="test:inactive-service")
+    client_secret = uuid4().hex
+    credentials = ServiceProviderCredentialsFactory(
+        service_provider=service_provider, client_secret=client_secret, is_active=False
     )
 
     encoded_credentials = base64.b64encode(
-        bytes(f"{credentials.client_id}:{credentials.client_secret}", encoding="utf-8")
+        bytes(f"{credentials.client_id}:{client_secret}", encoding="utf-8")
     )
     response = client.post(
         endpoint,

@@ -8,6 +8,11 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- Implement service provider credentials automated generation, encryption and
+  validation
+
 ### Changed
 
 - Remove `--app` flag in the container production command

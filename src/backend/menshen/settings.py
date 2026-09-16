@@ -368,6 +368,11 @@ class Base(Configuration):
         environ_name="TOKEN_EXCHANGE_EXCHANGE_ENDPOINT_THROTTLE_RATE",
         environ_prefix=None,
     )
+    TOKEN_EXCHANGE_CLIENT_SECRET_LENGTH = values.Value(
+        default=64,
+        environ_name="TOKEN_EXCHANGE_CLIENT_SECRET_LENGTH",
+        environ_prefix=None,
+    )
 
     # Logging
     # We want to make it easy to log to console but by default we log production
@@ -541,6 +546,9 @@ class Test(Base):
     PASSWORD_HASHERS = [
         "django.contrib.auth.hashers.MD5PasswordHasher",
     ]
+    STORAGES = {
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    }
 
 
 class ContinuousIntegration(Test):

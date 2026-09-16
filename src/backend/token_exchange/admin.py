@@ -1,6 +1,8 @@
 """Menshen: admin configuration for the token_exchange application."""
 
-from django.contrib import admin
+from django.conf import settings
+from django.contrib import admin, messages
+from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
 from .models import (
@@ -9,9 +11,13 @@ from .models import (
     ExchangedToken,
     ScopeGrant,
     ServiceProvider,
+    ServiceProviderCredentials,
     TokenExchangeActionPermission,
     TokenExchangeRule,
 )
+from .utils import generate_client_secret
+
+STR_MAX_DISPLAY_LENGTH: int = 50
 
 
 @admin.register(ServiceProvider)
@@ -28,7 +34,35 @@ class ServiceProviderAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at", "updated_at")
 
 
-STR_MAX_DISPLAY_LENGTH: int = 50
+@admin.register(ServiceProviderCredentials)
+class ServiceProviderCredentialsAdmin(admin.ModelAdmin):
+    """Admin interface for service providers."""
+
+    list_display = ("client_id", "service_provider", "allowed_origins", "is_active")
+    list_filter = ("is_active", "service_provider")
+    readonly_fields = ("client_secret", "created_at", "updated_at")
+    actions = ("make_inactive",)
+
+    def save_model(self, request, obj, form, change):
+        """Generate the client secret when creating the model."""
+        if not change:
+            raw_secret = generate_client_secret(settings.TOKEN_EXCHANGE_CLIENT_SECRET_LENGTH)
+            obj.set_client_secret(raw_secret, save=True)
+            messages.warning(
+                request,
+                mark_safe(  # noqa: S308
+                    "Generated client_secret: "
+                    f"<code>{raw_secret}</code> "
+                    "(will only be displayed once)"
+                ),
+            )
+
+        super().save_model(request, obj, form, change)
+
+    @admin.action(description="Inactivate selected service provider credentials")
+    def make_inactive(self, request, queryset):
+        """Inactivate selected credentials."""
+        queryset.update(is_active=False)
 
 
 @admin.register(ExchangedToken)

@@ -93,7 +93,19 @@ class ServiceProviderCredentialsFactory(factory.django.DjangoModelFactory):
 
     service_provider = factory.SubFactory("token_exchange.factories.ServiceProviderFactory")
     client_id = factory.LazyFunction(fake.uuid4)
-    client_secret = factory.LazyFunction(fake.uuid4)
+
+    @factory.post_generation
+    def client_secret(
+        obj: models.ServiceProviderCredentials,  # noqa: N805
+        create: bool,
+        extracted: str,
+        **kwargs,
+    ):
+        """Set the client secret from a random uuid4 or a provided secret."""
+        if not create:
+            return
+        raw_secret = extracted or fake.uuid4()
+        obj.set_client_secret(raw_secret, save=True)
 
 
 class TokenExchangeRuleFactory(factory.django.DjangoModelFactory):
