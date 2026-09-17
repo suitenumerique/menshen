@@ -171,6 +171,10 @@ class Base(Configuration):
         "django.contrib.auth.backends.ModelBackend",
     ]
 
+    PASSWORD_HASHERS = [
+        "django.contrib.auth.hashers.Argon2PasswordHasher",
+    ]
+
     # Django applications from the highest priority to the lowest
     INSTALLED_APPS = [
         "token_exchange",
