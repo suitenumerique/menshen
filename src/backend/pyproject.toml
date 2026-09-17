@@ -25,14 +25,14 @@ requires-python = "~=3.14.6"
 dependencies = [
     "argon2-cffi==25.1.0",
     "dj-database-url==3.1.2",
-    "django==6.1",
+    "django==6.1.1",
     "django-configurations==2.5.1",
-    "django-lasuite[all]==0.0.28",
-    "django-ninja==1.6.3",
+    "django-lasuite[all]==0.0.29",
+    "django-ninja==1.7.0",
     "django-redis==7.0.0",
     "dockerflow==2026.3.4",
-    "psycopg[binary,pool]==3.3.4",
-    "sentry-sdk[django]==2.68.0",
+    "psycopg[binary,pool]==3.3.5",
+    "sentry-sdk[django]==2.69.1",
     "uvicorn==0.52.4",
     "whitenoise==6.12.0",
 ]
@@ -45,18 +45,18 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "django-debug-toolbar==7.1.1",
+    "django-debug-toolbar==8.0.0",
     "django-extensions==4.1",
     "django-types==0.24.0",
     "factory-boy==3.3.3",
     "ipdb==0.13.13",
-    "ipython==9.16.1",
+    "ipython==9.17.1",
     "pytest==9.1.1",
     "pytest-cov==7.1.0",
     "pytest-django==4.14.0",
     "pytest-xdist==3.8.0",
-    "ruff==0.16.4",
-    "ty==0.0.74",
+    "ruff==0.16.7",
+    "ty==0.0.80",
 ]
 
 [tool.uv.build-backend]

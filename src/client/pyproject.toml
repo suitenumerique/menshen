@@ -41,9 +41,9 @@ dev = [
     "pytest==9.1.1",
     "pytest-cov==7.1.0",
     "pytest-responses==0.6.0",
-    "responses==0.26.2",
-    "ruff==0.16.4",
-    "ty==0.0.74",
+    "responses==0.26.3",
+    "ruff==0.16.7",
+    "ty==0.0.80",
 ]
 
 [tool.hatch.build.targets.sdist]
