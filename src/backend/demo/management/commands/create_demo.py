@@ -32,14 +32,14 @@ def create_demo(stdout):
         client_id=os.environ.get("TOKEN_EXCHANGE_DEMO_SOURCE_CLIENT_ID"),
     )
     source_service_credentials.set_client_secret(
-        os.environ.get("TOKEN_EXCHANGE_DEMO_SOURCE_CLIENT_SECRET", "")
+        os.environ.get("TOKEN_EXCHANGE_DEMO_SOURCE_CLIENT_SECRET", ""), save=True
     )
     target_service_credentials, _ = tx_models.ServiceProviderCredentials.objects.get_or_create(
         service_provider=target_service,
         client_id=os.environ.get("TOKEN_EXCHANGE_DEMO_TARGET_CLIENT_ID"),
     )
     target_service_credentials.set_client_secret(
-        os.environ.get("TOKEN_EXCHANGE_DEMO_TARGET_CLIENT_SECRET", "")
+        os.environ.get("TOKEN_EXCHANGE_DEMO_TARGET_CLIENT_SECRET", ""), save=True
     )
 
     # Rules
