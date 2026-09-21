@@ -47,7 +47,7 @@ class ServiceProviderCredentialsAdmin(admin.ModelAdmin):
         """Generate the client secret when creating the model."""
         if not change:
             raw_secret = generate_client_secret(settings.TOKEN_EXCHANGE_CLIENT_SECRET_LENGTH)
-            obj.set_client_secret(raw_secret, save=True)
+            obj.set_client_secret(raw_secret, save=False)
             messages.warning(
                 request,
                 mark_safe(  # noqa: S308
