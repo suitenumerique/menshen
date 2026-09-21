@@ -381,6 +381,11 @@ class Base(Configuration):
         environ_name="TOKEN_EXCHANGE_CLIENT_SECRET_LENGTH",
         environ_prefix=None,
     )
+    TOKEN_EXCHANGE_CLIENT_SECRET_USE_SPECIAL_CHARS = values.Value(
+        default=False,
+        environ_name="TOKEN_EXCHANGE_CLIENT_SECRET_USE_SPECIAL_CHARS",
+        environ_prefix=None,
+    )
 
     # Logging
     # We want to make it easy to log to console but by default we log production

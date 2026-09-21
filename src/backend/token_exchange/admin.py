@@ -46,7 +46,10 @@ class ServiceProviderCredentialsAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         """Generate the client secret when creating the model."""
         if not change:
-            raw_secret = generate_client_secret(settings.TOKEN_EXCHANGE_CLIENT_SECRET_LENGTH)
+            raw_secret = generate_client_secret(
+                length=settings.TOKEN_EXCHANGE_CLIENT_SECRET_LENGTH,
+                use_special_chars=settings.TOKEN_EXCHANGE_CLIENT_SECRET_USE_SPECIAL_CHARS,
+            )
             obj.set_client_secret(raw_secret, save=False)
             messages.warning(
                 request,
