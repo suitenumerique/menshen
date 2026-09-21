@@ -28,7 +28,7 @@ dependencies = [
     "django==6.1",
     "django-configurations==2.5.1",
     "django-lasuite[all]==0.0.28",
-    "django-ninja==1.6.3",
+    "django-ninja==1.7.1",
     "django-redis==7.0.0",
     "dockerflow==2026.3.4",
     "psycopg[binary,pool]==3.3.4",

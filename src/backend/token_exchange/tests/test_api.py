@@ -72,7 +72,7 @@ def test_view_auth_with_invalid_credentials(endpoint):
     """Test api view authentication with invalid credentials."""
     client = TestClient(api)
 
-    # Create the inactive service
+    # Create the service
     service_provider = ServiceProviderFactory.create(audience_id="test:inactive-service")
     client_secret = uuid4().hex
     credentials = ServiceProviderCredentialsFactory(
@@ -85,6 +85,40 @@ def test_view_auth_with_invalid_credentials(endpoint):
         data={},
     )
     assert response.status_code == 401  # UNAUTHORIZED
+
+
+@pytest.mark.parametrize(
+    "endpoint",
+    [
+        "/exchange/",
+        "/introspect/",
+        "/revoke/",
+    ],
+)
+@pytest.mark.parametrize(
+    "client_secret",
+    ["foo%D6bar", "foo%|%Petoto", "foo%|toto"],
+)
+@pytest.mark.django_db
+def test_view_auth_with_complex_credentials(endpoint, client_secret):
+    """Test api view authentication with complex credentials."""
+    client = TestClient(api)
+
+    # Create the service
+    service_provider = ServiceProviderFactory.create(audience_id="test:inactive-service")
+    credentials = ServiceProviderCredentialsFactory(
+        service_provider=service_provider, client_secret=client_secret, is_active=True
+    )
+    encoded_credentials = base64.b64encode(
+        bytes(f"{credentials.client_id}:{client_secret}", encoding="utf-8")
+    )
+    response = client.post(
+        endpoint,
+        headers={"Authorization": "Basic " + encoded_credentials.decode()},
+        data={},
+    )
+    # We expect an error code related to data validation, not authentication
+    assert response.status_code == 422  # UNPROCESSABLE_ENTITY
 
 
 @pytest.mark.parametrize(

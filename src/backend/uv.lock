@@ -445,15 +445,15 @@ all = [
 
 [[package]]
 name = "django-ninja"
-version = "1.6.3"
+version = "1.7.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a2/57/71cc769a7410ade9bd1cddee16132e3da7718fcce1386c67ade7ea939677/django_ninja-1.6.3.tar.gz", hash = "sha256:a65a5016bbf044702fb1f1ff702f96dc3c806fbd7c918290512659531873039f", size = 2340438, upload-time = "2026-08-17T08:45:42.703Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/55/0f/5c6811706676be4c5faf5a3fd0d3ad56293db7ce8f0cc62c3e2f8e23b26d/django_ninja-1.7.1.tar.gz", hash = "sha256:2183ee5426a8c95bfabae1b7f60c471a56c48022296eaaf1cc54b00010b07ee6", size = 2341814, upload-time = "2026-09-19T05:35:56.437Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e3/de/061d08265951765835166a2c69f0b99a8f49dfbea85d7d204ac87a236679/django_ninja-1.6.3-py3-none-any.whl", hash = "sha256:e83ba573e0f17b1d2fddca078613e2aaad512acb3d3c6bc9a5f1a0d9257dd70c", size = 2375010, upload-time = "2026-08-17T08:45:40.473Z" },
+    { url = "https://files.pythonhosted.org/packages/a8/05/7bf91a79ac69632b15b878ad658371dcae58a4e2545da3709cfc55916da3/django_ninja-1.7.1-py3-none-any.whl", hash = "sha256:61137e9fbb97ca15a92cdbfdcf9f6a738464b328c6cb11090faf17042035ec69", size = 2376240, upload-time = "2026-09-19T05:35:54.89Z" },
 ]
 
 [[package]]
@@ -710,7 +710,7 @@ requires-dist = [
     { name = "django", specifier = "==6.1" },
     { name = "django-configurations", specifier = "==2.5.1" },
     { name = "django-lasuite", extras = ["all"], specifier = "==0.0.28" },
-    { name = "django-ninja", specifier = "==1.6.3" },
+    { name = "django-ninja", specifier = "==1.7.1" },
     { name = "django-redis", specifier = "==7.0.0" },
     { name = "dockerflow", specifier = "==2026.3.4" },
     { name = "psycopg", extras = ["binary", "pool"], specifier = "==3.3.4" },
