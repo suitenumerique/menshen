@@ -8,6 +8,10 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- Restore alternate password hashers list to automatically upgrade users' hash
+
 ## [v0.3.0] - 2026-09-17
 
 ### Added
