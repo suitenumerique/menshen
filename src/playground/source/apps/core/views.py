@@ -59,7 +59,7 @@ class BackupView(FormView):
             "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
             "subject_token": request.session.get("oidc_access_token"),
             "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
-            "audience": "playground-target",
+            "audience": settings.PLAYGROUND_TARGET_OIDC_RP_CLIENT_ID,
             "scope": "openid",
         }
         response = requests.post(
@@ -67,6 +67,7 @@ class BackupView(FormView):
             data=token_exchange_payload,
             auth=token_exchange_auth,
         )
+        logger.debug(f"TX: {response.text=}")
         response.raise_for_status()
         exchanged_token = response.json()
         logger.info(f"TX: {exchanged_token=}")

@@ -10,6 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
+from enum import StrEnum
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -56,6 +58,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "mozilla_django_oidc.middleware.SessionRefresh",
 ]
 
 ROOT_URLCONF = "target.urls"
@@ -140,46 +143,74 @@ LOGGING = {
     },
     "root": {
         "handlers": ["console"],
-        "level": "INFO",
+        "level": "DEBUG",
     },
 }
 
 # OIDC
-OIDC_USERINFO_SHORTNAME_FIELD = "first_name"
-OIDC_OP_AUTHORIZATION_ENDPOINT = (
-    "http://localhost:8080/realms/menshen/protocol/openid-connect/auth"
+OIDC_OP_URL: str | None = os.environ.get("OIDC_OP_URL")
+OIDC_OP_URL_DOCKER: str | None = os.environ.get("OIDC_OP_URL_DOCKER")
+
+
+class OIDCProvider(StrEnum):
+    """Supported OIDC providers."""
+
+    KEYCLOAK = "keycloak"
+    PROCONNECT = "proconnect"
+
+
+OIDC_PROVIDER: OIDCProvider = OIDCProvider(
+    os.environ.get("OIDC_PROVIDER", OIDCProvider.KEYCLOAK.value)
 )
-OIDC_OP_INTROSPECTION_ENDPOINT = (
-    "http://keycloack:8080/realms/menshen/protocol/openid-connect/token/introspect"
+
+match OIDC_PROVIDER:
+    case OIDCProvider.PROCONNECT:
+        OIDC_OP_AUTHORIZATION_ENDPOINT: str = f"{OIDC_OP_URL}/authorize"
+        OIDC_OP_INTROSPECTION_ENDPOINT: str = f"{OIDC_OP_URL}/token/introspection"
+        OIDC_OP_TOKEN_ENDPOINT: str = f"{OIDC_OP_URL}/token"
+        OIDC_OP_USER_ENDPOINT: str = f"{OIDC_OP_URL}/userinfo"
+        OIDC_OP_JWKS_ENDPOINT: str = f"{OIDC_OP_URL}/jwks"
+        OIDC_OP_LOGOUT_ENDPOINT: str = f"{OIDC_OP_URL}/session/end"
+    case OIDCProvider.KEYCLOAK:
+        OIDC_OP_AUTHORIZATION_ENDPOINT: str = (
+            f"{OIDC_OP_URL}/protocol/openid-connect/auth"
+        )
+        OIDC_OP_INTROSPECTION_ENDPOINT: str = (
+            f"{OIDC_OP_URL_DOCKER}/protocol/openid-connect/token/introspect"
+        )
+        OIDC_OP_TOKEN_ENDPOINT: str = (
+            f"{OIDC_OP_URL_DOCKER}/protocol/openid-connect/token"
+        )
+        OIDC_OP_USER_ENDPOINT: str = (
+            f"{OIDC_OP_URL_DOCKER}/protocol/openid-connect/userinfo"
+        )
+        OIDC_OP_JWKS_ENDPOINT: str = (
+            f"{OIDC_OP_URL_DOCKER}/protocol/openid-connect/certs"
+        )
+        OIDC_OP_LOGOUT_ENDPOINT: str = (
+            f"{OIDC_OP_URL_DOCKER}/protocol/openid-connect/logout"
+        )
+    case _:
+        raise ValueError("Invalid OIDC_PROVIDER: %s", OIDC_PROVIDER)
+
+SERVICE_NETLOC: str = "target.localhost:8073"
+OIDC_RP_CLIENT_ID: str | None = os.environ.get("PLAYGROUND_TARGET_OIDC_RP_CLIENT_ID")
+OIDC_RP_CLIENT_SECRET: str | None = os.environ.get(
+    "PLAYGROUND_TARGET_OIDC_RP_CLIENT_SECRET"
 )
-OIDC_OP_TOKEN_ENDPOINT = (
-    "http://keycloak:8080/realms/menshen/protocol/openid-connect/token"
-)
-OIDC_OP_USER_ENDPOINT = (
-    "http://keycloak:8080/realms/menshen/protocol/openid-connect/userinfo"
-)
-OIDC_OP_JWKS_ENDPOINT = (
-    "http://keycloak:8080/realms/menshen/protocol/openid-connect/certs"
-)
-OIDC_OP_LOGOUT_ENDPOINT = (
-    "http://keycloak:8080/realms/menshen/protocol/openid-connect/logout"
-)
-OIDC_RP_CLIENT_ID = "playground-target"
-# FIXME: should be hard-coded?
-OIDC_RP_CLIENT_SECRET = "dijkjHMFknpNIS6rHfrHMttYQCospeF9"
+
 OIDC_RP_SIGN_ALGO = "RS256"
 OIDC_RP_SCOPES = "openid email"
-# FIXME: should be encrypted
 OIDC_STORE_ACCESS_TOKEN = True
 OIDC_STORE_REFRESH_TOKEN = True
+OIDC_USERINFO_SHORTNAME_FIELD = "first_name"
 
-LOGIN_REDIRECT_URL = "http://target.localhost:8073/"
-LOGIN_REDIRECT_URL_FAILURE = "http://target.localhost:8073/"
-LOGOUT_REDIRECT_URL = "http://target.localhost:8073/"
-OIDC_REDIRECT_ALLOWED_HOSTS = "target.localhost:8073/"
+LOGIN_REDIRECT_URL = f"http://{SERVICE_NETLOC}"
+LOGIN_REDIRECT_URL_FAILURE = f"http://{SERVICE_NETLOC}"
+LOGOUT_REDIRECT_URL = f"http://{SERVICE_NETLOC}"
+OIDC_REDIRECT_ALLOWED_HOSTS = f"{SERVICE_NETLOC}"
 
 # Token exchange
-OIDC_TX_TOKEN_ENDPOINT = "http://menshen:8000/auth/token/exchange/"
 OIDC_TX_INTROSPECTION_ENDPOINT = "http://menshen:8000/auth/token/introspect/"
 OIDC_TX_CLIENT_ID = "target"
 OIDC_TX_CLIENT_SECRET = "target_secret"

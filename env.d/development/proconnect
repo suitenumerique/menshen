@@ -1,0 +1,20 @@
+# ProConnect settings
+
+## Database
+DB_HOST=postgresql-pc
+
+## OIDC
+OIDC_PROVIDER=proconnect
+OIDC_OP_URL=
+
+## -- Menshen
+OIDC_RS_CLIENT_ID=
+OIDC_RS_CLIENT_SECRET=
+
+## -- Playground: source
+PLAYGROUND_SOURCE_OIDC_RP_CLIENT_ID=
+PLAYGROUND_SOURCE_OIDC_RP_CLIENT_SECRET=
+
+## -- Playground: target 
+PLAYGROUND_TARGET_OIDC_RP_CLIENT_ID=
+PLAYGROUND_TARGET_OIDC_RP_CLIENT_SECRET=
