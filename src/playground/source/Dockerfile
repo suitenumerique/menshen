@@ -45,8 +45,7 @@ ENV DJANGO_SUPERUSER_PASSWORD=admin
 RUN uv run python manage.py migrate && \
     uv run python manage.py createsuperuser \
       --no-input \
-      --username admin \
-      --email admin@example.org && \
+      --sub admin && \
     uv run python manage.py loaddata recordings
 
 # Run django development server

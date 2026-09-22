@@ -19,11 +19,11 @@ def create_demo(stdout):
     # Service providers
     source_service, _ = tx_models.ServiceProvider.objects.get_or_create(
         name="playground:source",
-        audience_id="playground-source",
+        audience_id=os.environ.get("PLAYGROUND_SOURCE_OIDC_RP_CLIENT_ID"),
     )
     target_service, _ = tx_models.ServiceProvider.objects.get_or_create(
         name="playground:target",
-        audience_id="playground-target",
+        audience_id=os.environ.get("PLAYGROUND_TARGET_OIDC_RP_CLIENT_ID"),
     )
 
     # Credentials

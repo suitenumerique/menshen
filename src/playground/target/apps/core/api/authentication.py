@@ -35,6 +35,8 @@ class TokenExchangeAuthentication(OIDCAuthentication):
         response.raise_for_status()
 
         # Get user
-        user = User.objects.get(email=user_info["sub"])
+        user = User.objects.get_user_by_sub_or_email(
+            user_info["sub"], user_info["email"]
+        )
 
         return user, access_token
