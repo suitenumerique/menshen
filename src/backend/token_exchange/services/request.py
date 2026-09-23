@@ -4,6 +4,7 @@ import logging
 from collections.abc import Callable
 from datetime import timedelta
 
+import requests
 from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
 from django.db.models import F
@@ -89,6 +90,22 @@ class RequestService:
     @classmethod
     def _introspect_subject_token(cls, token: str, source_audience: str) -> IntrospectionResponse:
         """Introspect the token exchange request subject token."""
+        introspection_backend = cls._introspection_backend()
+        response = requests.post(
+            settings.OIDC_OP_INTROSPECTION_ENDPOINT,
+            data={
+                "client_id": introspection_backend._client_id,
+                "client_secret": introspection_backend._client_secret,
+                "token": token,
+            },
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Accept": "application/json",
+            },
+            timeout=3,
+        )
+        user_info = response.json()
+        logger.debug("Introspection response (%s): %s", response.status_code, user_info)
         try:
             user_info = cls._introspection_backend().get_user_info_with_introspection(token)
         except RequestException as exc:
