@@ -30,7 +30,6 @@ def ip_user_info(monkeypatch, settings) -> None:
         return {
             "active": True,
             "client_id": "service:source",
-            "email": "jane.doe@example.org",
             "scope": "openid target:read target:write",
             "sub": uuid4(),
         }

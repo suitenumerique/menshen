@@ -381,7 +381,6 @@ def test_request_service_generate_exchange_token_jwt_no_sub_claim(
             "email": "jane.doe@example.org",
             "scope": "openid target:read target:write target:update",
             "jti": "beb588cf-6ba4-4158-942e-09d221e95968",
-            "sub": "",
         }
 
     monkeypatch.setattr(

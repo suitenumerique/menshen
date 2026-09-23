@@ -25,6 +25,7 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 - Support client secrets containing percent sequences (see
   [Django-Ninja #1780](https://github.com/vitalik/django-ninja/pull/1780))
 - Support subject opaque access token introspection
+- Support missing or empty `email` field in token introspection response
 
 ## [v0.3.0] - 2026-09-17
 

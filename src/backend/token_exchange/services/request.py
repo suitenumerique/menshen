@@ -298,8 +298,10 @@ class RequestService:
             token=response.access_token,
             token_type=response.issued_token_type,
             jwt_kid=cls.kid,
+            # We enforce having a sub in the introspection response, hence,
+            # the sub field cannot be null or empty.
             subject_sub=user_info.sub,
-            subject_email=user_info.email,
+            subject_email=user_info.email or "",
             audiences=audiences,
             scope=response.scope,
             grants=[grant.model_dump() for grant in response.grants],
