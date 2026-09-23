@@ -306,7 +306,9 @@ class RequestService:
             expires_at=expires_at,
             actor_token=request.actor_token if request.actor_token is not None else "",
             may_act=None,  # TODO: Parse from actor_token if needed  # noqa: FIX002
-            subject_token_jti=user_info.jti,
+            # Opaque access tokens have no jti field in introspection response,
+            # in this case we default to an empty string.
+            subject_token_jti=user_info.jti or "",
             subject_token_scope=user_info.scope,
         )
 

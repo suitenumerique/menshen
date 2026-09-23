@@ -452,6 +452,7 @@ class ExchangedToken(BaseModel):
     subject_token_jti = models.CharField(
         max_length=255,
         db_index=True,
+        blank=True,  # Opaque access tokens have no jti field in introspection response
         verbose_name=_("Subject Token JTI"),
         help_text=_("The JTI of the original SSO token for traceability"),
     )

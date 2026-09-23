@@ -2,6 +2,7 @@
 
 import logging
 from unittest.mock import Mock
+from uuid import uuid4
 
 import pytest
 from django.core.exceptions import SuspiciousOperation
@@ -39,7 +40,7 @@ def test_request_service_validate_target_only_unknown_audiences(source_service, 
     """Test the request service validate target method with only unknown audiences."""
     request = TokenExchangeRequest(
         subject_token="foo",
-        subject_token_type=AllowedSubjectTokenType(TokenType.ACCESS_TOKEN),
+        subject_token_type=AllowedSubjectTokenType.ACCESS_TOKEN,
         grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
         audience="service:foo",
     )
@@ -58,7 +59,7 @@ def test_request_service_validate_target_with_unknown_audience(source_service, c
     """Test the request service validate target method with unknown audience."""
     request = TokenExchangeRequest(
         subject_token="foo",
-        subject_token_type=AllowedSubjectTokenType(TokenType.ACCESS_TOKEN),
+        subject_token_type=AllowedSubjectTokenType.ACCESS_TOKEN,
         grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
         audience="service:target service:foo",
     )
@@ -79,7 +80,7 @@ def test_request_service_introspect_subject_token_request_failure(
     """Test the request service introspect subject token method when the request fails."""
     request = TokenExchangeRequest(
         subject_token="foo",
-        subject_token_type=AllowedSubjectTokenType(TokenType.ACCESS_TOKEN),
+        subject_token_type=AllowedSubjectTokenType.ACCESS_TOKEN,
         grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
         audience="service:target",
     )
@@ -116,7 +117,7 @@ def test_request_service_introspect_subject_token_suspicious_introspection_respo
     """
     request = TokenExchangeRequest(
         subject_token="foo",
-        subject_token_type=AllowedSubjectTokenType(TokenType.ACCESS_TOKEN),
+        subject_token_type=AllowedSubjectTokenType.ACCESS_TOKEN,
         grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
         audience="service:target",
     )
@@ -144,7 +145,7 @@ def test_request_service_introspect_subject_token_missing_identity(
     """Test the request service introspect subject token method when not identity is returned."""
     request = TokenExchangeRequest(
         subject_token="foo",
-        subject_token_type=AllowedSubjectTokenType(TokenType.ACCESS_TOKEN),
+        subject_token_type=AllowedSubjectTokenType.ACCESS_TOKEN,
         grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
         audience="service:target",
     )
@@ -178,7 +179,7 @@ def test_request_service_validate_pure_scopes_from_request(source_service):
     """
     request = TokenExchangeRequest(
         subject_token="foo",
-        subject_token_type=AllowedSubjectTokenType(TokenType.ACCESS_TOKEN),
+        subject_token_type=AllowedSubjectTokenType.ACCESS_TOKEN,
         grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
         audience="service:target",
         scope="target:read target:write",
@@ -197,7 +198,7 @@ def test_request_service_validate_pure_scopes_from_request_with_extra_scopes(sou
     """Test the request service validate pure scopes method with extra scopes from the request."""
     request = TokenExchangeRequest(
         subject_token="foo",
-        subject_token_type=AllowedSubjectTokenType(TokenType.ACCESS_TOKEN),
+        subject_token_type=AllowedSubjectTokenType.ACCESS_TOKEN,
         grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
         audience="service:target",
         scope="target:read target:write extra",
@@ -247,7 +248,7 @@ def test_request_service_validate_scope_action_from_request_with_granted_require
 
     request = TokenExchangeRequest(
         subject_token="foo",
-        subject_token_type=AllowedSubjectTokenType(TokenType.ACCESS_TOKEN),
+        subject_token_type=AllowedSubjectTokenType.ACCESS_TOKEN,
         grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
         audience="service:target",
         scope="action:update-target",
@@ -280,7 +281,7 @@ def test_request_service_validate_scope_action_from_request_when_action_has_no_p
 
     request = TokenExchangeRequest(
         subject_token="foo",
-        subject_token_type=AllowedSubjectTokenType(TokenType.ACCESS_TOKEN),
+        subject_token_type=AllowedSubjectTokenType.ACCESS_TOKEN,
         grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
         audience="service:target",
         scope="action:update-target",
@@ -324,7 +325,7 @@ def test_request_service_validate_scope_action_from_request_when_action_cannot_b
 
     request = TokenExchangeRequest(
         subject_token="foo",
-        subject_token_type=AllowedSubjectTokenType(TokenType.ACCESS_TOKEN),
+        subject_token_type=AllowedSubjectTokenType.ACCESS_TOKEN,
         grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
         audience="service:target",
         scope="action:update-target",
@@ -471,16 +472,43 @@ def test_request_service_generate_exchange_response(source_service, token_type):
 @pytest.mark.parametrize(
     "token_type", [AllowedRequestedTokenType.ACCESS_TOKEN, AllowedRequestedTokenType.JWT]
 )
-def test_request_service_generate_exchange_response_with_persist(source_service, token_type):
+@pytest.mark.parametrize(
+    "subject_token_type", [AllowedSubjectTokenType.ACCESS_TOKEN, AllowedSubjectTokenType.JWT]
+)
+def test_request_service_generate_exchange_response_with_persist(
+    monkeypatch, settings, source_service, token_type, subject_token_type
+):
     """Test the request service generate exchange response."""
+    jti = uuid4()
+
+    # Monkeypatch token introspection in JWT subject token type case to add the
+    # jti field in the introspection response
+    if subject_token_type == AllowedSubjectTokenType.JWT:
+
+        def mock_user_info(self, _):
+            self.token_origin_audience = "service:source"
+            return {
+                "active": True,
+                "client_id": "service:source",
+                "email": "jane.doe@example.org",
+                "scope": "openid target:read target:write",
+                "jti": jti,
+                "sub": uuid4(),
+            }
+
+        monkeypatch.setattr(
+            f"{settings.OIDC_RS_BACKEND_CLASS}.get_user_info_with_introspection", mock_user_info
+        )
+
     request = TokenExchangeRequest(
         subject_token="foo",
-        subject_token_type=AllowedSubjectTokenType.ACCESS_TOKEN,
+        subject_token_type=subject_token_type,
         grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
         audience="service:target",
         scope="target:write",
         requested_token_type=token_type,
     )
+
     # No persisted token exists
     assert ExchangedToken.objects.count() == 0
     response, exchanged_token = RequestService.exchange(
@@ -489,3 +517,6 @@ def test_request_service_generate_exchange_response_with_persist(source_service,
     assert ExchangedToken.objects.count() == 1
     assert exchanged_token
     assert exchanged_token.token == response.access_token
+    assert exchanged_token.subject_token_jti == (
+        str(jti) if subject_token_type == AllowedSubjectTokenType.JWT else ""
+    )

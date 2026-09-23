@@ -32,7 +32,6 @@ def ip_user_info(monkeypatch, settings) -> None:
             "client_id": "service:source",
             "email": "jane.doe@example.org",
             "scope": "openid target:read target:write",
-            "jti": uuid4(),
             "sub": uuid4(),
         }
 
