@@ -95,6 +95,23 @@ class RequestService:
             raise TokenExchangeResourceServerIntrospectionError(
                 "Failed to introspect subject token."
             ) from exc
+        logger.info("Subject token introspection user_info=%s", user_info)
+
+        if "email" not in user_info:
+            import requests
+            from joserfc import jwt
+            from joserfc.jwk import KeySet
+
+            headers = {"Authorization": f"Bearer {token}", "Accept": "application/jwt"}
+            USERINFO_ENDPOINT = "https://fca.integ01.dev-agentconnect.fr/api/v2/userinfo"
+            response = requests.get(USERINFO_ENDPOINT, headers=headers)
+            logger.info("USERINFO: %s", response.text)
+
+            resp = requests.get("https://fca.integ01.dev-agentconnect.fr/api/v2/jwks")
+            key_set = KeySet.import_key_set(resp.json())
+            decoded = jwt.decode(response.text, key_set)
+            logger.info("DECODED: %s", decoded.__dict__)
+            user_info["email"] = decoded.claims.get("email")
 
         introspection_response = IntrospectionResponse(**user_info)
 

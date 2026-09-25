@@ -284,6 +284,7 @@ class Base(Configuration):
     OIDC_OP_USER_ENDPOINT = values.Value(
         None, environ_name="OIDC_OP_USER_ENDPOINT", environ_prefix=None
     )
+    OIDC_OP_JWKS_ENDPOINT = "https://fca.integ01.dev-agentconnect.fr/api/v2/jwks"
 
     # Resource server backend class is used for token introspection
     OIDC_RS_CLIENT_ID = values.Value(None, environ_name="OIDC_RS_CLIENT_ID", environ_prefix=None)
