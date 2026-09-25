@@ -141,7 +141,6 @@ class ExchangedTokenAdmin(admin.ModelAdmin):
                 "fields": [
                     "expires_at",
                     "revoked_at",
-                    "is_valid_display",
                     "created_at",
                 ]
             },
