@@ -1,7 +1,7 @@
 name: menshen 
 
 services:
-  postgresql:
+  postgresql-base:
     image: postgres:16
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
@@ -13,13 +13,29 @@ services:
       - env.d/development/postgresql.local
     ports:
       - "15432:5432"
+    networks:
+      lasuite:
+        aliases:
+          - postgresql
+
+  postgresql:
+    extends:
+        service: postgresql-base
+
+  postgresql-pc:
+    extends:
+        service: postgresql-base
 
   redis:
     image: redis:5
+    networks:
+      lasuite:
+        aliases:
+          - redis
     ports:
       - "6379:6379"
 
-  menshen:
+  menshen-base:
     build:
       context: .
       dockerfile: ./src/backend/Dockerfile
@@ -35,21 +51,24 @@ services:
       - env.d/development/common.local
       - env.d/development/postgresql
       - env.d/development/postgresql.local
-    ports:
-      - "8071:8000"
     healthcheck:
       test: ["CMD-SHELL", "curl localhost:8000/__heartbeat__"]
       interval: 1s
       timeout: 2s
       retries: 300
     networks:
-      default: {}
       lasuite:
         aliases:
           - menshen
     volumes:
       - ./src/backend:/app
       - ./data/static:/data/static
+
+  menshen:
+    extends:
+        service: menshen-base
+    ports:
+      - "8071:8000"
     depends_on:
       postgresql:
         condition: service_healthy
@@ -59,6 +78,25 @@ services:
       keycloak:
         condition: service_healthy
 
+  # Use proconnect instead of local keycloak instance
+  menshen-pc:
+    extends:
+      service: menshen-base
+    env_file:
+      - env.d/development/common
+      - env.d/development/common.local
+      - env.d/development/postgresql
+      - env.d/development/postgresql.local
+      - env.d/development/proconnect.local
+    ports:
+      - "8071:8000"
+    depends_on:
+      postgresql-pc:
+        condition: service_healthy
+        restart: true
+      redis:
+        condition: service_started
+
   kc_postgresql:
     image: postgres:14.3
     healthcheck:
@@ -66,6 +104,10 @@ services:
       interval: 1s
       timeout: 2s
       retries: 300
+    networks:
+      lasuite:
+        aliases:
+          - kc_postgresql
     ports:
       - "5433:5432"
     env_file:
@@ -102,12 +144,16 @@ services:
       PROXY_ADDRESS_FORWARDING: 'true'
     ports:
       - "8080:8080"
+    networks:
+      lasuite:
+        aliases:
+          - keycloak
     depends_on:
       kc_postgresql:
         condition: service_healthy
         restart: true
 
-  playground-source:
+  playground-source-base:
     build:
       context: .
       dockerfile: ./src/playground/source/Dockerfile
@@ -127,17 +173,34 @@ services:
         - action: rebuild
           path: ./src/playground/source/Dockerfile
     networks:
-      default: {}
       lasuite:
         aliases:
           - playground-source
+
+  playground-source:
+    extends:
+        service: playground-source-base
+    env_file:
+      - env.d/development/common
+    environment:
+        DJANGO_SETTINGS_MODULE: source.settings
     depends_on:
       keycloak:
         condition: service_healthy
       menshen:
         condition: service_healthy
 
-  playground-target:
+  # Use proconnect instead of local keycloak instance
+  playground-source-pc:
+    extends:
+        service: playground-source-base
+    env_file:
+      - env.d/development/proconnect.local
+    depends_on:
+      menshen-pc:
+        condition: service_healthy
+
+  playground-target-base:
     build:
       context: .
       dockerfile: ./src/playground/target/Dockerfile
@@ -157,14 +220,30 @@ services:
         - action: rebuild
           path: ./src/playground/target/Dockerfile
     networks:
-      default: {}
       lasuite:
         aliases:
           - playground-target
+
+  playground-target:
+    extends:
+        service: playground-target-base
+    env_file:
+      - env.d/development/common
+    environment:
+        DJANGO_SETTINGS_MODULE: target.settings
     depends_on:
       keycloak:
         condition: service_healthy
       menshen:
+        condition: service_healthy
+
+  playground-target-pc:
+    extends:
+        service: playground-target-base
+    env_file:
+      - env.d/development/proconnect.local
+    depends_on:
+      menshen-pc:
         condition: service_healthy
 
   # Utils
@@ -172,7 +251,6 @@ services:
     image: alpine/openssl:3.5.8
 
 networks:
-  default: {}
   lasuite:
     name: lasuite-network
     driver: bridge

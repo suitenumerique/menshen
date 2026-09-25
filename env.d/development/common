@@ -21,11 +21,21 @@ MENSHEN_BASE_URL="http://localhost:8072"
 
 # OIDC
 OIDC_OP_URL=http://localhost:8080/realms/menshen
+OIDC_OP_URL_DOCKER=http://keycloak:8080/realms/menshen
 OIDC_OP_INTROSPECTION_ENDPOINT=http://keycloak:8080/realms/menshen/protocol/openid-connect/token/introspect
 OIDC_RS_CLIENT_ID=menshen
 OIDC_RS_CLIENT_SECRET=ThisIsAnExampleKeyForDevPurposeOnly
 
+## -- Playground: source
+PLAYGROUND_SOURCE_OIDC_RP_CLIENT_ID=playground-source
+PLAYGROUND_SOURCE_OIDC_RP_CLIENT_SECRET=dNnEVcFwNgj4dD3w3HgfuqmkmwFrl9EC
+
+## -- Playground: target
+PLAYGROUND_TARGET_OIDC_RP_CLIENT_ID=playground-target
+PLAYGROUND_TARGET_OIDC_RP_CLIENT_SECRET=dijkjHMFknpNIS6rHfrHMttYQCospeF9
+
 # Token exchange
+## -- Menshen clients
 TOKEN_EXCHANGE_DEMO_SOURCE_CLIENT_ID=source
 TOKEN_EXCHANGE_DEMO_SOURCE_CLIENT_SECRET=source_secret
 TOKEN_EXCHANGE_DEMO_TARGET_CLIENT_ID=target

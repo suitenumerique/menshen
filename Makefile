@@ -42,11 +42,12 @@ DOCKER_UID          := $(shell id -u)
 DOCKER_GID          := $(shell id -g)
 DOCKER_USER         := $(DOCKER_UID):$(DOCKER_GID)
 endif
+APP_NAME           ?= menshen
 COMPOSE             = DOCKER_USER=$(DOCKER_USER) docker compose
 COMPOSE_EXEC        = $(COMPOSE) exec
-COMPOSE_EXEC_APP    = $(COMPOSE_EXEC) menshen
+COMPOSE_EXEC_APP    = $(COMPOSE_EXEC) $(APP_NAME)
 COMPOSE_RUN         = $(COMPOSE) run --rm
-COMPOSE_RUN_APP     = $(COMPOSE_RUN) menshen
+COMPOSE_RUN_APP     = $(COMPOSE_RUN) $(APP_NAME)
 COMPOSE_RUN_APP_UV  = $(COMPOSE_RUN_APP) uv run
 
 # -- Backend
@@ -64,17 +65,31 @@ default: help
 data/static:
 	@mkdir -p data/static
 
-# -- Project
-#
-create-env-local-files: \
-  env.d/development/common.local
-create-env-local-files: ## create env.local files in env.d/development
-	@touch env.d/development/postgresql.local
-	@touch env.d/development/kc_postgresql.local
-.PHONY: create-env-local-files
-
 env.d/development/common.local:
 	@bin/local-env
+
+env.d/development/kc_postgresql.local:
+	@touch env.d/development/kc_postgresql.local
+
+env.d/development/postgresql.local:
+	@touch env.d/development/postgresql.local
+
+env.d/development/proconnect.local:
+	@cp env.d/development/proconnect env.d/development/proconnect.local
+	@echo -e "$(BOLD)Created env.d/development/proconnect.local environment.$(RESET)"
+	@echo -e "$(GREEN)It should be edited with appropriate credentials!$(RESET)"
+
+LOCAL_ENV = \
+  env.d/development/common.local \
+	env.d/development/kc_postgresql.local \
+	env.d/development/postgresql.local \
+	env.d/development/proconnect.local
+
+# -- Project
+#
+create-env-local-files: $(LOCAL_ENV)
+create-env-local-files: ## create env.local files in env.d/development
+.PHONY: create-env-local-files
 
 pre-bootstrap: \
 	data/static \
@@ -85,6 +100,11 @@ post-bootstrap: \
 	migrate \
 	demo \
 	back-i18n-compile
+.PHONY: post-bootstrap
+
+post-bootstrap-pc:
+	APP_NAME=menshen-pc $(MAKE) migrate
+	APP_NAME=menshen-pc $(MAKE) demo
 .PHONY: post-bootstrap
 
 pre-beautiful-bootstrap: ## Display a welcome message before bootstrap
@@ -200,6 +220,10 @@ run-playground: ## start the playground
 	$(COMPOSE) up --force-recreate -d playground-source playground-target
 .PHONY: run-playground
 
+run-playground-pc: ## start the playground (with ProConnect integration)
+	$(COMPOSE) up --force-recreate -d playground-source-pc playground-target-pc
+.PHONY: run-playground
+
 run: ## start the wsgi (production) and development server
 run: 
 	@$(MAKE) run-backend
@@ -213,10 +237,13 @@ stop: ## stop the development server using Docker
 	@$(COMPOSE) stop
 .PHONY: stop
 
-watch: ## watch changes in source code (development mode)
-	@$(COMPOSE) watch
+watch: ## watch changes in playground source code (development mode)
+	@$(COMPOSE) watch playground-source playground-target
 .PHONY: watch 
 
+watch-pc: ## watch changes in playground source code (development mode with Proconnect integration)
+	@$(COMPOSE) watch playground-source-pc playground-target-pc
+.PHONY: watch-pc
 # -- Quality checks
 #
 lint: ## run project linters
@@ -302,7 +329,6 @@ makemigrations:  ## run django makemigrations for the menshen project.
 
 migrate:  ## run django migrations for the menshen project.
 	@echo -e "$(BOLD)Running migrations$(RESET)"
-	@$(COMPOSE) up -d postgresql
 	@$(MANAGE) migrate
 .PHONY: migrate
 
