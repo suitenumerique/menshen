@@ -182,6 +182,8 @@ services:
         service: playground-source-base
     env_file:
       - env.d/development/common
+    environment:
+        DJANGO_SETTINGS_MODULE: source.settings
     depends_on:
       keycloak:
         condition: service_healthy
@@ -227,6 +229,8 @@ services:
         service: playground-target-base
     env_file:
       - env.d/development/common
+    environment:
+        DJANGO_SETTINGS_MODULE: target.settings
     depends_on:
       keycloak:
         condition: service_healthy
