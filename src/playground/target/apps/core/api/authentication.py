@@ -2,11 +2,16 @@
 
 import logging
 
-import requests
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.exceptions import PermissionDenied
+from menshen_client import (
+    Configuration,
+    IntrospectionRequest,
+    TokenExchangeClient,
+    TokenType,
+)
 from mozilla_django_oidc.contrib.drf import OIDCAuthentication
-from requests.auth import HTTPBasicAuth
 
 logger = logging.getLogger(__name__)
 
@@ -20,23 +25,29 @@ class TokenExchangeAuthentication(OIDCAuthentication):
         access_token = self.get_access_token(request)
         logger.info(f"authenticate -> {access_token=}")
 
+        # Create the client instance
+        client = TokenExchangeClient(
+            config=Configuration(
+                client_id=settings.OIDC_TX_CLIENT_ID,
+                client_secret=settings.OIDC_TX_CLIENT_SECRET,
+                server_root_url=settings.OIDC_TX_ROOT_URL,
+            )
+        )
+
         # Introspect the token
-        token_exchange_auth = HTTPBasicAuth(
-            settings.OIDC_TX_CLIENT_ID, settings.OIDC_TX_CLIENT_SECRET
+        introspection_response = client.introspect(
+            IntrospectionRequest(
+                token=access_token,
+                token_type_hint=TokenType.ACCESS_TOKEN,
+            )
         )
-        token_introspection_payload = {"token": access_token}
-        response = requests.post(
-            settings.OIDC_TX_INTROSPECTION_ENDPOINT,
-            data=token_introspection_payload,
-            auth=token_exchange_auth,
-        )
-        user_info = response.json()
-        logger.info(f"Introspection: {user_info=}")
-        response.raise_for_status()
+
+        if not introspection_response.active:
+            raise PermissionDenied("User is not active")
 
         # Get user
         user = User.objects.get_user_by_sub_or_email(
-            user_info["sub"], user_info["email"]
+            introspection_response.sub, introspection_response.email
         )
 
         return user, access_token

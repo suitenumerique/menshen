@@ -215,7 +215,7 @@ LOGOUT_REDIRECT_URL = f"http://{SERVICE_NETLOC}"
 OIDC_REDIRECT_ALLOWED_HOSTS = f"{SERVICE_NETLOC}"
 
 # Token exchange
-OIDC_TX_TOKEN_ENDPOINT = "http://menshen:8000/auth/token/exchange/"
+OIDC_TX_ROOT_URL = "http://menshen:8000"
 OIDC_TX_CLIENT_ID = "source"
 OIDC_TX_CLIENT_SECRET = "source_secret"
 PLAYGROUND_TARGET_OIDC_RP_CLIENT_ID: str | None = os.environ.get(
