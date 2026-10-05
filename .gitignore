@@ -69,6 +69,7 @@ node_modules
 db.sqlite3
 .mypy_cache
 .ruff_cache
+test-results
 
 # Site media
 /data/

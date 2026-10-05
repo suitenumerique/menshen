@@ -7,6 +7,20 @@ UNSET_USER=0
 
 COMPOSE_FILE="${REPO_DIR}/compose.yml"
 
+# ANSI colors and styles (only when writing to a terminal)
+if [ -t 1 ] && command -v tput >/dev/null 2>&1 \
+        && [ "$(tput colors 2>/dev/null || echo 0)" -ge 8 ]; then
+    RED=$(tput setaf 1)
+    GREEN=$(tput setaf 2)
+    YELLOW=$(tput setaf 3)
+    BLUE=$(tput setaf 4)
+    BOLD=$(tput bold)
+    ITALIC=$(tput sitm)
+    RESET=$(tput sgr0)
+else
+    RED= GREEN= YELLOW= BLUE= BOLD= ITALIC= RESET=
+fi
+
 
 # _set_user: set (or unset) default user id used to run docker commands
 #

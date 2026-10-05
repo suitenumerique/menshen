@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+set -eo pipefail
+
+# shellcheck source=bin/_config.sh
+source "$(dirname "${BASH_SOURCE[0]}")/_config.sh"
+
+function _playwright() {
+  declare publish
+  declare -i port=3000
+  declare -a args
+
+  if echo "$@" | grep "show-trace" > /dev/null; then
+    # Publish ports mapping for the trace server
+    publish="-P"
+    for arg in "$@"; do
+      if [[ "${arg}" = "show-trace" ]]; then
+        args+=("show-trace" "-h" "0.0.0.0" "-p" "8000")
+        continue
+      fi
+      # Substitute local vs docker paths
+      arg="${arg//src\/e2e/\/app}"
+      args+=("${arg}")
+    done
+
+    echo -e "\n${BOLD}Show trace server${RESET}: ${BLUE}http://localhost:${port}${RESET}"
+  else
+    args=("$@")
+  fi
+
+  echo -e "\n${BOLD}Will run playwright (using Docker) with command${RESET}:\n\n${ITALIC}playwright ${args[*]}${RESET}\n"
+
+  _dc_run -q --no-deps ${publish} playwright uv run playwright "${args[@]}"
+}
+
+_playwright "$@"
