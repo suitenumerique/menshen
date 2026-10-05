@@ -27,7 +27,12 @@ SECRET_KEY = "django-insecure-w9-n97$la7#i8@x7)eeg6dwq+8%zzj9^5)3)$d)i^4h2k94svg
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["localhost", "playground-target", "target.localhost"]
+ALLOWED_HOSTS = [
+    "localhost",
+    "playground-target",
+    "playground-target-e2e",
+    "target.localhost",
+]
 
 
 # Application definition
@@ -194,7 +199,8 @@ match OIDC_PROVIDER:
     case _:
         raise ValueError("Invalid OIDC_PROVIDER: %s", OIDC_PROVIDER)
 
-SERVICE_NETLOC: str = "target.localhost:8073"
+# SERVICE_NETLOC: str = "target.localhost:8073"
+SERVICE_NETLOC: str = "playground-target:8000"
 OIDC_RP_CLIENT_ID: str | None = os.environ.get("PLAYGROUND_TARGET_OIDC_RP_CLIENT_ID")
 OIDC_RP_CLIENT_SECRET: str | None = os.environ.get(
     "PLAYGROUND_TARGET_OIDC_RP_CLIENT_SECRET"

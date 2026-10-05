@@ -122,7 +122,10 @@ services:
       - start-dev
       - --features=preview
       - --import-realm
-      - --hostname=http://localhost:8080
+      # FIXME
+      # - --hostname=http://localhost:8080
+      - --hostname=http://keycloak:8080
+      - --hostname-backchannel-dynamic=true
       - --hostname-strict=false
       - --health-enabled=true
       - --metrics-enabled=true
@@ -190,6 +193,12 @@ services:
       menshen:
         condition: service_healthy
 
+  playground-source-e2e:
+    extends:
+        service: playground-source
+    environment:
+      OIDC_OP_URL: http://keycloak:8080/realms/menshen
+
   # Use proconnect instead of local keycloak instance
   playground-source-pc:
     extends:
@@ -237,6 +246,12 @@ services:
       menshen:
         condition: service_healthy
 
+  playground-target-e2e:
+    extends:
+        service: playground-target
+    environment:
+      OIDC_OP_URL: http://keycloak:8080/realms/menshen
+
   playground-target-pc:
     extends:
         service: playground-target-base
@@ -249,6 +264,23 @@ services:
   # Utils
   openssl:
     image: alpine/openssl:3.5.8
+
+  playwright:
+    build:
+      context: .
+      dockerfile: ./src/e2e/Dockerfile
+      args:
+        DOCKER_USER: ${DOCKER_USER:-1000}
+    user: ${DOCKER_USER:-1000}
+    volumes:
+      - ./src/e2e:/app
+    networks:
+      lasuite:
+        aliases:
+          - playwright
+    depends_on:
+      - playground-source-e2e
+      - playground-target-e2e
 
 networks:
   lasuite:

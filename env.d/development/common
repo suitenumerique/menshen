@@ -20,7 +20,8 @@ PYTHONPATH=/app
 MENSHEN_BASE_URL="http://localhost:8072"
 
 # OIDC
-OIDC_OP_URL=http://localhost:8080/realms/menshen
+# OIDC_OP_URL=http://localhost:8080/realms/menshen
+OIDC_OP_URL=http://keycloak:8080/realms/menshen
 OIDC_OP_URL_DOCKER=http://keycloak:8080/realms/menshen
 OIDC_OP_INTROSPECTION_ENDPOINT=http://keycloak:8080/realms/menshen/protocol/openid-connect/token/introspect
 OIDC_RS_CLIENT_ID=menshen
