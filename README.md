@@ -233,6 +233,31 @@ This will copy modified service sources and restart it automatically. It will
 also rebuild the service container if you update dependencies or the service's
 Dockerfile.
 
+#### Running playground end-to-end tests
+
+To make sure your development did not break the playground, you may run
+end-to-end tests using Playwright:
+
+```sh
+make test-e2e
+```
+
+If you need to run `playwright` custom command, there is a docker wrapper for that:
+
+```sh
+bin/playwright --help
+```
+
+Example command to show a test trace:
+
+```sh
+bin/playwright show-trace \
+    src/e2e/test-results/tests-test-keycloak-py-test-playground-source-to-target-flow-chromium/trace.zip
+```
+
+> This will fire up the Playwright trace server at
+> [localhost:3000](http://localhost:3000)
+
 ### More Make targets
 
 To check all available Make rules:

@@ -274,6 +274,8 @@ services:
     user: ${DOCKER_USER:-1000}
     volumes:
       - ./src/e2e:/app
+    ports:
+      - "3000:8000"
     networks:
       lasuite:
         aliases:

@@ -7,6 +7,15 @@ UNSET_USER=0
 
 COMPOSE_FILE="${REPO_DIR}/compose.yml"
 
+# AINSI colors and styles
+RED=$(tput setaf 1)
+GREEN=$(tput setaf 2)
+YELLOW=$(tput setaf 3)
+BLUE=$(tput setaf 4)
+BOLD=$(tput bold)
+ITALIC=$(tput sitm)
+RESET=$(tput sgr0)
+
 
 # _set_user: set (or unset) default user id used to run docker commands
 #

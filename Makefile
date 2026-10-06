@@ -314,6 +314,12 @@ test-client: ## run client tests
 	$(CLIENT_UV_RUN) pytest
 .PHONY: test-client
 
+test-e2e: ## run e2e tests
+	$(MAKE) stop
+	$(COMPOSE) down playground-source-e2e playground-target-e2e
+	$(COMPOSE_RUN) playwright
+.PHONY: test-e2e
+
 # -- Backend
 #
 demo: ## flush db then create a demo for load testing purpose
