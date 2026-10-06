@@ -198,6 +198,7 @@ services:
         service: playground-source
     environment:
       OIDC_OP_URL: http://keycloak:8080/realms/menshen
+      PLAYGROUND_SOURCE_SERVICE_NETLOC: playground-source:8000
 
   # Use proconnect instead of local keycloak instance
   playground-source-pc:
@@ -251,6 +252,7 @@ services:
         service: playground-target
     environment:
       OIDC_OP_URL: http://keycloak:8080/realms/menshen
+      PLAYGROUND_TARGET_SERVICE_NETLOC: playground-target:8000
 
   playground-target-pc:
     extends:

@@ -199,8 +199,9 @@ match OIDC_PROVIDER:
     case _:
         raise ValueError("Invalid OIDC_PROVIDER: %s", OIDC_PROVIDER)
 
-# SERVICE_NETLOC: str = "target.localhost:8073"
-SERVICE_NETLOC: str = "playground-target:8000"
+SERVICE_NETLOC: str = os.environ.get(
+    "PLAYGROUND_TARGET_SERVICE_NETLOC", "target.localhost:8073"
+)
 OIDC_RP_CLIENT_ID: str | None = os.environ.get("PLAYGROUND_TARGET_OIDC_RP_CLIENT_ID")
 OIDC_RP_CLIENT_SECRET: str | None = os.environ.get(
     "PLAYGROUND_TARGET_OIDC_RP_CLIENT_SECRET"
