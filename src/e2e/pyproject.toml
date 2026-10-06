@@ -1,10 +1,6 @@
 #
 # Menshen playgrount e2e testing using Playright
 #
-# [build-system]
-# requires = ["uv_build>=0.12.10,<0.13.0"]
-# build-backend = "uv_build"
-
 [project]
 name = "e2e"
 version = "0.1.0"
