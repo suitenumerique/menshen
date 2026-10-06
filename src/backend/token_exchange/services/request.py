@@ -89,7 +89,6 @@ class RequestService:
     @classmethod
     def _introspect_subject_token(cls, token: str, source_audience: str) -> IntrospectionResponse:
         """Introspect the token exchange request subject token."""
-        logger.info("token=%s", token)
         try:
             user_info = cls._introspection_backend().get_user_info_with_introspection(token)
         except RequestException as exc:
