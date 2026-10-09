@@ -362,10 +362,9 @@ dbshell: ## connect to database shell
 	docker compose exec menshen python manage.py dbshell
 .PHONY: dbshell
 
-resetdb: FLUSH_ARGS ?=
 resetdb: ## flush database and create a superuser "admin"
 	@echo -e "$(BOLD)Flush database$(RESET)"
-	@$(MANAGE) flush $(FLUSH_ARGS)
+	@$(MANAGE) flush --no-input
 	@${MAKE} superuser
 .PHONY: resetdb
 
