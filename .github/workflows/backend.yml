@@ -169,3 +169,11 @@ jobs:
 
       - name: Run tests
         run: uv run pytest -n 2
+
+  test-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run end-to-end tests using docker compose 
+        run: |
+          FLUSH_ARGS=--no-input make bootstrap
+          make test-e2e

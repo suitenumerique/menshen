@@ -363,7 +363,7 @@ dbshell: ## connect to database shell
 
 resetdb: FLUSH_ARGS ?=
 resetdb: ## flush database and create a superuser "admin"
-	@echo -e "$(BOLD)Flush database$(RESET)"
+	@echo -e "$(BOLD)Flush database$(RESET) -- Args: $(FLUSH_ARGS)"
 	@$(MANAGE) flush $(FLUSH_ARGS)
 	@${MAKE} superuser
 .PHONY: resetdb
