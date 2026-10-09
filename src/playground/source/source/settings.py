@@ -27,7 +27,12 @@ SECRET_KEY = "django-insecure-w6-n97$la7#i8@x7)eeg6wnm+8%zzj9^5)3)$d)i^4h2k94svg
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["localhost", "playground-source", "source.localhost"]
+ALLOWED_HOSTS = [
+    "localhost",
+    "playground-source",
+    "playground-source-e2e",
+    "source.localhost",
+]
 
 
 # Application definition
@@ -193,7 +198,9 @@ match OIDC_PROVIDER:
     case _:
         raise ValueError("Invalid OIDC_PROVIDER: %s", OIDC_PROVIDER)
 
-SERVICE_NETLOC: str = "source.localhost:8072"
+SERVICE_NETLOC: str = os.environ.get(
+    "PLAYGROUND_SOURCE_SERVICE_NETLOC", "source.localhost:8072"
+)
 OIDC_RP_CLIENT_ID: str | None = os.environ.get("PLAYGROUND_SOURCE_OIDC_RP_CLIENT_ID")
 OIDC_RP_CLIENT_SECRET: str | None = os.environ.get(
     "PLAYGROUND_SOURCE_OIDC_RP_CLIENT_SECRET"
@@ -215,7 +222,7 @@ LOGOUT_REDIRECT_URL = f"http://{SERVICE_NETLOC}"
 OIDC_REDIRECT_ALLOWED_HOSTS = f"{SERVICE_NETLOC}"
 
 # Token exchange
-OIDC_TX_TOKEN_ENDPOINT = "http://menshen:8000/auth/token/exchange/"
+OIDC_TX_ROOT_URL = "http://menshen:8000"
 OIDC_TX_CLIENT_ID = "source"
 OIDC_TX_CLIENT_SECRET = "source_secret"
 PLAYGROUND_TARGET_OIDC_RP_CLIENT_ID: str | None = os.environ.get(

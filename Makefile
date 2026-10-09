@@ -43,7 +43,7 @@ DOCKER_GID          := $(shell id -g)
 DOCKER_USER         := $(DOCKER_UID):$(DOCKER_GID)
 endif
 APP_NAME           ?= menshen
-COMPOSE             = DOCKER_USER=$(DOCKER_USER) docker compose
+COMPOSE             = DOCKER_UID=$(DOCKER_UID) DOCKER_GID=$(DOCKER_GID) DOCKER_USER=$(DOCKER_USER) docker compose
 COMPOSE_EXEC        = $(COMPOSE) exec
 COMPOSE_EXEC_APP    = $(COMPOSE_EXEC) $(APP_NAME)
 COMPOSE_RUN         = $(COMPOSE) run --rm
@@ -213,7 +213,7 @@ logs: ## display menshen logs (follow mode)
 .PHONY: logs
 
 run-backend: ## Start only the backend application and all needed services
-	@$(COMPOSE) up --force-recreate -d menshen
+	@$(COMPOSE) up --force-recreate -d menshen keycloak
 .PHONY: run-backend
 
 run-playground: ## start the playground 
@@ -314,6 +314,12 @@ test-client: ## run client tests
 	$(CLIENT_UV_RUN) pytest
 .PHONY: test-client
 
+test-e2e: ## run e2e tests
+	$(MAKE) stop
+	$(COMPOSE) down playground-source-e2e playground-target-e2e
+	$(COMPOSE_RUN) playwright
+.PHONY: test-e2e
+
 # -- Backend
 #
 demo: ## flush db then create a demo for load testing purpose
@@ -357,7 +363,7 @@ dbshell: ## connect to database shell
 
 resetdb: FLUSH_ARGS ?=
 resetdb: ## flush database and create a superuser "admin"
-	@echo -e "$(BOLD)Flush database$(RESET)"
+	@echo -e "$(BOLD)Flush database$(RESET) -- Args: $(FLUSH_ARGS)"
 	@$(MANAGE) flush $(FLUSH_ARGS)
 	@${MAKE} superuser
 .PHONY: resetdb

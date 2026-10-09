@@ -75,8 +75,9 @@ services:
         restart: true
       redis:
         condition: service_started
-      keycloak:
-        condition: service_healthy
+      # keycloak:
+      #   condition: service_healthy
+
 
   # Use proconnect instead of local keycloak instance
   menshen-pc:
@@ -96,6 +97,20 @@ services:
         restart: true
       redis:
         condition: service_started
+
+  menshen-e2e:
+    extends:
+        service: menshen-base
+    environment:
+      OIDC_OP_URL: http://keycloak:8080/realms/menshen
+    depends_on:
+      postgresql:
+        condition: service_healthy
+        restart: true
+      redis:
+        condition: service_started
+      keycloak-e2e:
+        condition: service_healthy
 
   kc_postgresql:
     image: postgres:14.3
@@ -123,6 +138,7 @@ services:
       - --features=preview
       - --import-realm
       - --hostname=http://localhost:8080
+      - --hostname-backchannel-dynamic=true
       - --hostname-strict=false
       - --health-enabled=true
       - --metrics-enabled=true
@@ -152,6 +168,19 @@ services:
       kc_postgresql:
         condition: service_healthy
         restart: true
+
+  keycloak-e2e:
+    extends:
+      service: keycloak
+    command:
+      - start-dev
+      - --features=preview
+      - --import-realm
+      - --hostname=http://keycloak:8080
+      - --hostname-backchannel-dynamic=true
+      - --hostname-strict=false
+      - --health-enabled=true
+      - --metrics-enabled=true
 
   playground-source-base:
     build:
@@ -183,11 +212,24 @@ services:
     env_file:
       - env.d/development/common
     environment:
-        DJANGO_SETTINGS_MODULE: source.settings
+      DJANGO_SETTINGS_MODULE: source.settings
     depends_on:
       keycloak:
         condition: service_healthy
       menshen:
+        condition: service_healthy
+
+  playground-source-e2e:
+    extends:
+        service: playground-source-base
+    env_file:
+      - env.d/development/common
+    environment:
+      DJANGO_SETTINGS_MODULE: source.settings
+      OIDC_OP_URL: http://keycloak:8080/realms/menshen
+      PLAYGROUND_SOURCE_SERVICE_NETLOC: playground-source:8000
+    depends_on:
+      menshen-e2e:
         condition: service_healthy
 
   # Use proconnect instead of local keycloak instance
@@ -230,11 +272,24 @@ services:
     env_file:
       - env.d/development/common
     environment:
-        DJANGO_SETTINGS_MODULE: target.settings
+      DJANGO_SETTINGS_MODULE: target.settings
     depends_on:
       keycloak:
         condition: service_healthy
       menshen:
+        condition: service_healthy
+
+  playground-target-e2e:
+    extends:
+        service: playground-target-base
+    env_file:
+      - env.d/development/common
+    environment:
+      OIDC_OP_URL: http://keycloak:8080/realms/menshen
+      PLAYGROUND_TARGET_SERVICE_NETLOC: playground-target:8000
+      DJANGO_SETTINGS_MODULE: target.settings
+    depends_on:
+      menshen-e2e:
         condition: service_healthy
 
   playground-target-pc:
@@ -249,6 +304,25 @@ services:
   # Utils
   openssl:
     image: alpine/openssl:3.5.8
+
+  playwright:
+    build:
+      context: .
+      dockerfile: ./src/e2e/Dockerfile
+      args:
+        DOCKER_UID: ${DOCKER_UID:-1000}
+    user: ${DOCKER_USER:-1000}
+    volumes:
+      - ./src/e2e:/app
+    ports:
+      - "3000:8000"
+    networks:
+      lasuite:
+        aliases:
+          - playwright
+    depends_on:
+      - playground-source-e2e
+      - playground-target-e2e
 
 networks:
   lasuite:

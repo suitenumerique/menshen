@@ -213,6 +213,18 @@ wheels = [
 ]
 
 [[package]]
+name = "menshen-client"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/53/d5/c2be400c190efe26b70e5c60dd9d9ab279ece3b51de457abc184a238c727/menshen_client-0.1.0.tar.gz", hash = "sha256:21fe48788e860c7f2e103787ce0827981e9059146cf7bdb9ac1a8778acb9ff77", size = 6219, upload-time = "2026-09-21T21:04:01.677Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d6/bf/11d15da4852b8344eb9f30861bd15a8f1d931ff4232d9b7de18fce09fd3c/menshen_client-0.1.0-py3-none-any.whl", hash = "sha256:d0dfb351812bb93620a4796e0f0ce1a40e8ec859dc8de2a1f50ae7f306d4d29a", size = 7040, upload-time = "2026-09-21T21:04:00.433Z" },
+]
+
+[[package]]
 name = "mozilla-django-oidc"
 version = "5.0.2"
 source = { registry = "https://pypi.org/simple" }
@@ -289,6 +301,7 @@ dependencies = [
     { name = "django" },
     { name = "django-lasuite" },
     { name = "djangorestframework" },
+    { name = "menshen-client" },
 ]
 
 [package.metadata]
@@ -296,6 +309,7 @@ requires-dist = [
     { name = "django", specifier = ">=6.0.3" },
     { name = "django-lasuite", specifier = ">=0.0.25" },
     { name = "djangorestframework", specifier = ">=3.17.1" },
+    { name = "menshen-client", specifier = ">=0.1.0" },
 ]
 
 [[package]]

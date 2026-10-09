@@ -8,4 +8,5 @@ dependencies = [
     "django>=6.0.3",
     "django-lasuite>=0.0.25",
     "djangorestframework>=3.17.1",
+    "menshen-client>=0.1.0",
 ]

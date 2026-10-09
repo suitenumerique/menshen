@@ -11,7 +11,12 @@ from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
 from django.views.generic import FormView, ListView
 from lasuite.oidc_login.decorators import refresh_oidc_access_token
-from requests.auth import HTTPBasicAuth
+from menshen_client import (
+    Configuration,
+    TokenExchangeClient,
+    TokenExchangeRequest,
+    TokenType,
+)
 
 from .forms import RecordingBackupForm
 from .models import Recording
@@ -51,32 +56,31 @@ class BackupView(FormView):
         """Process to Recording backup."""
         recording = self.get_object()
 
+        # Create the client instance
+        client = TokenExchangeClient(
+            config=Configuration(
+                client_id=settings.OIDC_TX_CLIENT_ID,
+                client_secret=settings.OIDC_TX_CLIENT_SECRET,
+                server_root_url=settings.OIDC_TX_ROOT_URL,
+            )
+        )
         # Generate an exchange token for backup
-        token_exchange_auth = HTTPBasicAuth(
-            settings.OIDC_TX_CLIENT_ID, settings.OIDC_TX_CLIENT_SECRET
+        exchange_response = client.exchange(
+            TokenExchangeRequest(
+                subject_token=request.session.get("oidc_access_token"),
+                subject_token_type=TokenType.ACCESS_TOKEN,
+                audience=settings.PLAYGROUND_TARGET_OIDC_RP_CLIENT_ID,
+                # FIXME
+                # scope="target:write",
+                scope="openid",
+            )
         )
-        token_exchange_payload = {
-            "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
-            "subject_token": request.session.get("oidc_access_token"),
-            "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
-            "audience": settings.PLAYGROUND_TARGET_OIDC_RP_CLIENT_ID,
-            "scope": "openid",
-        }
-        response = requests.post(
-            settings.OIDC_TX_TOKEN_ENDPOINT,
-            data=token_exchange_payload,
-            auth=token_exchange_auth,
-        )
-        logger.debug(f"TX: {response.text=}")
-        response.raise_for_status()
-        exchanged_token = response.json()
-        logger.info(f"TX: {exchanged_token=}")
 
         # Use exchanged token to backup recording in the configured target service
         response = requests.post(
             "http://playground-target:8000/external_api/items/",
             data={"name": recording.meeting, "type": "video/mpeg", "size": 10240},
-            headers={"Authorization": f"Bearer {exchanged_token['access_token']}"},
+            headers={"Authorization": f"Bearer {exchange_response.access_token}"},
         )
         response.raise_for_status()
         logger.info(f"{response.json()=}")

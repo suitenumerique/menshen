@@ -768,10 +768,12 @@
       "clientAuthenticatorType": "client-secret",
       "secret": "dNnEVcFwNgj4dD3w3HgfuqmkmwFrl9EC",
       "redirectUris": [
-        "http://source.localhost:8072/*"
+        "http://source.localhost:8072/*",
+        "http://playground-source:8000/*"
       ],
       "webOrigins": [
-        "http://source.localhost:8072/*"
+        "http://source.localhost:8072/*",
+        "http://playground-source:8000/*"
       ],
       "notBefore": 0,
       "bearerOnly": false,
@@ -829,10 +831,12 @@
       "clientAuthenticatorType": "client-secret",
       "secret": "dijkjHMFknpNIS6rHfrHMttYQCospeF9",
       "redirectUris": [
-        "http://target.localhost:8073/*"
+        "http://target.localhost:8073/*",
+        "http://playground-target:8000/*"
       ],
       "webOrigins": [
-        "http://target.localhost:8073/*"
+        "http://target.localhost:8073/*",
+        "http://playground-target:8000/*"
       ],
       "notBefore": 0,
       "bearerOnly": false,

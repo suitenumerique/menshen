@@ -1,0 +1,22 @@
+#
+# Menshen playgrount e2e testing using Playright
+#
+[project]
+name = "e2e"
+version = "0.1.0"
+description = "Menshen playground e2e testing using Playright"
+readme = "README.md"
+authors = [{ "name" = "DINUM", "email" = "dev@mail.numerique.gouv.fr" }]
+requires-python = ">=3.14"
+keywords = ["Django", "OAuth", "e2e"]
+license = "MIT"
+dependencies = [
+    "pytest-playwright>=0.9.0",
+]
+
+[tool.pytest]
+addopts = [
+  "--screenshot=only-on-failure",
+  "--tracing=on",
+  "--video=on"
+]
