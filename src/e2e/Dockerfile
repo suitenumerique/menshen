@@ -2,7 +2,7 @@
 FROM python:3.14.8-trixie
 
 ARG DEBIAN_FRONTEND=noninteractive
-ARG DOCKER_USER
+ARG DOCKER_UID
 
 ENV UV_COMPILE_BYTECODE=1
 ENV UV_LINK_MODE=copy
@@ -35,8 +35,8 @@ RUN apt-get update && \
     apt-get clean
 
 # Create running user
-RUN useradd -d /tmp/docker -u ${DOCKER_USER} -m docker
-USER ${DOCKER_USER}
+RUN useradd -d /tmp/docker -u ${DOCKER_UID} -m docker
+USER ${DOCKER_UID}
 
 # Install Playright along with system dependencies
 RUN uv run playwright install --only-shell chromium 

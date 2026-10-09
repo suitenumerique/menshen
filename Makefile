@@ -43,7 +43,7 @@ DOCKER_GID          := $(shell id -g)
 DOCKER_USER         := $(DOCKER_UID):$(DOCKER_GID)
 endif
 APP_NAME           ?= menshen
-COMPOSE             = DOCKER_USER=$(DOCKER_USER) docker compose
+COMPOSE             = DOCKER_UID=$(DOCKER_UID) DOCKER_GID=$(DOCKER_GID) DOCKER_USER=$(DOCKER_USER) docker compose
 COMPOSE_EXEC        = $(COMPOSE) exec
 COMPOSE_EXEC_APP    = $(COMPOSE_EXEC) $(APP_NAME)
 COMPOSE_RUN         = $(COMPOSE) run --rm
@@ -213,7 +213,7 @@ logs: ## display menshen logs (follow mode)
 .PHONY: logs
 
 run-backend: ## Start only the backend application and all needed services
-	@$(COMPOSE) up --force-recreate -d menshen
+	@$(COMPOSE) up --force-recreate -d menshen keycloak
 .PHONY: run-backend
 
 run-playground: ## start the playground 
