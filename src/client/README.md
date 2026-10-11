@@ -28,6 +28,7 @@ config = Configuration(
     client_id="acme",
     client_secret="super-secret",
     server_root_url="https://menshen.example.org",
+    requests_timeout=1.5,  # This is optional (default: 3 seconds, None means no timeout)
 )
 
 # Create the client instance

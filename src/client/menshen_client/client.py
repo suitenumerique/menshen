@@ -39,7 +39,9 @@ class TokenExchangeClient:
     ) -> TokenExchangeResponse | IntrospectionResponse | None:
         """Perform POST request for an API endpoint."""
         logger.debug("Will request %s endpoint with: %s", url, request)
-        api_response = self.session.post(url, data=asdict(request))
+        api_response = self.session.post(
+            url, data=asdict(request), timeout=self.config.requests_timeout
+        )
         api_response.raise_for_status()
 
         if response_klass is None:

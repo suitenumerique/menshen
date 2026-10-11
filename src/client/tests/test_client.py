@@ -5,6 +5,7 @@ from dataclasses import asdict
 
 import pytest
 from requests import HTTPError
+from requests.exceptions import Timeout
 
 from menshen_client.client import TokenExchangeClient
 from menshen_client.enums import TokenExchangeResponseTokenType, TokenType
@@ -40,6 +41,16 @@ def test_client_exchange_raises_for_status(client, responses, status, token_exch
         status=status,
     )
     with pytest.raises(HTTPError):
+        client.exchange(token_exchange_request)
+
+
+def test_client_exchange_raises_for_timeout(client, responses, token_exchange_request):
+    """Test the TokenExchangeClient exchange method with a request timeout."""
+    responses.post(
+        "https://menshen.example.org/auth/token/exchange/",
+        body=Timeout("Request took too much time dude."),
+    )
+    with pytest.raises(Timeout):
         client.exchange(token_exchange_request)
 
 
@@ -146,6 +157,16 @@ def test_client_introspect_raises_for_status(client, responses, status):
         client.introspect(IntrospectionRequest(token="foo"))
 
 
+def test_client_introspect_raises_for_timeout(client, responses):
+    """Test the TokenExchangeClient introspect method with a request timeout."""
+    responses.post(
+        "https://menshen.example.org/auth/token/introspect/",
+        body=Timeout("Request took too much time dude."),
+    )
+    with pytest.raises(Timeout):
+        client.introspect(IntrospectionRequest(token="foo"))
+
+
 def test_client_introspect_token(client, responses):
     """Test the TokenExchangeClient introspect method with an invalid response status."""
     responses.post(
@@ -226,6 +247,16 @@ def test_client_revoke_raises_for_status(client, responses, status):
         status=status,
     )
     with pytest.raises(HTTPError):
+        client.revoke(RevocationRequest(token="foo"))
+
+
+def test_client_revoke_raises_for_timeout(client, responses):
+    """Test the TokenExchangeClient revoke method with a request timeout."""
+    responses.post(
+        "https://menshen.example.org/auth/token/revoke/",
+        body=Timeout("Request took too much time dude."),
+    )
+    with pytest.raises(Timeout):
         client.revoke(RevocationRequest(token="foo"))
 
 

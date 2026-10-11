@@ -8,6 +8,11 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- Add `requests_timeout` parameter to `Configuration` used as the default value
+  for every API request
+
 ## [v0.1.0] - 2026-09-21
 
 ### Added

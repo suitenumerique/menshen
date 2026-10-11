@@ -24,6 +24,7 @@ class Configuration:
         - token_endpoint: the token exchange API endpoint path
         - introspection: the exchanged token introspection API endpoint path
         - revocation_endpoint: the exchanged token revocation API endpoint path
+        - requests_timeout: the default timeout for API requests
     """
 
     client_id: str
@@ -32,6 +33,7 @@ class Configuration:
     token_endpoint: str = "/auth/token/exchange/"  # noqa: S105
     introspection_endpoint: str = "/auth/token/introspect/"
     revocation_endpoint: str = "/auth/token/revoke/"
+    requests_timeout: float | None = 3.0  # None means no timeout
 
     def _fully_qualified_endpoint_url(self, endpoint: str) -> str:
         """
