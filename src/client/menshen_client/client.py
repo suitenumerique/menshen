@@ -53,7 +53,7 @@ class TokenExchangeClient:
             logger.error("%s: %s", error_message, err)
             raise ResponseParsingError(error_message) from err
 
-        logger.debug("Successfull response: %s", response)
+        logger.debug("Successful response: %s", response)
         return response
 
     def exchange(self, request: TokenExchangeRequest) -> TokenExchangeResponse:
