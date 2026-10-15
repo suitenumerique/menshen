@@ -6,7 +6,7 @@ from .models import Item
 
 
 class ItemAdmin(admin.ModelAdmin):
-    pass
+    """Admin configuration for the Item model."""
 
 
 admin.site.register(Item, ItemAdmin)

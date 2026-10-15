@@ -177,34 +177,20 @@ match OIDC_PROVIDER:
         OIDC_OP_JWKS_ENDPOINT: str = f"{OIDC_OP_URL}/jwks"
         OIDC_OP_LOGOUT_ENDPOINT: str = f"{OIDC_OP_URL}/session/end"
     case OIDCProvider.KEYCLOAK:
-        OIDC_OP_AUTHORIZATION_ENDPOINT: str = (
-            f"{OIDC_OP_URL}/protocol/openid-connect/auth"
-        )
+        OIDC_OP_AUTHORIZATION_ENDPOINT: str = f"{OIDC_OP_URL}/protocol/openid-connect/auth"
         OIDC_OP_INTROSPECTION_ENDPOINT: str = (
             f"{OIDC_OP_URL_DOCKER}/protocol/openid-connect/token/introspect"
         )
-        OIDC_OP_TOKEN_ENDPOINT: str = (
-            f"{OIDC_OP_URL_DOCKER}/protocol/openid-connect/token"
-        )
-        OIDC_OP_USER_ENDPOINT: str = (
-            f"{OIDC_OP_URL_DOCKER}/protocol/openid-connect/userinfo"
-        )
-        OIDC_OP_JWKS_ENDPOINT: str = (
-            f"{OIDC_OP_URL_DOCKER}/protocol/openid-connect/certs"
-        )
-        OIDC_OP_LOGOUT_ENDPOINT: str = (
-            f"{OIDC_OP_URL_DOCKER}/protocol/openid-connect/logout"
-        )
+        OIDC_OP_TOKEN_ENDPOINT: str = f"{OIDC_OP_URL_DOCKER}/protocol/openid-connect/token"
+        OIDC_OP_USER_ENDPOINT: str = f"{OIDC_OP_URL_DOCKER}/protocol/openid-connect/userinfo"
+        OIDC_OP_JWKS_ENDPOINT: str = f"{OIDC_OP_URL_DOCKER}/protocol/openid-connect/certs"
+        OIDC_OP_LOGOUT_ENDPOINT: str = f"{OIDC_OP_URL_DOCKER}/protocol/openid-connect/logout"
     case _:
         raise ValueError("Invalid OIDC_PROVIDER: %s", OIDC_PROVIDER)
 
-SERVICE_NETLOC: str = os.environ.get(
-    "PLAYGROUND_SOURCE_SERVICE_NETLOC", "source.localhost:8072"
-)
+SERVICE_NETLOC: str = os.environ.get("PLAYGROUND_SOURCE_SERVICE_NETLOC", "source.localhost:8072")
 OIDC_RP_CLIENT_ID: str | None = os.environ.get("PLAYGROUND_SOURCE_OIDC_RP_CLIENT_ID")
-OIDC_RP_CLIENT_SECRET: str | None = os.environ.get(
-    "PLAYGROUND_SOURCE_OIDC_RP_CLIENT_SECRET"
-)
+OIDC_RP_CLIENT_SECRET: str | None = os.environ.get("PLAYGROUND_SOURCE_OIDC_RP_CLIENT_SECRET")
 
 OIDC_RP_SIGN_ALGO = "RS256"
 OIDC_RP_SCOPES = "openid email"

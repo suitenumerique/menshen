@@ -48,8 +48,8 @@ class BackupView(FormView):
         pk = form.cleaned_data["pk"]
         try:
             return Recording.objects.get(id=pk)
-        except Recording.DoesNotExist:
-            raise Http404("Recording not found")
+        except Recording.DoesNotExist as err:
+            raise Http404("Recording not found") from err
 
     @method_decorator(refresh_oidc_access_token)
     def post(self, request):
@@ -79,9 +79,10 @@ class BackupView(FormView):
             "http://playground-target:8000/external_api/items/",
             data={"name": recording.meeting, "type": "video/mpeg", "size": 10240},
             headers={"Authorization": f"Bearer {exchange_response.access_token}"},
+            timeout=10,
         )
         response.raise_for_status()
-        logger.info(f"{response.json()=}")
+        logger.info("response.json()=%s", response.json())
 
         # Add message to the request
         messages.add_message(

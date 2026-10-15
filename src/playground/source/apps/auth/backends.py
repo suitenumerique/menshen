@@ -7,12 +7,12 @@ from lasuite.oidc_login.backends import (
     OIDCAuthenticationBackend as LaSuiteOIDCAuthenticationBackend,
 )
 
-
 logger = logging.getLogger(__name__)
 
 
 class OIDCAuthenticationBackend(LaSuiteOIDCAuthenticationBackend):
-    """Custom OpenID Connect (OIDC) Authentication Backend.
+    """
+    Custom OpenID Connect (OIDC) Authentication Backend.
 
     This class overrides the default OIDC Authentication Backend to accommodate differences
     in the User and Identity models, and handles signed and/or encrypted UserInfo response.
@@ -27,6 +27,7 @@ class OIDCAuthenticationBackend(LaSuiteOIDCAuthenticationBackend):
 
         Returns:
           dict: A dictionary of extra claims.
+
         """
         return {
             "full_name": self.compute_full_name(user_info),

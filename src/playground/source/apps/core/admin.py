@@ -6,7 +6,7 @@ from .models import Recording
 
 
 class RecordingAdmin(admin.ModelAdmin):
-    pass
+    """Admin configuration for the Recording model."""
 
 
 admin.site.register(Recording, RecordingAdmin)

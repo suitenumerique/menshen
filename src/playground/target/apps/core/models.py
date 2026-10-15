@@ -58,9 +58,12 @@ class PlaygroundUser(AbstractBaseUser):
         blank=True,
         null=True,
     )
-    email = models.EmailField("Identity email address", blank=True, null=True)
-    name = models.CharField(
-        help_text="Name of the user.", max_length=255, blank=True, null=True
+    email = models.EmailField("Identity email address", blank=True, null=True)  # noqa: DJ001
+    name = models.CharField(  # noqa: DJ001
+        help_text="Name of the user.",
+        max_length=255,
+        blank=True,
+        null=True,
     )
     is_staff = models.BooleanField(
         default=False,
@@ -88,5 +91,11 @@ class Item(models.Model):
     updated_at = models.DateTimeField(auto_now=True, editable=False)
 
     class Meta:
+        """Meta options."""
+
         ordering = ["name"]
         verbose_name_plural = "items"
+
+    def __str__(self):
+        """Return a human-readable representation."""
+        return self.name

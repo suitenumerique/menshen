@@ -22,6 +22,7 @@ class TokenExchangeAuthentication(OIDCAuthentication):
     """Token Exchange based authentication."""
 
     def authenticate(self, request):
+        """Authenticate the request via token introspection."""
         access_token = self.get_access_token(request)
         if not access_token:
             return None

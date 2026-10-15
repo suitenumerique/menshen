@@ -23,6 +23,7 @@ dev = [
 [tool.ruff]
 line-length = 100
 target-version = "py314"
+extend-exclude = ["migrations"]
 lint.select = [
     # pycodestyle
     "E", "W",
@@ -87,6 +88,9 @@ lint.per-file-ignores = { "**/tests/*" = [
   ], "__init__.py" = [
     # Missing docstring in public package
     "D104"
+  ], "**/settings.py" = [
+    # Possible hardcoded password assigned
+    "S105"
 ]}
 
 [tool.pytest.ini_options]

@@ -9,5 +9,7 @@ class ItemSerializer(serializers.ModelSerializer):
     """Target Item serializer."""
 
     class Meta:
+        """Meta options."""
+
         model = Item
         fields = "__all__"
