@@ -815,6 +815,20 @@
         "phone",
         "offline_access",
         "microprofile-jwt"
+      ],
+      "protocolMappers": [
+        {
+          "id": "617e17b4-4e45-489b-ac5b-dbcda352cd19",
+          "name": "menshen-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "menshen",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
       ]
     },
     {
@@ -878,6 +892,20 @@
         "phone",
         "offline_access",
         "microprofile-jwt"
+      ],
+      "protocolMappers": [
+        {
+          "id": "8563fa75-fdfc-48cb-8270-e1b8f3d75a8c",
+          "name": "menshen-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "menshen",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
       ]
     },
     {
