@@ -57,6 +57,10 @@ MANAGE              = $(COMPOSE_RUN_APP_UV) python manage.py
 CLIENT_UV           = cd src/client && uv
 CLIENT_UV_RUN       = $(CLIENT_UV) run
 
+# -- Playground
+COMPOSE_EXEC_SOURCE_UV = $(COMPOSE_EXEC) playground-source uv run
+COMPOSE_EXEC_TARGET_UV = $(COMPOSE_EXEC) playground-target uv run
+
 # ==============================================================================
 # RULES
 
@@ -249,7 +253,8 @@ watch-pc: ## watch changes in playground source code (development mode with Proc
 lint: ## run project linters
 lint: \
   lint-back \
-  lint-client
+  lint-client \
+  lint-playground
 .PHONY: lint
 
 lint-back: ## lint back-end python sources
@@ -296,6 +301,44 @@ lint-client-ty-check: ## lint client python sources with ty
 	@$(CLIENT_UV_RUN) ty check
 .PHONY: lint-client-ty-check
 
+lint-playground: ## lint playground python sources
+lint-playground: \
+  lint-playground-source \
+  lint-playground-target
+.PHONY: lint-playground
+
+lint-playground-source: ## lint playground-source python sources
+lint-playground-source: \
+  lint-playground-source-ruff-format \
+  lint-playground-source-ruff-check
+.PHONY: lint-playground-source
+
+lint-playground-source-ruff-check: ## lint playground-source python sources with ruff
+	@echo 'lint-playground-source:ruff-check started…'
+	@$(COMPOSE_EXEC_SOURCE_UV) ruff check . --fix
+.PHONY: lint-playground-source-ruff-check
+
+lint-playground-source-ruff-format: ## format playground-source python sources with ruff
+	@echo 'lint-playground-source:ruff-format started…'
+	@$(COMPOSE_EXEC_SOURCE_UV) ruff format .
+.PHONY: lint-playground-source-ruff-format
+
+lint-playground-target: ## lint playground-target python sources
+lint-playground-target: \
+  lint-playground-target-ruff-format \
+  lint-playground-target-ruff-check
+.PHONY: lint-playground-target
+
+lint-playground-target-ruff-check: ## lint playground-target python sources with ruff
+	@echo 'lint-playground-target:ruff-check started…'
+	@$(COMPOSE_EXEC_TARGET_UV) ruff check . --fix
+.PHONY: lint-playground-target-ruff-check
+
+lint-playground-target-ruff-format: ## format playground-target python sources with ruff
+	@echo 'lint-playground-target:ruff-format started…'
+	@$(COMPOSE_EXEC_TARGET_UV) ruff format .
+.PHONY: lint-playground-target-ruff-format
+
 test: ## run project tests
 test: \
   test-back \
@@ -323,7 +366,7 @@ test-e2e: ## run e2e tests
 
 test-playground: ## run playground tests
 	# You should run the watcher first or rebuild the container
-	@$(COMPOSE_EXEC) playground-target uv run pytest
+	@$(COMPOSE_EXEC_TARGET_UV) pytest
 .PHONY: test-playground
 
 # -- Backend

@@ -9,3 +9,77 @@ dependencies = [
     "django-lasuite>=0.0.25",
     "menshen-client>=0.2.0",
 ]
+
+[dependency-groups]
+dev = [
+    "ruff==0.16.4",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+lint.select = [
+    # pycodestyle
+    "E", "W",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+    # flake8-logging-format
+    "G",
+    # flake8-pie
+    "PIE",
+    # flake8-comprehensions
+    "C4",
+    # flake8-django
+    "DJ",
+    # flake8-bandit
+    "S",
+    # flake8-builtins
+    "A",
+    # flake8-datetimez
+    "DTZ",
+    # flake8-gettext
+    "INT",
+    # Pylint
+    "PL",
+    # flake8-fixme
+    "FIX",
+    # flake8-self
+    "SLF",
+    # flake8-return
+    "RET",
+    # pep8-naming (N)
+    "N",
+    # pydocstyle
+    "D",
+    # flake8-pytest-style (PT)
+    "PT",
+]
+lint.ignore = [
+    # undocumented-magic-method
+    "D105",
+    # incorrect-blank-line-before-class
+    "D203",
+    # missing-blank-line-after-summary
+    "D205",
+    # multi-line-summary-first-line
+    "D212",
+]
+lint.per-file-ignores = { "**/tests/*" = [
+    # flake8-bandit
+    "S",
+    # flake8-self
+    "SLF",
+    # magic-value-comparison
+    "PLR2004",
+  ], "__init__.py" = [
+    # Missing docstring in public package
+    "D104"
+]}
