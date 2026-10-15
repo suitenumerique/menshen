@@ -4,7 +4,6 @@ import logging
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.exceptions import PermissionDenied
 from menshen_client import (
     Configuration,
     IntrospectionRequest,
@@ -12,6 +11,7 @@ from menshen_client import (
     TokenType,
 )
 from mozilla_django_oidc.contrib.drf import OIDCAuthentication
+from rest_framework.exceptions import AuthenticationFailed
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,10 @@ class TokenExchangeAuthentication(OIDCAuthentication):
 
     def authenticate(self, request):
         access_token = self.get_access_token(request)
-        logger.info(f"authenticate -> {access_token=}")
+        if not access_token:
+            return None
+
+        logger.debug("authenticate -> access_token=%s", access_token)
 
         # Create the client instance
         client = TokenExchangeClient(
@@ -43,11 +46,15 @@ class TokenExchangeAuthentication(OIDCAuthentication):
         )
 
         if not introspection_response.active:
-            raise PermissionDenied("User is not active")
+            raise AuthenticationFailed("Token is not active.")
 
         # Get user
         user = User.objects.get_user_by_sub_or_email(
             introspection_response.sub, introspection_response.email
         )
+        if user is None:
+            raise AuthenticationFailed("User not found.")
 
-        return user, access_token
+        # Expose the introspection response as the authentication credentials so
+        # that permissions can rely on the token scopes (request.auth.scope).
+        return user, introspection_response

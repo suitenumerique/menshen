@@ -31,10 +31,10 @@ WORKDIR /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=src/playground/target/uv.lock,target=uv.lock \
     --mount=type=bind,source=src/playground/target/pyproject.toml,target=pyproject.toml \
-      uv sync --locked --no-install-project --no-dev
+      uv sync --locked --no-install-project --dev
 COPY src/playground/target /app
 RUN --mount=type=cache,target=/root/.cache/uv \
-      uv sync --locked --no-dev
+      uv sync --locked --dev
 
 # ---- Back-end builder image ----
 FROM back-builder AS backend-development

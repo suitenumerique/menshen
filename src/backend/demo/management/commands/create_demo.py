@@ -56,7 +56,7 @@ def create_demo(stdout):
     )
     tx_models.ScopeGrant.objects.get_or_create(
         rule=source_to_target_rule,
-        source_scope="openid",
+        source_scope="target:read",
         granted_scope="target:read",
     )
     tx_models.ScopeGrant.objects.get_or_create(

@@ -10,3 +10,19 @@ dependencies = [
     "djangorestframework>=3.17.1",
     "menshen-client>=0.2.0",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest==9.1.1",
+    "pytest-django==4.14.0",
+    "pytest-responses==0.6.0",
+    "responses==0.26.2",
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "target.settings"
+python_files = [
+    "test_*.py",
+    "tests.py",
+]
+pythonpath = ["."]

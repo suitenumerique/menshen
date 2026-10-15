@@ -321,6 +321,11 @@ test-e2e: ## run e2e tests
 	$(COMPOSE_RUN) playwright
 .PHONY: test-e2e
 
+test-playground: ## run playground tests
+	# You should run the watcher first or rebuild the container
+	@$(COMPOSE_EXEC) playground-target uv run pytest
+.PHONY: test-playground
+
 # -- Backend
 #
 demo: ## flush db then create a demo for load testing purpose
