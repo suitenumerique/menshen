@@ -15,7 +15,7 @@ INTROSPECTION_URL = f"{settings.OIDC_TX_ROOT_URL}/auth/token/introspect/"
 
 @pytest.mark.django_db
 def test_create_item_with_write_scope_succeeds(api_client, responses):
-    """An item can be created when the exchanged token grants the target:write scope."""
+    """An item can be created when the exchanged token grants the target:item:write scope."""
     responses.post(
         INTROSPECTION_URL,
         status=200,
@@ -23,7 +23,7 @@ def test_create_item_with_write_scope_succeeds(api_client, responses):
             "active": True,
             "sub": USER_SUB,
             "email": USER_EMAIL,
-            "scope": "target:write",
+            "scope": "target:item:write",
         },
     )
 
@@ -33,10 +33,10 @@ def test_create_item_with_write_scope_succeeds(api_client, responses):
     assert Item.objects.count() == 1
 
 
-@pytest.mark.parametrize("scope", ["openid target:read", None])
+@pytest.mark.parametrize("scope", ["openid target:item:read", None])
 @pytest.mark.django_db
 def test_create_item_without_write_scope_is_forbidden(api_client, responses, scope):
-    """An item cannot be created when the exchanged token lacks the target:write scope."""
+    """An item cannot be created when the exchanged token lacks the target:item:write scope."""
     responses.post(
         INTROSPECTION_URL,
         status=200,
@@ -56,7 +56,7 @@ def test_create_item_without_write_scope_is_forbidden(api_client, responses, sco
 
 @pytest.mark.django_db
 def test_list_items_with_read_scope_succeeds(api_client, responses):
-    """Items can be listed when the exchanged token grants the target:read scope."""
+    """Items can be listed when the exchanged token grants the target:item:read scope."""
     responses.post(
         INTROSPECTION_URL,
         status=200,
@@ -64,7 +64,7 @@ def test_list_items_with_read_scope_succeeds(api_client, responses):
             "active": True,
             "sub": USER_SUB,
             "email": USER_EMAIL,
-            "scope": "openid target:read",
+            "scope": "openid target:item:read",
         },
     )
 
@@ -75,7 +75,7 @@ def test_list_items_with_read_scope_succeeds(api_client, responses):
 
 @pytest.mark.django_db
 def test_list_items_without_read_scope_is_forbidden(api_client, responses):
-    """Items cannot be listed when the exchanged token lacks the target:read scope."""
+    """Items cannot be listed when the exchanged token lacks the target:item:read scope."""
     responses.post(
         INTROSPECTION_URL,
         status=200,
@@ -83,7 +83,7 @@ def test_list_items_without_read_scope_is_forbidden(api_client, responses):
             "active": True,
             "sub": USER_SUB,
             "email": USER_EMAIL,
-            "scope": "target:write",
+            "scope": "target:item:write",
         },
     )
 
@@ -122,7 +122,7 @@ def test_unknown_user_is_unauthorized(api_client, responses):
             "active": True,
             "sub": "unknown-sub",
             "email": "unknown@menshen.world",
-            "scope": "openid target:write",
+            "scope": "openid target:item:write",
         },
     )
 

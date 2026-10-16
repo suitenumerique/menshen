@@ -65,10 +65,10 @@ def token_exchange_response():
         grants=[
             MenshenJWTGrantClaim(
                 audience_id="service:target",
-                scope="target:write",
+                scope="target:item:write",
                 throttle=MenshenJWTGrantClaimThrottling(rate="1rpm"),
             )
         ],
-        scope="target:write",
+        scope="target:item:write",
         refresh_token=None,
     )

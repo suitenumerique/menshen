@@ -69,9 +69,9 @@ def test_client_exchange_token(client, responses, token_exchange_request, token_
     assert exchanged_token.token_type == TokenExchangeResponseTokenType.BEARER
     assert exchanged_token.expires_in == 3600
     assert exchanged_token.grants[0].audience_id == "service:target"
-    assert exchanged_token.grants[0].scope == "target:write"
+    assert exchanged_token.grants[0].scope == "target:item:write"
     assert exchanged_token.grants[0].throttle.rate == "1rpm"
-    assert exchanged_token.scope == "target:write"
+    assert exchanged_token.scope == "target:item:write"
     assert exchanged_token.refresh_token is None
 
 

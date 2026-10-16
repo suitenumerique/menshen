@@ -18,15 +18,16 @@ class ItemViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, TokenExchangeScopePermission]
 
     # Required scopes to read/write objects
-    read_scopes: set[str] = {"target:read"}
-    write_scopes: set[str] = {"target:write"}
+    read_scopes: set[str] = {"target:item:read"}
+    write_scopes: set[str] = {"target:item:write"}
 
     def get_required_scopes(self, method: str) -> set[str]:
         """
         Return the scopes required on the exchanged token for a request method.
 
-        Safe methods (read) require the `target:read` scope while unsafe methods
-        (write: create, update, delete) require the `target:write` scope.
+        Safe methods (read) require the `target:item:read` scope while unsafe
+        methods (write: create, update, delete) require the `target:item:write`
+        scope.
         """
         if method in SAFE_METHODS:
             return self.read_scopes

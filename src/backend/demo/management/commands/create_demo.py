@@ -56,31 +56,31 @@ def create_demo(stdout):
     )
     tx_models.ScopeGrant.objects.get_or_create(
         rule=source_to_target_rule,
-        source_scope="target:read",
-        granted_scope="target:read",
+        source_scope="target:item:read",
+        granted_scope="target:item:read",
     )
     tx_models.ScopeGrant.objects.get_or_create(
         rule=source_to_target_rule,
-        source_scope="target:write",
-        granted_scope="target:write",
+        source_scope="target:item:write",
+        granted_scope="target:item:write",
     )
 
     # Actions
     target_write_action, _ = tx_models.ActionScope.objects.get_or_create(
-        name="action:write-to-target",
+        name="action:write-item-to-target",
     )
     tx_models.ActionScopeGrant.objects.get_or_create(
         action=target_write_action,
         target_service=target_service,
-        granted_scope="target:write",
+        granted_scope="target:item:write",
     )
     target_read_action, _ = tx_models.ActionScope.objects.get_or_create(
-        name="action:read-target",
+        name="action:read-target-item",
     )
     tx_models.ActionScopeGrant.objects.get_or_create(
         action=target_read_action,
         target_service=target_service,
-        granted_scope="target:read",
+        granted_scope="target:item:read",
     )
     tx_models.TokenExchangeActionPermission.objects.get_or_create(
         rule=source_to_target_rule,

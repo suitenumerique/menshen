@@ -56,7 +56,7 @@ exchange_request = TokenExchangeRequest(
     subject_token="exampletoken",
     subject_token_type=TokenType.ACCESS_TOKEN,
     audience="https://target.example.org",
-    scope="target:write",
+    scope="target:item:write",
 )
 
 # Get the exchanged token response

@@ -70,7 +70,7 @@ class BackupView(FormView):
                 subject_token=request.session.get("oidc_access_token"),
                 subject_token_type=TokenType.ACCESS_TOKEN,
                 audience=settings.PLAYGROUND_TARGET_OIDC_RP_CLIENT_ID,
-                scope="action:write-to-target",
+                scope="action:write-item-to-target",
             )
         )
 
