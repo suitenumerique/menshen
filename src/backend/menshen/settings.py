@@ -422,6 +422,15 @@ class Base(Configuration):
                 ),
                 "propagate": True,
             },
+            "lasuite": {
+                "handlers": ["console"],
+                "level": values.Value(
+                    "INFO",
+                    environ_name="LOGGING_LEVEL_LOGGERS_APP",
+                    environ_prefix=None,
+                ),
+                "propagate": True,
+            },
         },
     }
 
