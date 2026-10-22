@@ -27,6 +27,15 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 - Support subject opaque access token introspection
 - Support missing or empty `email` field in token introspection response
 
+### Security
+
+- Upgrade `uv` to `0.13.4` and `certifi` to `2026.10.19` to remove the
+  compromised emSign root CA certificate following the eMudhra security
+  incident (see
+  [GHSA-hq85-5cpj-mr62](https://github.com/advisories/GHSA-hq85-5cpj-mr62)
+  and
+  [GHSA-6q48-6c7w-9gw2](https://github.com/advisories/GHSA-6q48-6c7w-9gw2))
+
 ## [v0.3.0] - 2026-09-17
 
 ### Added
