@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 
+set -eo pipefail
+
 source "$(dirname "${BASH_SOURCE[0]}")/_config.sh"
 
 _dc_run \
     -e DJANGO_CONFIGURATION=Test \
-    menshen \
+    menshen-backend \
     uv run pytest "$@"

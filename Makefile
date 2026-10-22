@@ -28,11 +28,6 @@ RESET := \033[0m
 GREEN := \033[1;32m
 SHELL := /bin/env bash
 
-# -- Database
-
-DB_HOST            = postgresql
-DB_PORT            = 5432
-
 # -- Docker
 # Get the current user ID to use for docker run and docker exec commands
 ifeq ($(OS),Windows_NT)
@@ -42,11 +37,11 @@ DOCKER_UID          := $(shell id -u)
 DOCKER_GID          := $(shell id -g)
 DOCKER_USER         := $(DOCKER_UID):$(DOCKER_GID)
 endif
-APP_NAME           ?= menshen
+APP_NAME           ?= menshen-backend
 COMPOSE             = DOCKER_UID=$(DOCKER_UID) DOCKER_GID=$(DOCKER_GID) DOCKER_USER=$(DOCKER_USER) docker compose
 COMPOSE_EXEC        = $(COMPOSE) exec
 COMPOSE_EXEC_APP    = $(COMPOSE_EXEC) $(APP_NAME)
-COMPOSE_RUN         = $(COMPOSE) run --rm
+COMPOSE_RUN         = $(COMPOSE) run --rm --remove-orphans
 COMPOSE_RUN_APP     = $(COMPOSE_RUN) $(APP_NAME)
 COMPOSE_RUN_APP_UV  = $(COMPOSE_RUN_APP) uv run
 
@@ -58,8 +53,11 @@ CLIENT_UV           = cd src/client && uv
 CLIENT_UV_RUN       = $(CLIENT_UV) run
 
 # -- Playground
-COMPOSE_EXEC_SOURCE_UV = $(COMPOSE_EXEC) playground-source uv run
-COMPOSE_EXEC_TARGET_UV = $(COMPOSE_EXEC) playground-target uv run
+COMPOSE_EXEC_SOURCE_UV = $(COMPOSE_EXEC) menshen-playground-source uv run
+COMPOSE_EXEC_TARGET_UV = $(COMPOSE_EXEC) menshen-playground-target uv run
+
+# -- Interop
+INTEROP_URL         = https://github.com/suitenumerique/interop/archive/refs/heads/main.tar.gz
 
 # ==============================================================================
 # RULES
@@ -68,6 +66,11 @@ default: help
 
 data/static:
 	@mkdir -p data/static
+
+interop:
+	mkdir -p interop
+	curl -sL $(INTEROP_URL) | tar -xzf - --strip-components=1 -C interop
+	cd interop && make bootstrap
 
 env.d/development/common.local:
 	@bin/local-env
@@ -96,19 +99,20 @@ create-env-local-files: ## create env.local files in env.d/development
 .PHONY: create-env-local-files
 
 pre-bootstrap: \
-	data/static \
-	create-env-local-files
+  data/static \
+  interop \
+  create-env-local-files
 .PHONY: pre-bootstrap
 
 post-bootstrap: \
-	migrate \
-	demo \
-	back-i18n-compile
+  migrate \
+  demo \
+  back-i18n-compile
 .PHONY: post-bootstrap
 
 post-bootstrap-pc:
-	APP_NAME=menshen-pc $(MAKE) migrate
-	APP_NAME=menshen-pc $(MAKE) demo
+	APP_NAME=menshen-backend-pc $(MAKE) migrate
+	APP_NAME=menshen-backend-pc $(MAKE) demo
 .PHONY: post-bootstrap-pc
 
 pre-beautiful-bootstrap: ## Display a welcome message before bootstrap
@@ -124,8 +128,8 @@ ifeq ($(OS),Windows_NT)
 	@echo "  - Environment configuration files"
 	@echo ""
 	@echo "  Services will be available at:"
-	@echo "  - API:      http://localhost:8071"
-	@echo "  - Admin:    http://localhost:8071/admin"
+	@echo "  - API:      http://menshen.lasuite.localhost:49000/auth/token/"
+	@echo "  - Admin:    http://menshen.lasuite.localhost:49000/admin"
 	@echo ""
 	@echo "================================================================================"
 	@echo ""
@@ -142,8 +146,8 @@ else
 	@echo "║  • Environment configuration files                                           ║"
 	@echo "║                                                                              ║"
 	@echo "║  Services will be available at:                                              ║"
-	@echo "║  • API:      http://localhost:8071                                           ║"
-	@echo "║  • Admin:    http://localhost:8071/admin                                     ║"
+	@echo "║  • API:      http://menshen.lasuite.localhost:49000/auth/token/              ║"
+	@echo "║  • Admin:    http://menshen.lasuite.localhost:49000/admin                    ║"
 	@echo "║                                                                              ║"
 	@echo "╚══════════════════════════════════════════════════════════════════════════════╝"
 	@echo -e "$(RESET)"
@@ -158,13 +162,13 @@ ifeq ($(OS),Windows_NT)
 	@echo "Bootstrap completed successfully!"
 	@echo ""
 	@echo "Next steps:"
-	@echo "  - Play with the API at http://localhost:8071"
+	@echo "  - Play with the API at http://menshen.lasuite.localhost:49000/auth/token/docs"
 	@echo "  - Run 'make help' to see all available commands"
 else
 	@echo -e "$(GREEN)🎉 Bootstrap completed successfully!$(RESET)"
 	@echo ""
 	@echo -e "$(BOLD)Next steps:$(RESET)"
-	@echo "  • Play with the API at http://localhost:8071"
+	@echo "  • Play with the API at http://menshen.lasuite.localhost:49000/auth/token/docs"
 	@echo "  • Run 'make help' to see all available commands"
 endif
 	@echo ""
@@ -189,7 +193,7 @@ build: ## build the project containers
 
 build-backend: cache ?=
 build-backend: ## build the menshen container
-	@$(COMPOSE) build menshen $(cache)
+	@$(COMPOSE) build $(APP_NAME) $(cache)
 .PHONY: build-backend
 
 build-playground: \
@@ -200,12 +204,12 @@ build-playground:  ## build playground services container
 
 build-playground-source: cache ?=
 build-playground-source: ## build the playground-source container
-	@$(COMPOSE) build playground-source $(cache)
+	@$(COMPOSE) build menshen-playground-source $(cache)
 .PHONY: build-playground-source
 
 build-playground-target: cache ?=
 build-playground-target: ## build the playground-target container
-	@$(COMPOSE) build playground-target $(cache)
+	@$(COMPOSE) build menshen-playground-target $(cache)
 .PHONY: build-playground-target
 
 down: ## stop and remove containers, networks, images, and volumes
@@ -213,19 +217,19 @@ down: ## stop and remove containers, networks, images, and volumes
 .PHONY: down
 
 logs: ## display menshen logs (follow mode)
-	@$(COMPOSE) logs -f menshen
+	@$(COMPOSE) logs -f $(APP_NAME)
 .PHONY: logs
 
 run-backend: ## Start only the backend application and all needed services
-	@$(COMPOSE) up --force-recreate -d menshen keycloak
+	@$(COMPOSE) up --no-recreate -d $(APP_NAME)
 .PHONY: run-backend
 
 run-playground: ## start the playground 
-	$(COMPOSE) up --force-recreate -d playground-source playground-target
+	$(COMPOSE) up --no-recreate -d menshen-playground-source menshen-playground-target
 .PHONY: run-playground
 
 run-playground-pc: ## start the playground (with ProConnect integration)
-	$(COMPOSE) up --force-recreate -d playground-source-pc playground-target-pc
+	$(COMPOSE) up --force-recreate -d menshen-playground-source-pc menshen-playground-target-pc
 .PHONY: run-playground-pc
 
 run: ## start the wsgi (production) and development server
@@ -242,12 +246,17 @@ stop: ## stop the development server using Docker
 .PHONY: stop
 
 watch: ## watch changes in playground source code (development mode)
-	@$(COMPOSE) watch playground-source playground-target
+	@$(COMPOSE) watch menshen-playground-source menshen-playground-target
 .PHONY: watch 
 
 watch-pc: ## watch changes in playground source code (development mode with Proconnect integration)
-	@$(COMPOSE) watch playground-source-pc playground-target-pc
+	@$(COMPOSE) watch menshen-playground-source-pc menshen-playground-target-pc
 .PHONY: watch-pc
+
+interop-update: ## update interop services
+	$(MAKE) -B interop
+.PHONY: interop-update
+
 # -- Quality checks
 #
 lint: ## run project linters
@@ -360,7 +369,7 @@ test-client: ## run client tests
 test-e2e: ## run e2e tests
 	$(MAKE) stop
 	# Remove containers so that we reset their state
-	$(COMPOSE) down playground-source-e2e playground-target-e2e
+	$(COMPOSE) up -d --force-recreate menshen-playground-source-e2e menshen-playground-target-e2e
 	$(COMPOSE_RUN) playwright
 .PHONY: test-e2e
 
@@ -378,12 +387,13 @@ demo: ## flush db then create a demo for load testing purpose
 
 makemigrations:  ## run django makemigrations for the menshen project.
 	@echo -e "$(BOLD)Running makemigrations$(RESET)"
-	@$(COMPOSE) up -d postgresql
+	@$(COMPOSE) up -d menshen-postgresql
 	@$(MANAGE) makemigrations
 .PHONY: makemigrations
 
 migrate:  ## run django migrations for the menshen project.
 	@echo -e "$(BOLD)Running migrations$(RESET)"
+	@$(COMPOSE) up -d menshen-postgresql
 	@$(MANAGE) migrate
 .PHONY: migrate
 
@@ -407,7 +417,7 @@ shell: ## connect to database shell
 # -- Database
 #
 dbshell: ## connect to database shell
-	docker compose exec menshen python manage.py dbshell
+	docker compose exec $(APP_NAME) python manage.py dbshell
 .PHONY: dbshell
 
 resetdb: ## flush database and create a superuser "admin"

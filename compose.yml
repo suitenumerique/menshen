@@ -1,7 +1,10 @@
-name: menshen 
+name: lasuite
+
+include:
+  - interop/compose.yml
 
 services:
-  postgresql-base:
+  menshen-postgresql-base:
     image: postgres:16
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
@@ -12,30 +15,21 @@ services:
       - env.d/development/postgresql
       - env.d/development/postgresql.local
     ports:
-      - "15432:5432"
+      - "49001:5432"
     networks:
       lasuite:
         aliases:
           - postgresql
 
-  postgresql:
+  menshen-postgresql:
     extends:
-        service: postgresql-base
+        service: menshen-postgresql-base
 
-  postgresql-pc:
+  menshen-postgresql-pc:
     extends:
-        service: postgresql-base
+        service: menshen-postgresql-base
 
-  redis:
-    image: redis:5
-    networks:
-      lasuite:
-        aliases:
-          - redis
-    ports:
-      - "6379:6379"
-
-  menshen-base:
+  menshen-backend-base:
     build:
       context: .
       dockerfile: ./src/backend/Dockerfile
@@ -55,7 +49,9 @@ services:
       test: ["CMD-SHELL", "curl localhost:8000/__heartbeat__"]
       interval: 1s
       timeout: 2s
-      retries: 300
+      retries: 30
+    ports:
+      - "49000:8000"
     networks:
       lasuite:
         aliases:
@@ -64,13 +60,11 @@ services:
       - ./src/backend:/app
       - ./data/static:/data/static
 
-  menshen:
+  menshen-backend:
     extends:
-        service: menshen-base
-    ports:
-      - "8071:8000"
+        service: menshen-backend-base
     depends_on:
-      postgresql:
+      menshen-postgresql:
         condition: service_healthy
         restart: true
       redis:
@@ -78,33 +72,34 @@ services:
       keycloak:
         condition: service_healthy
 
-
   # Use proconnect instead of local keycloak instance
-  menshen-pc:
+  menshen-backend-pc:
     extends:
-      service: menshen-base
+      service: menshen-backend-base
     env_file:
       - env.d/development/common
       - env.d/development/common.local
       - env.d/development/postgresql
       - env.d/development/postgresql.local
       - env.d/development/proconnect.local
-    ports:
-      - "8071:8000"
     depends_on:
-      postgresql-pc:
+      menshen-postgresql-pc:
         condition: service_healthy
         restart: true
       redis:
         condition: service_started
 
-  menshen-e2e:
+  menshen-backend-e2e:
     extends:
-        service: menshen-base
+        service: menshen-backend-base
     environment:
-      OIDC_OP_URL: http://keycloak:8080/realms/menshen
+      # The Keycloak issuer is set by --hostname=http://keycloak:8080
+      # (keycloak-e2e service), it does not depend on the host used to reach
+      # the server. OIDC_OP_URL must match it for the introspection claims
+      # registry validation (iss) to pass.
+      OIDC_OP_URL: http://keycloak:8080/realms/lasuite
     depends_on:
-      postgresql:
+      menshen-postgresql:
         condition: service_healthy
         restart: true
       redis:
@@ -112,62 +107,6 @@ services:
       keycloak-e2e:
         condition: service_healthy
 
-  kc_postgresql:
-    image: postgres:14.3
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
-      interval: 1s
-      timeout: 2s
-      retries: 300
-    networks:
-      lasuite:
-        aliases:
-          - kc_postgresql
-    ports:
-      - "5433:5432"
-    env_file:
-      - env.d/development/kc_postgresql
-      - env.d/development/kc_postgresql.local
-
-  keycloak:
-    image: quay.io/keycloak/keycloak:26.6
-    volumes:
-      - ./docker/auth/realm.json:/opt/keycloak/data/import/realm.json
-    command:
-      - start-dev
-      - --features=preview
-      - --import-realm
-      - --hostname=http://localhost:8080
-      - --hostname-backchannel-dynamic=true
-      - --hostname-strict=false
-      - --health-enabled=true
-      - --metrics-enabled=true
-    healthcheck:
-      test: ['CMD-SHELL', 'exec 3<>/dev/tcp/localhost/9000; echo -e "GET /health/live HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n" >&3; grep "HTTP/1.1 200 OK" <&3']
-      start_period: 5s
-      interval: 1s
-      timeout: 2s
-      retries: 300
-    environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-      KC_DB: postgres
-      KC_DB_URL_HOST: kc_postgresql
-      KC_DB_URL_DATABASE: keycloak
-      KC_DB_PASSWORD: pass
-      KC_DB_USERNAME: menshen
-      KC_DB_SCHEMA: public
-      PROXY_ADDRESS_FORWARDING: 'true'
-    ports:
-      - "8080:8080"
-    networks:
-      lasuite:
-        aliases:
-          - keycloak
-    depends_on:
-      kc_postgresql:
-        condition: service_healthy
-        restart: true
 
   keycloak-e2e:
     extends:
@@ -182,14 +121,14 @@ services:
       - --health-enabled=true
       - --metrics-enabled=true
 
-  playground-source-base:
+  menshen-playground-source-base:
     build:
       context: .
       dockerfile: ./src/playground/source/Dockerfile
       target: backend-development
     image: menshen:playground-source
     ports:
-      - "8072:8000"
+      - "49002:8000"
     develop:
       watch:
         - action: sync+restart
@@ -204,11 +143,11 @@ services:
     networks:
       lasuite:
         aliases:
-          - playground-source
+          - menshen-playground-source
 
-  playground-source:
+  menshen-playground-source:
     extends:
-        service: playground-source-base
+        service: menshen-playground-source-base
     env_file:
       - env.d/development/common
     environment:
@@ -216,40 +155,40 @@ services:
     depends_on:
       keycloak:
         condition: service_healthy
-      menshen:
+      menshen-backend:
         condition: service_healthy
 
-  playground-source-e2e:
+  menshen-playground-source-e2e:
     extends:
-        service: playground-source-base
+        service: menshen-playground-source-base
     env_file:
       - env.d/development/common
     environment:
       DJANGO_SETTINGS_MODULE: source.settings
-      OIDC_OP_URL: http://keycloak:8080/realms/menshen
-      PLAYGROUND_SOURCE_SERVICE_NETLOC: playground-source:8000
+      OIDC_OP_URL: http://keycloak:8080/realms/lasuite
+      PLAYGROUND_SOURCE_SERVICE_NETLOC: menshen-playground-source:8000
     depends_on:
-      menshen-e2e:
+      menshen-backend-e2e:
         condition: service_healthy
 
   # Use proconnect instead of local keycloak instance
-  playground-source-pc:
+  menshen-playground-source-pc:
     extends:
-        service: playground-source-base
+        service: menshen-playground-source-base
     env_file:
       - env.d/development/proconnect.local
     depends_on:
-      menshen-pc:
+      menshen-backend-pc:
         condition: service_healthy
 
-  playground-target-base:
+  menshen-playground-target-base:
     build:
       context: .
       dockerfile: ./src/playground/target/Dockerfile
       target: backend-development
     image: menshen:playground-target
     ports:
-      - "8073:8000"
+      - "49003:8000"
     develop:
       watch:
         - action: sync+restart
@@ -264,11 +203,11 @@ services:
     networks:
       lasuite:
         aliases:
-          - playground-target
+          - menshen-playground-target
 
-  playground-target:
+  menshen-playground-target:
     extends:
-        service: playground-target-base
+        service: menshen-playground-target-base
     env_file:
       - env.d/development/common
     environment:
@@ -276,29 +215,29 @@ services:
     depends_on:
       keycloak:
         condition: service_healthy
-      menshen:
+      menshen-backend:
         condition: service_healthy
 
-  playground-target-e2e:
+  menshen-playground-target-e2e:
     extends:
-        service: playground-target-base
+        service: menshen-playground-target-base
     env_file:
       - env.d/development/common
     environment:
-      OIDC_OP_URL: http://keycloak:8080/realms/menshen
-      PLAYGROUND_TARGET_SERVICE_NETLOC: playground-target:8000
+      OIDC_OP_URL: http://keycloak:8080/realms/lasuite
+      PLAYGROUND_TARGET_SERVICE_NETLOC: menshen-playground-target:8000
       DJANGO_SETTINGS_MODULE: target.settings
     depends_on:
-      menshen-e2e:
+      menshen-backend-e2e:
         condition: service_healthy
 
-  playground-target-pc:
+  menshen-playground-target-pc:
     extends:
-        service: playground-target-base
+        service: menshen-playground-target-base
     env_file:
       - env.d/development/proconnect.local
     depends_on:
-      menshen-pc:
+      menshen-backend-pc:
         condition: service_healthy
 
   # Utils
@@ -321,14 +260,8 @@ services:
         aliases:
           - playwright
     depends_on:
-      - playground-source-e2e
-      - playground-target-e2e
-
-networks:
-  lasuite:
-    name: lasuite-network
-    driver: bridge
-    external: true
+      - menshen-playground-source-e2e
+      - menshen-playground-target-e2e
 
 volumes:
   venv:

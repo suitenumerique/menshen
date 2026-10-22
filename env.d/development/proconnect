@@ -1,7 +1,7 @@
 # ProConnect settings
 
 ## Database
-DB_HOST=postgresql-pc
+DB_HOST=menshen-postgresql-pc
 
 ## OIDC
 OIDC_PROVIDER=proconnect

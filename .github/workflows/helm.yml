@@ -14,7 +14,7 @@ permissions: {}
 
 jobs:
   helmfile-lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     container:
       image: ghcr.io/helmfile/helmfile:v1.7.0
     steps:

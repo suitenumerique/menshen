@@ -29,9 +29,9 @@ DEBUG = True
 
 ALLOWED_HOSTS = [
     "localhost",
-    "playground-source",
-    "playground-source-e2e",
-    "source.localhost",
+    "menshen-playground-source",
+    "menshen-playground-source-e2e",
+    "source.playground.menshen.lasuite.localhost",
 ]
 
 
@@ -188,10 +188,11 @@ match OIDC_PROVIDER:
     case _:
         raise ValueError("Invalid OIDC_PROVIDER: %s", OIDC_PROVIDER)
 
-SERVICE_NETLOC: str = os.environ.get("PLAYGROUND_SOURCE_SERVICE_NETLOC", "source.localhost:8072")
+SERVICE_NETLOC: str = os.environ.get(
+    "PLAYGROUND_SOURCE_SERVICE_NETLOC", "source.playground.menshen.lasuite.localhost:49002"
+)
 OIDC_RP_CLIENT_ID: str | None = os.environ.get("PLAYGROUND_SOURCE_OIDC_RP_CLIENT_ID")
 OIDC_RP_CLIENT_SECRET: str | None = os.environ.get("PLAYGROUND_SOURCE_OIDC_RP_CLIENT_SECRET")
-
 OIDC_RP_SIGN_ALGO = "RS256"
 OIDC_RP_SCOPES = "openid email"
 OIDC_STORE_ACCESS_TOKEN = True

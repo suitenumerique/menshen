@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   release-build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     defaults:
       run:
         working-directory: src/client
@@ -39,7 +39,7 @@ jobs:
           if-no-files-found: error
 
   pypi-publish:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs:
       - release-build
     defaults:

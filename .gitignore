@@ -74,6 +74,9 @@ test-results
 # Site media
 /data/
 
+# Interop dependencies
+interop/
+
 # IDEs
 .idea/
 .vscode/

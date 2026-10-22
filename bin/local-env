@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -eo pipefail
+
 echo -e "⚙️ Generating local environment variable files…"
 
 declare rsa_key
