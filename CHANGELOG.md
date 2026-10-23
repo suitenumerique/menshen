@@ -17,6 +17,7 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 
 #### Dependencies
 
+- Upgrade `django-lasuite` to `0.1.0`
 - Upgrade `django-ninja` to `1.7.1`
 
 ### Fixed
