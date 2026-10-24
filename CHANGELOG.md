@@ -12,8 +12,7 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 
 - Allow to configure client secret generation complexity using the
   `TOKEN_EXCHANGE_CLIENT_SECRET_USE_SPECIAL_CHARS` configuration switch
-
-### Changed
+- Allow `django-lasuite` logging configuration
 
 #### Dependencies
 

@@ -420,7 +420,16 @@ class Base(Configuration):
                     environ_name="LOGGING_LEVEL_LOGGERS_APP",
                     environ_prefix=None,
                 ),
-                "propagate": True,
+                "propagate": False,
+            },
+            "lasuite": {
+                "handlers": ["console"],
+                "level": values.Value(
+                    "INFO",
+                    environ_name="LOGGING_LEVEL_LOGGERS_LASUITE",
+                    environ_prefix=None,
+                ),
+                "propagate": False,
             },
         },
     }
