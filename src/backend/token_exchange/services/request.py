@@ -39,6 +39,7 @@ from ..schemas import (
     MenshenTokenExchangeResponse,
     TokenExchangeRequest,
 )
+from ..utils import hash_token
 from .token import TokenGenerator
 
 logger = logging.getLogger(__name__)
@@ -295,7 +296,8 @@ class RequestService:
         """Save exchanged token."""
         expires_at = timezone.now() + timedelta(seconds=response.expires_in)
         return ExchangedToken.objects.create(
-            token=response.access_token,
+            # We only store an HMAC hash of the token, not the token itself
+            token=hash_token(response.access_token),
             token_type=response.issued_token_type,
             jwt_kid=cls.kid,
             # We enforce having a sub in the introspection response, hence,
@@ -306,7 +308,9 @@ class RequestService:
             scope=response.scope,
             grants=[grant.model_dump() for grant in response.grants],
             expires_at=expires_at,
-            actor_token=request.actor_token if request.actor_token is not None else "",
+            # We only store an HMAC hash of the actor token, or None when no
+            # actor token was presented (empty strings are normalized to None)
+            actor_token=hash_token(request.actor_token) if request.actor_token else None,
             may_act=None,  # TODO: Parse from actor_token if needed  # noqa: FIX002
             # Opaque access tokens have no jti field in introspection response,
             # in this case we default to an empty string.

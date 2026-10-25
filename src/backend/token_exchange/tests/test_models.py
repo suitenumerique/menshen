@@ -321,7 +321,7 @@ def test_exchangedtoken_to_introspection_response(settings):
         sub=token.subject_sub,
         email=token.subject_email,
         aud=token.audiences,
-        jti=token.token[:50],
+        jti=token.token,
         client_id=settings.OIDC_RS_CLIENT_ID,
     )
 
@@ -330,7 +330,23 @@ def test_exchangedtoken_to_introspection_response(settings):
 def test_exchangedtoken_get_jti(token_type):
     """Test the ExchangedToken get_jti private method."""
     token = ExchangedTokenFactory.create(token_type=token_type)
-    expected = token.token[:50]
+    expected = token.token
     if token_type == TokenTypeChoices.JWT:
         expected = token.subject_token_jti
     assert token._get_jti() == expected
+
+
+def test_exchangedtoken_actor_token_hashed():
+    """Test the ExchangedToken factory stores an HMAC hash of the raw actor token."""
+    token = ExchangedTokenFactory.create(raw_actor_token="raw-actor-token")
+    assert token.actor_token is not None
+    assert len(token.actor_token) == 64
+    assert token.actor_token != "raw-actor-token"
+
+
+def test_exchangedtoken_actor_token_can_be_null():
+    """Test the ExchangedToken actor_token field can be null when there is no delegation."""
+    token = ExchangedTokenFactory.create(actor_token=None)
+    assert token.actor_token is None
+    token.refresh_from_db()
+    assert token.actor_token is None

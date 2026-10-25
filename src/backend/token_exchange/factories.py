@@ -9,6 +9,7 @@ from faker import Faker
 from token_exchange.enums import AllowedRequestedTokenType
 from token_exchange.schemas import MenshenJWTGrantClaim
 from token_exchange.services.token import TokenGenerator
+from token_exchange.utils import hash_token
 
 from . import models
 
@@ -21,7 +22,17 @@ class ExchangedTokenFactory(factory.django.DjangoModelFactory):
     class Meta:  # noqa: D106
         model = models.ExchangedToken
 
-    token = factory.LazyFunction(fake.uuid4)
+    class Params:  # noqa: D106
+        # Raw token value: only its HMAC hash is stored in the token field.
+        # Pass raw_token=<value> to control the presented token in tests.
+        raw_token = factory.LazyFunction(lambda: str(fake.uuid4()))
+        # Raw actor token value: only its HMAC hash is stored in the
+        # actor_token field. Pass raw_actor_token=<value> to control it in
+        # tests, or actor_token=None for no delegation.
+        raw_actor_token = factory.LazyFunction(lambda: str(fake.uuid4()))
+
+    token = factory.LazyAttribute(lambda o: hash_token(o.raw_token))
+    actor_token = factory.LazyAttribute(lambda o: hash_token(o.raw_actor_token))
     token_type = factory.fuzzy.FuzzyChoice(models.TokenTypeChoices.values)
     jwt_kid = ""
     subject_sub = factory.LazyFunction(fake.uuid4)
@@ -47,26 +58,34 @@ class ExpiredExchangedTokenFactory(ExchangedTokenFactory):
 class JWTExchangedTokenFactory(ExchangedTokenFactory):
     """A factory to create JWT ExchangedToken instances for testing."""
 
+    class Params:  # noqa: D106
+        # Raw JWT value: only its HMAC hash is stored in the token field.
+        # Pass raw_token=<jwt> to control the presented token in tests.
+        raw_token = factory.LazyFunction(lambda: "")
+
     token = factory.LazyAttribute(
-        lambda o: TokenGenerator.generate_jwt(
-            sub=o.subject_sub,
-            email=o.subject_email,
-            audiences=o.audiences,
-            scope="openid target:read target:write",
-            expires_in=3600,
-            kid=settings.TOKEN_EXCHANGE_JWT_CURRENT_KID,
-            grants=[
-                MenshenJWTGrantClaim(
-                    audience_id=o.audiences[0],
-                    scope="target:read",
-                    throttle=None,
-                ),
-                MenshenJWTGrantClaim(
-                    audience_id=o.audiences[0],
-                    scope="target:write",
-                    throttle=None,
-                ),
-            ],
+        lambda o: hash_token(
+            o.raw_token
+            or TokenGenerator.generate_jwt(
+                sub=o.subject_sub,
+                email=o.subject_email,
+                audiences=o.audiences,
+                scope="openid target:read target:write",
+                expires_in=3600,
+                kid=settings.TOKEN_EXCHANGE_JWT_CURRENT_KID,
+                grants=[
+                    MenshenJWTGrantClaim(
+                        audience_id=o.audiences[0],
+                        scope="target:read",
+                        throttle=None,
+                    ),
+                    MenshenJWTGrantClaim(
+                        audience_id=o.audiences[0],
+                        scope="target:write",
+                        throttle=None,
+                    ),
+                ],
+            )
         )
     )
     token_type = AllowedRequestedTokenType.JWT

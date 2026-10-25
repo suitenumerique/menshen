@@ -4,7 +4,6 @@ import logging
 from datetime import UTC, datetime
 
 from token_exchange.factories import JWTExchangedTokenFactory
-from token_exchange.schemas import IntrospectionResponse
 from token_exchange.services.introspection import IntrospectionService
 from token_exchange.services.token import TokenGenerator
 
@@ -16,39 +15,22 @@ def test_instrospection_service_revoke_with_an_unknown_token(target_service, cap
     assert "Token introspection failed (not found)." in caplog.messages
 
 
-def test_introspection_service_introspect_with_invalid_jwt(target_service, settings, caplog):
-    """Test the introspection service response generation with an invalid JWT."""
-    exchanged_token = JWTExchangedTokenFactory(
-        token=TokenGenerator.generate_jwt(
-            sub="ef7d37b4-080c-4df7-b0f8-3560dc7138aa",
-            email="jane.doe@example.org",
-            audiences=["service:target"],
-            scope="openid target:read target:write",
-            expires_in=3600,
-            kid=settings.TOKEN_EXCHANGE_JWT_CURRENT_KID,
-            # Grants are missing
-            grants=[],
-        )
-    )
-    with caplog.at_level(logging.INFO):
-        response = IntrospectionService.introspect(
-            str(exchanged_token.token), target_service.audience_id
-        )
-    assert (
-        "JWT signature verification failed (invalid_claim: Invalid claim: 'grants')"
-    ) in caplog.messages
-    assert response == IntrospectionResponse(active=False)
-
-
-def test_introspection_service_introspect_with_valid_jwt(target_service, caplog):
+def test_introspection_service_introspect_with_valid_jwt(target_service, settings, caplog):
     """Test the introspection service response generation with an valid JWT."""
     now = int(datetime.now(tz=UTC).timestamp())
-    exchanged_token = JWTExchangedTokenFactory()
+    raw_jwt = TokenGenerator.generate_jwt(
+        sub="ef7d37b4-080c-4df7-b0f8-3560dc7138aa",
+        email="jane.doe@example.org",
+        audiences=["service:target"],
+        scope="openid target:read target:write",
+        expires_in=3600,
+        kid=settings.TOKEN_EXCHANGE_JWT_CURRENT_KID,
+        grants=[],
+    )
+    exchanged_token = JWTExchangedTokenFactory(raw_token=raw_jwt)
 
     with caplog.at_level(logging.INFO):
-        response = IntrospectionService.introspect(
-            str(exchanged_token.token), target_service.audience_id
-        )
+        response = IntrospectionService.introspect(raw_jwt, target_service.audience_id)
     assert response.active
     assert response.scope == "openid email profile"
     assert response.sub == "ef7d37b4-080c-4df7-b0f8-3560dc7138aa"

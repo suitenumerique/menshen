@@ -4,7 +4,7 @@ import string
 
 import pytest
 
-from token_exchange.utils import generate_client_secret
+from token_exchange.utils import generate_client_secret, hash_token
 
 
 def test_generate_client_secret_defaults():
@@ -27,3 +27,28 @@ def test_generate_client_secret_with_special_chars():
 def test_generate_client_secret_length(length):
     """Test the generate_client_secret utility expected length."""
     assert len(generate_client_secret(length)) == length
+
+
+def test_hash_token(settings):
+    """Test the hash_token utility."""
+    settings.TOKEN_EXCHANGE_TOKEN_HASH_KEY = "a-key"
+    hashed = hash_token("some-token")
+    assert isinstance(hashed, str)
+    assert len(hashed) == 64
+    assert hashed != "some-token"
+    # Deterministic: hashing the same value twice returns the same hash
+    assert hash_token("some-token") == hashed
+    # Sensitive to the value
+    assert hash_token("another-token") != hashed
+    # Sensitive to the key (pepper)
+    settings.TOKEN_EXCHANGE_TOKEN_HASH_KEY = "another-key"
+    assert hash_token("some-token") != hashed
+
+
+def test_hash_token_falls_back_to_secret_key(settings):
+    """Test the hash_token utility falls back to the SECRET_KEY setting."""
+    settings.TOKEN_EXCHANGE_TOKEN_HASH_KEY = None
+    settings.SECRET_KEY = "secret-key"
+    hashed = hash_token("some-token")
+    settings.TOKEN_EXCHANGE_TOKEN_HASH_KEY = "secret-key"
+    assert hash_token("some-token") == hashed

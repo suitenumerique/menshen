@@ -15,7 +15,7 @@ from .models import (
     TokenExchangeActionPermission,
     TokenExchangeRule,
 )
-from .utils import generate_client_secret
+from .utils import generate_client_secret, hash_token
 
 STR_MAX_DISPLAY_LENGTH: int = 50
 
@@ -92,7 +92,6 @@ class ExchangedTokenAdmin(admin.ModelAdmin):
     ]
 
     search_fields = [
-        "token",
         "subject_sub",
         "subject_email",
         "subject_token_jti",
@@ -166,10 +165,18 @@ class ExchangedTokenAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("Token"))
     def token_display(self, obj):
-        """Display truncated token."""
+        """Display truncated token (hashed)."""
         if len(obj.token) > STR_MAX_DISPLAY_LENGTH:
             return f"{obj.token[:STR_MAX_DISPLAY_LENGTH]}…"
         return obj.token
+
+    def get_search_results(self, request, queryset, search_term):
+        """Allow searching exchanged tokens by their raw value."""
+        queryset, use_distinct = super().get_search_results(request, queryset, search_term)
+        search_term = search_term.strip()
+        if search_term:
+            queryset |= self.model.objects.filter(token=hash_token(search_term))
+        return queryset, use_distinct
 
     @admin.display(description=_("Audiences"))
     def audiences_display(self, obj):

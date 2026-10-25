@@ -3,8 +3,8 @@
 import logging
 
 from token_exchange.exceptions import TokenExchangeError
-from token_exchange.models import ExchangedToken, TokenTypeChoices
-from token_exchange.services.token import TokenGenerator
+from token_exchange.models import ExchangedToken
+from token_exchange.utils import hash_token
 
 logger = logging.getLogger(__name__)
 
@@ -19,9 +19,9 @@ class ExchangedTokenMixin:
 
     @staticmethod
     def get_exchanged_token(token: str) -> ExchangedToken:
-        """Get exchanged token from the database."""
+        """Get exchanged token from the database (tokens are stored hashed)."""
         try:
-            exchanged_token = ExchangedToken.objects.get(token=token)
+            exchanged_token = ExchangedToken.objects.get(token=hash_token(token))
         except ExchangedToken.DoesNotExist as exc:
             logger.info("Token not found.")
             raise TokenExchangeError("Token not found.") from exc
@@ -49,16 +49,9 @@ class ExchangedTokenMixin:
             )
             return False
 
-        # JWT case
-        if token.token_type == TokenTypeChoices.JWT:
-            # JWT signature verification
-            try:
-                TokenGenerator.verify_jwt(token.token)
-            except ValueError as exc:
-                logger.warning(
-                    "JWT signature verification failed (%s)",
-                    str(exc),
-                )
-                return False
+        # Note: JWT signature re-verification is not needed here since the token
+        # is looked up by the exact hash of its value: a presented token can only
+        # match a record we issued ourselves, and any alteration of the token
+        # would result in a different hash (hence, a failed lookup).
 
         return True

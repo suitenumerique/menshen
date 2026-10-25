@@ -11,6 +11,7 @@ from requests import ConnectionError as ConnectionError_
 from requests import HTTPError
 
 from token_exchange.enums import (
+    AllowedActorTokenType,
     AllowedRequestedTokenType,
     AllowedSubjectTokenType,
     TokenExchangeResponseTokenType,
@@ -34,6 +35,7 @@ from token_exchange.models import ExchangedToken
 from token_exchange.schemas import MenshenJWTGrantClaim, TokenExchangeRequest
 from token_exchange.services.request import RequestService
 from token_exchange.services.token import TokenGenerator
+from token_exchange.utils import hash_token
 
 
 def test_request_service_validate_target_only_unknown_audiences(source_service, caplog):
@@ -515,7 +517,50 @@ def test_request_service_generate_exchange_response_with_persist(
     )
     assert ExchangedToken.objects.count() == 1
     assert exchanged_token
-    assert exchanged_token.token == response.access_token
+    assert exchanged_token.token != response.access_token
+    assert exchanged_token.token == hash_token(response.access_token)
     assert exchanged_token.subject_token_jti == (
         str(jti) if subject_token_type == AllowedSubjectTokenType.JWT else ""
     )
+
+
+def test_request_service_save_with_actor_token(settings, source_service):
+    """Test the request service save method stores an HMAC hash of the actor token."""
+    raw_actor_token = "actor-token-value"
+    request = TokenExchangeRequest(
+        subject_token="foo",
+        subject_token_type=AllowedSubjectTokenType.ACCESS_TOKEN,
+        grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
+        audience="service:target",
+        scope="target:write",
+        requested_token_type=AllowedRequestedTokenType.ACCESS_TOKEN,
+        actor_token=raw_actor_token,
+        actor_token_type=AllowedActorTokenType.ACCESS_TOKEN,
+    )
+    response, exchanged_token = RequestService.exchange(
+        source_service.audience_id, request, persist=True
+    )
+    assert exchanged_token
+    assert exchanged_token.actor_token == hash_token(raw_actor_token)
+    assert exchanged_token.actor_token != raw_actor_token
+
+
+@pytest.mark.parametrize("empty_actor_token", ["", None])
+def test_request_service_save_without_actor_token(settings, source_service, empty_actor_token):
+    """Test the request service save method stores None when no actor token is presented."""
+    request = TokenExchangeRequest.model_construct(
+        subject_token="foo",
+        subject_token_type=AllowedSubjectTokenType.ACCESS_TOKEN,
+        grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
+        audience="service:target",
+        scope="target:write",
+        requested_token_type=AllowedRequestedTokenType.ACCESS_TOKEN,
+        # Bypass schema validation to simulate an empty actor token
+        actor_token=empty_actor_token,
+        actor_token_type=None,
+    )
+    response, exchanged_token = RequestService.exchange(
+        source_service.audience_id, request, persist=True
+    )
+    assert exchanged_token
+    assert exchanged_token.actor_token is None

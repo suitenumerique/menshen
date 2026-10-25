@@ -20,6 +20,7 @@ from token_exchange.factories import (
 )
 from token_exchange.models import ExchangedToken, TokenTypeChoices
 from token_exchange.services.token import TokenGenerator
+from token_exchange.utils import hash_token
 
 
 @pytest.mark.parametrize(
@@ -399,7 +400,8 @@ def test_exchange_view_with_subject_token_type(
 
     # Check saved token grants
     saved_exchanged_token = ExchangedToken.objects.get()
-    assert saved_exchanged_token.token == exchanged_token["access_token"]
+    assert saved_exchanged_token.token != exchanged_token["access_token"]
+    assert saved_exchanged_token.token == hash_token(exchanged_token["access_token"])
 
 
 @pytest.mark.django_db
@@ -437,7 +439,8 @@ def test_exchange_view_with_requested_token_type(requested_token_type, source_ap
 
     # Check saved token grants
     saved_exchanged_token = ExchangedToken.objects.get()
-    assert saved_exchanged_token.token == exchanged_token["access_token"]
+    assert saved_exchanged_token.token != exchanged_token["access_token"]
+    assert saved_exchanged_token.token == hash_token(exchanged_token["access_token"])
 
 
 @pytest.mark.django_db
@@ -561,16 +564,18 @@ def test_introspect_view_invalid_token(  # noqa: PLR0913,PLR0917
     revoked_at,
 ):
     """Test the TokenIntrospectView with an invalid exchange token (expired or revoked)."""
+    raw_token = str(uuid4())
     exchanged_token = ExchangedTokenFactory(
         expires_at=expires_at,
         revoked_at=revoked_at,
         token_type=token_type,
         audiences=[target_service.audience_id],
+        raw_token=raw_token,
     )
     with caplog.at_level(logging.INFO):
         response = target_api_client.post(
             "/introspect/",
-            data={"token": exchanged_token.token},
+            data={"token": raw_token},
         )
     assert response.status_code == 200  # OK
     assert response.json() == {"active": False}
@@ -581,10 +586,13 @@ def test_introspect_view_invalid_token(  # noqa: PLR0913,PLR0917
 
 
 @pytest.mark.django_db
-def test_introspect_view_invalid_jwt_signature(target_api_client, target_service, caplog):
-    """Test the TokenIntrospectView with a badly signed JWT exchange token."""
-    exchanged_token = ExchangedTokenFactory(
-        token_type=TokenTypeChoices.JWT, audiences=[target_service.audience_id]
+def test_introspect_view_ignores_jwt_signature(target_api_client, target_service, caplog):
+    """Test the TokenIntrospectView with an unknown (badly signed) JWT exchange token."""
+    raw_token = str(uuid4())
+    ExchangedTokenFactory(
+        token_type=TokenTypeChoices.JWT,
+        audiences=[target_service.audience_id],
+        raw_token=raw_token,
     )
     with (
         caplog.at_level(logging.INFO),
@@ -592,21 +600,26 @@ def test_introspect_view_invalid_jwt_signature(target_api_client, target_service
     ):
         response = target_api_client.post(
             "/introspect/",
-            data={"token": exchanged_token.token},
+            data={"token": raw_token},
         )
     assert response.status_code == 200  # OK
-    assert response.json() == {"active": False}
-    assert "JWT signature verification failed (wrong signature)" in caplog.messages
+    # The JWT signature is not re-verified at introspection time: the token is
+    # found by the exact hash of its value, hence considered as issued by us
+    introspected_token = response.json()
+    assert introspected_token["active"]
 
 
 @pytest.mark.django_db
 def test_introspect_view_invalid_audience(target_api_client, caplog):
     """Test the TokenIntrospectView with an invalid audience from requesting service."""
-    exchanged_token = ExchangedTokenFactory(
-        token_type=TokenTypeChoices.JWT, audiences=["service:foo"]
+    raw_token = str(uuid4())
+    ExchangedTokenFactory(
+        token_type=TokenTypeChoices.JWT,
+        audiences=["service:foo"],
+        raw_token=raw_token,
     )
     with caplog.at_level(logging.INFO):
-        response = target_api_client.post("/introspect/", data={"token": exchanged_token.token})
+        response = target_api_client.post("/introspect/", data={"token": raw_token})
     assert response.status_code == 200  # OK
     assert response.json() == {"active": False}
     assert (
@@ -620,13 +633,16 @@ def test_introspect_view_introspection_with_wrong_token_type_hint(
     target_api_client, target_service, token_type_hint, caplog
 ):
     """Test the TokenIntrospectView instrospection with a falsy token type hint."""
-    exchanged_token = ExchangedTokenFactory(
-        token_type=TokenTypeChoices.ACCESS_TOKEN, audiences=[target_service.audience_id]
+    raw_token = str(uuid4())
+    ExchangedTokenFactory(
+        token_type=TokenTypeChoices.ACCESS_TOKEN,
+        audiences=[target_service.audience_id],
+        raw_token=raw_token,
     )
     with caplog.at_level(logging.INFO):
         response = target_api_client.post(
             "/introspect/",
-            data={"token": exchanged_token.token, "token_type_hint": token_type_hint},
+            data={"token": raw_token, "token_type_hint": token_type_hint},
         )
     assert response.status_code == 200  # OK
     introspected_token = response.json()
@@ -639,13 +655,16 @@ def test_introspect_view_introspection_with_token_type_hint(
     target_api_client, target_service, caplog
 ):
     """Test the TokenIntrospectView instrospection."""
+    raw_token = str(uuid4())
     exchanged_token = ExchangedTokenFactory(
-        token_type=TokenTypeChoices.ACCESS_TOKEN, audiences=[target_service.audience_id]
+        token_type=TokenTypeChoices.ACCESS_TOKEN,
+        audiences=[target_service.audience_id],
+        raw_token=raw_token,
     )
     with caplog.at_level(logging.INFO):
         response = target_api_client.post(
             "/introspect/",
-            data={"token": exchanged_token.token, "token_type_hint": "access_token"},
+            data={"token": raw_token, "token_type_hint": "access_token"},
         )
     assert response.status_code == 200  # OK
     introspected_token = response.json()
@@ -660,13 +679,16 @@ def test_introspect_view_introspection_with_token_type_hint(
 @pytest.mark.django_db
 def test_introspect_view_introspection(target_api_client, target_service, caplog):
     """Test the TokenIntrospectView instrospection."""
+    raw_token = str(uuid4())
     exchanged_token = ExchangedTokenFactory(
-        token_type=TokenTypeChoices.ACCESS_TOKEN, audiences=[target_service.audience_id]
+        token_type=TokenTypeChoices.ACCESS_TOKEN,
+        audiences=[target_service.audience_id],
+        raw_token=raw_token,
     )
     with caplog.at_level(logging.INFO):
         response = target_api_client.post(
             "/introspect/",
-            data={"token": exchanged_token.token},
+            data={"token": raw_token},
         )
     assert response.status_code == 200  # OK
     assert (
@@ -750,9 +772,11 @@ def test_revocation_view_with_unknown_token(source_api_client, caplog):
 @pytest.mark.django_db
 def test_revocation_view(target_api_client, target_service, caplog):
     """Test the TokenRevocationView revocation."""
+    raw_token = str(uuid4())
     exchanged_token = ExchangedTokenFactory.create(
         token_type=TokenTypeChoices.ACCESS_TOKEN,
         audiences=[target_service.audience_id],
+        raw_token=raw_token,
     )
 
     # Get token from database
@@ -760,7 +784,7 @@ def test_revocation_view(target_api_client, target_service, caplog):
 
     before = datetime.now(tz=UTC)
     with caplog.at_level(logging.INFO):
-        response = target_api_client.post("/revoke/", data={"token": exchanged_token.token})
+        response = target_api_client.post("/revoke/", data={"token": raw_token})
     assert response.status_code == 200  # OK
     assert not len(response.content)
     assert (

@@ -1,10 +1,11 @@
 """Menshen: admin tests for the token_exchange application."""
 
 import re
+from uuid import uuid4
 
 import pytest
 
-from token_exchange.factories import ServiceProviderFactory
+from token_exchange.factories import ExchangedTokenFactory, ServiceProviderFactory
 from token_exchange.models import ServiceProviderCredentials
 
 
@@ -40,3 +41,26 @@ def test_service_provider_credentials_admin(admin_client, settings, use_special_
     assert credentials.client_id == "foo"
     assert isinstance(credentials.client_secret, str)
     assert len(credentials.client_secret)
+
+
+@pytest.mark.django_db
+def test_exchanged_token_admin_search_by_raw_token(admin_client):
+    """Test searching exchanged tokens by their raw (unhashed) value in admin."""
+    raw_token = str(uuid4())
+    exchanged_token = ExchangedTokenFactory.create(raw_token=raw_token)
+
+    response = admin_client.get(
+        "/admin/token_exchange/exchangedtoken/",
+        {"q": raw_token},
+    )
+    assert response.status_code == 200
+    results = list(response.context["cl"].queryset)
+    assert exchanged_token in results
+
+    # Unknown token
+    response = admin_client.get(
+        "/admin/token_exchange/exchangedtoken/",
+        {"q": "unknown-token"},
+    )
+    assert response.status_code == 200
+    assert not list(response.context["cl"].queryset)

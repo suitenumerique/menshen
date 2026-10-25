@@ -386,6 +386,11 @@ class Base(Configuration):
         environ_name="TOKEN_EXCHANGE_CLIENT_SECRET_USE_SPECIAL_CHARS",
         environ_prefix=None,
     )
+    TOKEN_EXCHANGE_TOKEN_HASH_KEY = SecretFileValue(
+        default=None,
+        environ_name="TOKEN_EXCHANGE_TOKEN_HASH_KEY",
+        environ_prefix=None,
+    )
 
     # Logging
     # We want to make it easy to log to console but by default we log production

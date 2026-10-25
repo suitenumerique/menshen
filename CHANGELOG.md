@@ -12,6 +12,13 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 
 - Simplify the documentation by removing the `resource` token request field
   (unsupported) and confusing optional request scope
+- Hash emitted exchanged tokens (and actor tokens) at rest with HMAC-SHA256,
+  and remove JWT signature re-verification at introspection/revocation time.
+
+### Fixed
+
+- Exchanged JWTs remain valid until they expire, even after a signing key
+  rotation.
 
 ## [v0.4.0] - 2026-10-25
 

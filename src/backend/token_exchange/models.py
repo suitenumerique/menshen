@@ -373,11 +373,12 @@ class ExchangedToken(BaseModel):
     signed JWT tokens with key rotation.
     """
 
-    token = models.TextField(
+    token = models.CharField(
+        max_length=64,
         unique=True,
         db_index=True,
         verbose_name=_("Token"),
-        help_text=_("The actual token string (opaque or JWT)"),
+        help_text=_("HMAC-SHA256 hash of the actual token string (opaque or JWT)"),
     )
     token_type = models.CharField(
         max_length=50,
@@ -438,10 +439,15 @@ class ExchangedToken(BaseModel):
         verbose_name=_("Revoked At"),
         help_text=_("When this token was revoked (null if not revoked)"),
     )
-    actor_token = models.TextField(
+    # null is intentional (DJ001 exception): NULL means "no actor token" and
+    # is distinguished from a stored 64-char HMAC hash of a presented token.
+    actor_token = models.CharField(  # noqa: DJ001
+        max_length=64,
         blank=True,
+        null=True,
+        default=None,
         verbose_name=_("Actor Token"),
-        help_text=_("The actor token for delegation (RFC 8693)"),
+        help_text=_("HMAC-SHA256 hash of the actor token for delegation (RFC 8693)"),
     )
     may_act = models.JSONField(
         null=True,
@@ -581,5 +587,5 @@ class ExchangedToken(BaseModel):
             # For JWT tokens, we could extract the jti from the token itself
             # For now, we use a stable identifier
             return self.subject_token_jti
-        # For opaque tokens, use the token itself as identifier
-        return self.token[:50]  # Truncate for readability
+        # For opaque tokens, use the token hash as identifier (stable and unique)
+        return self.token

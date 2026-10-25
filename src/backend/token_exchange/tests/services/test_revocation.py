@@ -1,11 +1,11 @@
 """Menshen: revocation service tests for the token_exchange application."""
 
 import logging
+from uuid import uuid4
 
-from token_exchange.factories import ExchangedTokenFactory, JWTExchangedTokenFactory
+from token_exchange.factories import ExchangedTokenFactory
 from token_exchange.models import TokenTypeChoices
 from token_exchange.services.revocation import RevocationService
-from token_exchange.services.token import TokenGenerator
 
 
 def test_revocation_service_revoke_with_an_unknown_token(target_service, caplog):
@@ -15,39 +15,18 @@ def test_revocation_service_revoke_with_an_unknown_token(target_service, caplog)
     assert "Token revocation failed (not found)." in caplog.messages
 
 
-def test_revocation_service_revoke_with_invalid_jwt(target_service, settings, caplog):
-    """Test the revocation service revocation with an invalid JWT."""
-    exchanged_token = JWTExchangedTokenFactory(
-        token=TokenGenerator.generate_jwt(
-            sub="ef7d37b4-080c-4df7-b0f8-3560dc7138aa",
-            email="jane.doe@example.org",
-            audiences=["service:target"],
-            scope="openid target:read target:write",
-            expires_in=3600,
-            kid=settings.TOKEN_EXCHANGE_JWT_CURRENT_KID,
-            # Grants are missing
-            grants=[],
-        )
-    )
-    with caplog.at_level(logging.INFO):
-        response = RevocationService.revoke(str(exchanged_token.token), target_service.audience_id)
-    assert (
-        "JWT signature verification failed (invalid_claim: Invalid claim: 'grants')"
-    ) in caplog.messages
-    assert ("Token revocation failed (invalid token).") in caplog.messages
-    assert response is None
-
-
 def test_revocation_service_revoke(target_service, caplog):
     """Test the revocation service revocation."""
+    raw_token = str(uuid4())
     exchanged_token = ExchangedTokenFactory.create(
         token_type=TokenTypeChoices.ACCESS_TOKEN,
         audiences=[target_service.audience_id],
+        raw_token=raw_token,
     )
     assert not exchanged_token.is_revoked()
 
     with caplog.at_level(logging.INFO):
-        response = RevocationService.revoke(str(exchanged_token.token), target_service.audience_id)
+        response = RevocationService.revoke(raw_token, target_service.audience_id)
 
     exchanged_token.refresh_from_db()
     assert exchanged_token.is_revoked()
