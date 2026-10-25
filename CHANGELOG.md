@@ -8,11 +8,15 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 
 ## [Unreleased]
 
+## [v0.4.0] - 2026-10-25
+
 ### Added
 
 - Allow to configure client secret generation complexity using the
   `TOKEN_EXCHANGE_CLIENT_SECRET_USE_SPECIAL_CHARS` configuration switch
 - Allow `django-lasuite` logging configuration
+
+### Changed
 
 #### Dependencies
 
@@ -77,7 +81,8 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 
 - Implement base Token Exchange (RFC 8693) endpoints
 
-[unreleased]: https://github.com/suitenumerique/menshen/compare/v0.3.0...HEAD
+[unreleased]: https://github.com/suitenumerique/menshen/compare/v0.4.0...HEAD
+[v0.4.0]: https://github.com/suitenumerique/menshen/releases/v0.4.0
 [v0.3.0]: https://github.com/suitenumerique/menshen/releases/v0.3.0
 [v0.2.0]: https://github.com/suitenumerique/menshen/releases/v0.2.0
 [v0.1.0]: https://github.com/suitenumerique/menshen/releases/v0.1.0
