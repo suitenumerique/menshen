@@ -20,6 +20,12 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 - Exchanged JWTs remain valid until they expire, even after a signing key
   rotation.
 
+### Fixed
+
+- Introspection response `client_id` now returns the audience id of the service
+  provider that requested the token exchange instead of the resource server
+  client id
+
 ## [v0.4.0] - 2026-10-25
 
 ### Added

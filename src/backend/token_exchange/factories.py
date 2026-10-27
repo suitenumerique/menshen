@@ -45,6 +45,9 @@ class ExchangedTokenFactory(factory.django.DjangoModelFactory):
     )
     subject_token_jti = factory.LazyFunction(fake.uuid4)
     subject_token_scope = "openid email profile"  # noqa: S105
+    # With `.build()`, the related service provider is built but not saved, so
+    # saving the token fails: pass a saved `source_service` when using `.build()`.
+    source_service = factory.SubFactory("token_exchange.factories.ServiceProviderFactory")
 
 
 class ExpiredExchangedTokenFactory(ExchangedTokenFactory):

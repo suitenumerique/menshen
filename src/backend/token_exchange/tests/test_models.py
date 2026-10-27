@@ -15,6 +15,7 @@ from token_exchange.factories import (
     ExchangedTokenFactory,
     ScopeGrantFactory,
     ServiceProviderCredentialsFactory,
+    ServiceProviderFactory,
     TokenExchangeActionPermissionFactory,
     TokenExchangeRuleFactory,
 )
@@ -185,8 +186,13 @@ def test_exchangedtoken_str(subject_email, subject_sub, identity):
 def test_exchangedtoken_save(settings, caplog, subject_sub, subject_email):
     """Test the ExchangedToken save method."""
     settings.TOKEN_EXCHANGE_MAX_ACTIVE_TOKENS_PER_USER = None
-    ExchangedTokenFactory.create_batch(4, subject_sub=subject_sub, subject_email=subject_email)
-    token = ExchangedTokenFactory.build(subject_sub=subject_sub, subject_email=subject_email)
+    source_service = ServiceProviderFactory()
+    ExchangedTokenFactory.create_batch(
+        4, subject_sub=subject_sub, subject_email=subject_email, source_service=source_service
+    )
+    token = ExchangedTokenFactory.build(
+        subject_sub=subject_sub, subject_email=subject_email, source_service=source_service
+    )
     token.save()  # No restriction applies until then
 
     # we have 5 stored tokens for sub
@@ -201,7 +207,9 @@ def test_exchangedtoken_save(settings, caplog, subject_sub, subject_email):
         subject_sub=subject_sub, subject_email=subject_email
     ).order_by("created_at")[2]
 
-    token = ExchangedTokenFactory.build(subject_sub=subject_sub, subject_email=subject_email)
+    token = ExchangedTokenFactory.build(
+        subject_sub=subject_sub, subject_email=subject_email, source_service=source_service
+    )
     with caplog.at_level(logging.INFO):
         token.save()  # Clean oldest tokens
 
@@ -222,8 +230,13 @@ def test_exchangedtoken_save(settings, caplog, subject_sub, subject_email):
 def test_exchangedtoken_save_no_tokens_restriction_without_email_or_sub(settings):
     """Test the ExchangedToken save method when no restriction applies without sub or email."""
     settings.TOKEN_EXCHANGE_MAX_ACTIVE_TOKENS_PER_USER = None
-    ExchangedTokenFactory.create_batch(4, subject_sub="", subject_email="")
-    token = ExchangedTokenFactory.build(subject_sub="", subject_email="")
+    source_service = ServiceProviderFactory()
+    ExchangedTokenFactory.create_batch(
+        4, subject_sub="", subject_email="", source_service=source_service
+    )
+    token = ExchangedTokenFactory.build(
+        subject_sub="", subject_email="", source_service=source_service
+    )
     token.save()  # No restriction applies until then
 
     # we have 5 stored tokens for sub
@@ -231,7 +244,9 @@ def test_exchangedtoken_save_no_tokens_restriction_without_email_or_sub(settings
 
     # Restrict to at least 5 tokens per user
     settings.TOKEN_EXCHANGE_MAX_ACTIVE_TOKENS_PER_USER = 4
-    token = ExchangedTokenFactory.build(subject_sub="", subject_email="")
+    token = ExchangedTokenFactory.build(
+        subject_sub="", subject_email="", source_service=source_service
+    )
     token.save()
 
     # we have 6 token
@@ -267,6 +282,11 @@ def test_exchangedtoken_is_valid():
     token.revoked_at = None
     assert token.is_valid()
     token.expires_at = timezone.now() - timedelta(days=1)
+    assert not token.is_valid()
+    token.expires_at = timezone.now() + timedelta(days=1)
+    assert token.is_valid()
+    # A token whose source service does not exist anymore is not valid
+    token.source_service = None
     assert not token.is_valid()
 
 
@@ -308,7 +328,7 @@ def test_exchangedtoken_to_introspection_response_invalid_token(expires_at, revo
     assert token.to_introspection_response() == IntrospectionResponse(active=False)
 
 
-def test_exchangedtoken_to_introspection_response(settings):
+def test_exchangedtoken_to_introspection_response():
     """Test the ExchangedToken to_introspection_response method."""
     token = ExchangedTokenFactory.create(token_type=AllowedRequestedTokenType.ACCESS_TOKEN)
     assert token.to_introspection_response() == IntrospectionResponse(
@@ -322,8 +342,22 @@ def test_exchangedtoken_to_introspection_response(settings):
         email=token.subject_email,
         aud=token.audiences,
         jti=token.token,
-        client_id=settings.OIDC_RS_CLIENT_ID,
+        client_id=token.source_service.audience_id,
     )
+
+
+def test_exchangedtoken_to_introspection_response_without_source_service():
+    """
+    Test the ExchangedToken to_introspection_response method without source service.
+
+    A token whose source service does not exist anymore should introspect
+    as inactive.
+
+    """
+    token = ExchangedTokenFactory.create(
+        token_type=AllowedRequestedTokenType.ACCESS_TOKEN, source_service=None
+    )
+    assert token.to_introspection_response() == IntrospectionResponse(active=False)
 
 
 @pytest.mark.parametrize("token_type", [TokenTypeChoices.ACCESS_TOKEN, TokenTypeChoices.JWT])

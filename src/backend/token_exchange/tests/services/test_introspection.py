@@ -45,7 +45,7 @@ def test_introspection_service_introspect_with_valid_jwt(target_service, setting
     assert response.iat <= now + 2
     assert response.aud == "service:target"
     assert response.jti == exchanged_token.subject_token_jti
-    assert response.client_id == "menshen"
+    assert response.client_id == exchanged_token.source_service.audience_id  # ty: ignore
     assert (
         "Token introspected (active): "
         f"token_jti={exchanged_token.subject_token_jti}, "

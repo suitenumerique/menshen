@@ -21,7 +21,9 @@ class ExchangedTokenMixin:
     def get_exchanged_token(token: str) -> ExchangedToken:
         """Get exchanged token from the database (tokens are stored hashed)."""
         try:
-            exchanged_token = ExchangedToken.objects.get(token=hash_token(token))
+            exchanged_token = ExchangedToken.objects.select_related("source_service").get(
+                token=hash_token(token)
+            )
         except ExchangedToken.DoesNotExist as exc:
             logger.info("Token not found.")
             raise TokenExchangeError("Token not found.") from exc
@@ -53,5 +55,4 @@ class ExchangedTokenMixin:
         # is looked up by the exact hash of its value: a presented token can only
         # match a record we issued ourselves, and any alteration of the token
         # would result in a different hash (hence, a failed lookup).
-
         return True

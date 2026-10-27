@@ -698,6 +698,7 @@ def test_introspect_view_introspection(target_api_client, target_service, caplog
     )
     introspected_token = response.json()
     assert introspected_token["active"]
+    assert introspected_token["client_id"] == exchanged_token.source_service.audience_id  # ty: ignore
 
 
 @pytest.mark.django_db

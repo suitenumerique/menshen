@@ -468,6 +468,15 @@ class ExchangedToken(BaseModel):
         verbose_name=_("Subject Token Scope"),
         help_text=_("The original scopes from the SSO token"),
     )
+    source_service = models.ForeignKey(
+        ServiceProvider,
+        on_delete=models.SET_NULL,
+        related_name="exchanged_tokens",
+        null=True,
+        blank=True,
+        verbose_name=_("Source Service"),
+        help_text=_("The service provider that requested the token exchange"),
+    )
 
     class Meta:  # noqa: D106
         db_table = "menshen_tx_exchanged_token"
@@ -545,8 +554,13 @@ class ExchangedToken(BaseModel):
         return self.revoked_at is not None
 
     def is_valid(self) -> bool:
-        """Check if the token is valid (not expired and not revoked)."""
-        return not self.is_expired() and not self.is_revoked()
+        """
+        Check if the token is valid.
+
+        A token is valid if its source service still exists (i.e. has not been
+        deleted), if it is not expired and if it has not been revoked.
+        """
+        return self.source_service is not None and not self.is_expired() and not self.is_revoked()
 
     def revoke(self) -> None:
         """Revoke this token."""
@@ -578,7 +592,7 @@ class ExchangedToken(BaseModel):
             email=self.subject_email,
             aud=self.audiences,
             jti=self._get_jti(),
-            client_id=settings.OIDC_RS_CLIENT_ID,
+            client_id=self.source_service.audience_id,  # ty: ignore
         )
 
     def _get_jti(self) -> str:

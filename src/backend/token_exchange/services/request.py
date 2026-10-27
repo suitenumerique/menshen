@@ -30,6 +30,7 @@ from ..models import (
     ActionScopeGrant,
     ExchangedToken,
     ScopeGrant,
+    ServiceProvider,
     TokenExchangeRule,
 )
 from ..schemas import (
@@ -292,6 +293,7 @@ class RequestService:
         response: MenshenTokenExchangeResponse,
         user_info: IntrospectionResponse,
         audiences: list[str],
+        source_audience: str,
     ) -> ExchangedToken:
         """Save exchanged token."""
         expires_at = timezone.now() + timedelta(seconds=response.expires_in)
@@ -316,6 +318,7 @@ class RequestService:
             # in this case we default to an empty string.
             subject_token_jti=user_info.jti or "",
             subject_token_scope=user_info.scope,
+            source_service=ServiceProvider.objects.get(audience_id=source_audience),
         )
 
     @classmethod
@@ -386,14 +389,15 @@ class RequestService:
             return (response, None)
 
         # Save exchanged token to database
-        exchanged_token = cls._save(request, response, user_info, audiences)
+        exchanged_token = cls._save(request, response, user_info, audiences, source_audience)
 
         # Log the exchange
         logger.info(
-            "Token exchanged: sub=%s, email=%s, audiences=%s, token_type=%s, "
+            "Token exchanged: sub=%s, email=%s, source_audience=%s, audiences=%s, token_type=%s, "
             "expires_at=%s, subject_jti=%s, kid=%s, scopes_granted=%s, grants=%s",
             exchanged_token.subject_sub,
             exchanged_token.subject_email,
+            source_audience,
             exchanged_token.audiences,
             exchanged_token.token_type,
             exchanged_token.expires_at,

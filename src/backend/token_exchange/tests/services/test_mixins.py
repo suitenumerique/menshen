@@ -103,6 +103,23 @@ def test_exchanged_token_mixin_valid_access_token(target_service):
     assert ExchangedTokenMixin.is_token_valid(exchanged_token, target_service.audience_id)
 
 
+def test_exchanged_token_mixin_token_without_source_service(target_service, caplog):
+    """Test the ExchangedTokenMixin with a token whose source service does not exist."""
+    exchanged_token = ExchangedTokenFactory.build(
+        token_type=TokenTypeChoices.ACCESS_TOKEN,
+        audiences=[target_service.audience_id],
+        source_service=None,
+    )
+    with caplog.at_level(logging.INFO):
+        assert not ExchangedTokenMixin.is_token_valid(exchanged_token, target_service.audience_id)
+    assert (
+        "Token is invalid: "
+        f"token_jti={exchanged_token.subject_token_jti}, "
+        f"type={exchanged_token.token_type}, "
+        f"kid={exchanged_token.jwt_kid or 'N/A'}"
+    ) in caplog.messages
+
+
 def test_exchanged_token_mixin_valid_jwt(target_service):
     """Test the ExchangedTokenMixin with a valid JWT."""
     exchanged_token = JWTExchangedTokenFactory.build()

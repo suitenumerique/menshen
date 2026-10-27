@@ -519,6 +519,7 @@ def test_request_service_generate_exchange_response_with_persist(
     assert exchanged_token
     assert exchanged_token.token != response.access_token
     assert exchanged_token.token == hash_token(response.access_token)
+    assert exchanged_token.source_service.audience_id == source_service.audience_id  # ty: ignore
     assert exchanged_token.subject_token_jti == (
         str(jti) if subject_token_type == AllowedSubjectTokenType.JWT else ""
     )

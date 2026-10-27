@@ -76,6 +76,7 @@ class ExchangedTokenAdmin(admin.ModelAdmin):
         "token_display",
         "subject_sub",
         "subject_email",
+        "source_service",
         "token_type",
         "audiences_display",
         "scope_display",
@@ -87,6 +88,7 @@ class ExchangedTokenAdmin(admin.ModelAdmin):
 
     list_filter = [
         "token_type",
+        "source_service",
         ("revoked_at", admin.EmptyFieldListFilter),
         "expires_at",
     ]
@@ -96,6 +98,8 @@ class ExchangedTokenAdmin(admin.ModelAdmin):
         "subject_email",
         "subject_token_jti",
         "audiences",
+        "source_service__name",
+        "source_service__audience_id",
     ]
 
     readonly_fields = [
@@ -105,6 +109,7 @@ class ExchangedTokenAdmin(admin.ModelAdmin):
         "may_act",
         "subject_token_jti",
         "subject_token_scope",
+        "source_service",
         "created_at",
         "status",
     ]
@@ -128,6 +133,7 @@ class ExchangedTokenAdmin(admin.ModelAdmin):
                 "fields": [
                     "subject_sub",
                     "subject_email",
+                    "source_service",
                     "audiences",
                     "scope",
                     "subject_token_scope",
