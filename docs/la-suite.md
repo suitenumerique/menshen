@@ -349,12 +349,10 @@ implementing the OAuth 2.0 Resource Server specification.
 
 Given services, resources and API endpoint actions, we propose to define scopes given the following pattern:
 
-<center><code>service:resource[:action]</code></center>
+<center><code>service:resource:action</code></center>
 
-Two types of scope may be used: with or without the `action` field.
-
-The first scope type must include the expected triplet to fully describe which
-action will be performed on which service's resource:
+A scope must include the expected triplet to fully describe which action will
+be performed on which service's resource:
 
 - `service`: the target service that will handle the exchanged token
 - `resource`: the resource the target service handles
@@ -362,14 +360,6 @@ action will be performed on which service's resource:
   endpoint attached to the service resource)
 
 👉 Example scopes: `drive:item:create`, `docs:document-invitation:delete`, …
-
-The second type of scope is optional and will describe the type of resource the
-source service expects to send to the target service:
-
-- `service`: the source service that requests an exchanged token
-- `resource`: the resource the source service may submit
-
-👉 Example scopes: `meet:recording`, `drive:user`, …
 
 ## Token exchange rules examples
 
@@ -383,21 +373,16 @@ exchange request and implementations are provided.
 ### Save Meet recordings to Drive
 
 When Meet records a call, the recording may be stored in a third-party drive
-service once properly encoded. In the this example, we choose to save the
+service once properly encoded. In this example, we choose to save the
 recording to LaSuite Drive.
 
-| Source service | Source resource | Target service | Target resource | Scopes                                   |
-| -------------- | --------------- | -------------- | --------------- | ---------------------------------------- |
-| Meet           | recording       | Drive          | item            | `drive:item:create`, `meet:recording` \* |
-
-\* optional
+| Source service | Source resource | Target service | Target resource | Scopes              |
+| -------------- | --------------- | -------------- | --------------- | ------------------- |
+| Meet           | recording       | Drive          | item            | `drive:item:create` |
 
 Since we want to write the recording to Drive, following our
 `service:resource:action` scope pattern, we may restrict the request scope to
-`drive:item:create`. Optionally, if we want to fine-tune permissions control in
-Drive, we can also add the `meet:recording` scope so that when Drive receives
-this request, it knows that the request corresponds to a meet recording storage
-request and act consequently.
+`drive:item:create`.
 
 #### Example token exchange request
 
@@ -412,16 +397,11 @@ workspace with the UUID `510902ae-e907-4177-b93a-37ae7c6c9105`):
   "subject_token": "...",
   "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
   "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
-  "resource": "https://drive.example.org/external_api/v1.0/item/510902ae-e907-4177-b93a-37ae7c6c9105/children/",
   "audience": "106bf623-961f-4c81-9176-fd6446a21149", // Drive audience identifier
-  "scope": "drive:item:create meet:recording",
+  "scope": "drive:item:create",
   "requested_token_type": "urn:ietf:params:oauth:token-type:jwt"
 }
 ```
-
-As mentioned in the previous section, two scopes are claimed in this request,
-but the `meet:recording` scope is optional and may be ignored if the target
-Drive instance does not check permissions related to this scope.
 
 > Note that we request a JWT token type in this case, but an opaque access
 > token would also fit. Depending on extra informations it should carry (such
@@ -461,7 +441,7 @@ workspace = "..."
 # We also suppose you are in a HTTP request context and have already parsed the bearer token
 access_token = "..."
 
-# Configure the resource
+# Configure the resource endpoint on which the exchanged token will be used
 drive_instance_url = "https://drive.example.org"
 drive_resource_endpoint = f"/external_api/v1.0/items/{workspace}/children/"
 target_resource = f"{drive_instance_url}{drive_resource_endpoint}"
@@ -470,9 +450,8 @@ target_resource = f"{drive_instance_url}{drive_resource_endpoint}"
 exchange_request = TokenExchangeRequest(
     subject_token=access_token,
     subject_token_type=MenshenSupportedTokenType.ACCESS_TOKEN,
-    resource=target_resource,
     audience="106bf623-961f-4c81-9176-fd6446a21149",  # Drive audience identifier
-    scope="drive:item:create meet:recording",
+    scope="drive:item:create",
     requested_token_type=MenshenSupportedTokenType.JWT,
 )
 
@@ -543,7 +522,7 @@ if not introspection_response.active:
 # [...]
 
 # Extra permission check from scopes
-expected_scopes = {"drive:item:create", "meet:recording"}
+expected_scopes = {"drive:item:create"}
 if not expected_scopes.issubset(
     set(introspection_response.scope.split())
 ):

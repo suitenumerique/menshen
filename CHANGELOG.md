@@ -8,6 +8,11 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 
 ## [Unreleased]
 
+### Changed
+
+- Simplify the documentation by removing the `resource` token request field
+  (unsupported) and confusing optional request scope
+
 ## [v0.4.0] - 2026-10-25
 
 ### Added
