@@ -155,6 +155,28 @@ revocation_request = RevocationRequest(
 client.revoke(revocation_request)
 ```
 
+### Asynchronous client
+
+If your project is asynchronous, you can use the `TokenExchangeAsyncClient`
+instead. It shares the same configuration and the same methods as the
+synchronous client, that need to be awaited:
+
+```python
+from menshen_client import TokenExchangeAsyncClient
+
+async with TokenExchangeAsyncClient(config=config) as client:
+    exchange_response = await client.exchange(exchange_request)
+    introspection_response = await client.introspect(introspection_request)
+    await client.revoke(revocation_request)
+```
+
+When the client is not used as a context manager, close its HTTP connections
+using:
+
+```python
+await client.aclose()
+```
+
 ## License
 
 This work is released under the MIT License (see
