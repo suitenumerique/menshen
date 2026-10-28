@@ -23,7 +23,17 @@ def hash_exchanged_tokens(apps, schema_editor):
         if token.actor_token and len(token.actor_token) != 64:
             token.actor_token = hash_token(token.actor_token)
             update_fields.append("actor_token")
-        elif token.actor_token == "":
+        if update_fields:
+            token.save(update_fields=update_fields)
+
+
+def set_exchanged_tokens_actor_token_null(apps, schema_editor):
+    """Set ExchangedToken.actor_token empty string to NULL."""
+    ExchangedToken = apps.get_model("token_exchange", "ExchangedToken")
+
+    for token in ExchangedToken.objects.iterator():
+        update_fields = []
+        if token.actor_token == "":
             token.actor_token = None
             update_fields.append("actor_token")
         if update_fields:
@@ -50,4 +60,5 @@ class Migration(migrations.Migration):
             name='token',
             field=models.CharField(db_index=True, help_text='HMAC-SHA256 hash of the actual token string (opaque or JWT)', max_length=64, unique=True, verbose_name='Token'),
         ),
+        migrations.RunPython(set_exchanged_tokens_actor_token_null, migrations.RunPython.noop),
     ]
