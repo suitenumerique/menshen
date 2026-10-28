@@ -45,6 +45,26 @@ def test_client_init_with_custom_timeout(timeout):
     assert client.session.timeout == httpx2.Timeout(timeout)
 
 
+def test_client_close(client):
+    """Test the TokenExchangeClient close method."""
+    assert not client.session.is_closed
+    client.close()
+    assert client.session.is_closed
+
+
+def test_client_context_manager(config, httpx2_mock):
+    """Test the TokenExchangeClient usage as a context manager."""
+    httpx2_mock.add_response(
+        method="POST",
+        url="https://menshen.example.org/auth/token/revoke/",
+    )
+    with TokenExchangeClient(config=config) as client:
+        assert isinstance(client, TokenExchangeClient)
+        assert not client.session.is_closed
+        client.revoke(RevocationRequest(token="foo"))
+    assert client.session.is_closed
+
+
 def test_client_post_request(client, httpx2_mock, token_exchange_request, token_exchange_response):
     """Test the TokenExchangeClient sent request authentication and form data."""
     httpx2_mock.add_response(
