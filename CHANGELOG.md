@@ -8,6 +8,11 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- Add La Suite Find, Docs and Drive services to demo fixtures and the
+  development Keycloak realm, with Docs and Drive to Find exchange rules
+
 ### Changed
 
 - Simplify the documentation by removing the `resource` token request field

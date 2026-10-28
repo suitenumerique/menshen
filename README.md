@@ -133,6 +133,35 @@ demo fixtures using the eponym command:
 make demo
 ```
 
+Demo fixtures also configure La Suite services for
+[Find](https://github.com/suitenumerique/find).
+
+Service providers registered in Menshen:
+
+| Service | Client ID | Client secret  |
+| ------- | --------- | -------------- |
+| Find    | `find`    | `find-secret`  |
+| Docs    | `docs`    | `docs-secret`  |
+| Drive   | `drive`   | `drive-secret` |
+
+Docs and Drive get the granted scopes using action scopes (an
+action scope must be requested alone, e.g. `scope=action:search-find-docs`):
+
+| Source | Target | Action scope                | Granted scope        |
+| ------ | ------ | --------------------------- | -------------------- |
+| Docs   | Find   | `action:search-find-docs`   | `find:docs:search`   |
+| Docs   | Find   | `action:delete-find-docs`   | `find:docs:delete`   |
+| Drive  | Find   | `action:search-find-drive`  | `find:drive:search`  |
+| Drive  | Find   | `action:delete-find-drive`  | `find:drive:delete`  |
+
+Keycloak clients (they add `menshen` to their access tokens' audience, which
+Keycloak requires for Menshen to introspect them):
+
+| Client ID | Client secret       | Redirect URIs                                            |
+| --------- | ------------------- | -------------------------------------------------------- |
+| `docs`    | `docs-oidc-secret`  | `http://localhost:*`, `http://docs.lasuite.localhost:*`  |
+| `drive`   | `drive-oidc-secret` | `http://localhost:*`, `http://drive.lasuite.localhost:*` |
+
 You can start the playground using the dedicated command:
 
 ```bash

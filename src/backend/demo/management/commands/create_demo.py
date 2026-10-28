@@ -10,6 +10,59 @@ from token_exchange import models as tx_models
 
 logger = logging.getLogger(__name__)
 
+# La Suite services: audience ids match the Keycloak client ids of the realm
+# (docker/auth/realm.json), credentials are "<audience_id>"/"<audience_id>-secret"
+LASUITE_SERVICES = ("find", "docs", "drive")
+
+
+# Find indexes documents from other services and searches them: each source
+# service may search and delete its own documents, as `find:<service>:<action>`.
+# Each scope is issued using an action scope
+LASUITE_FIND_ACTIONS = {
+    "docs": {
+        "action:search-find-docs": "find:docs:search",
+        "action:delete-find-docs": "find:docs:delete",
+    },
+    "drive": {
+        "action:search-find-drive": "find:drive:search",
+        "action:delete-find-drive": "find:drive:delete",
+    },
+}
+
+
+def create_lasuite_demo(stdout):
+    """Create La Suite services and the token exchange rules targeting Find."""
+    stdout.write("Creating La Suite services configuration")
+
+    services = {}
+    for audience_id in LASUITE_SERVICES:
+        services[audience_id], _ = tx_models.ServiceProvider.objects.get_or_create(
+            audience_id=audience_id,
+            defaults={"name": f"lasuite:{audience_id}"},
+        )
+        credentials, _ = tx_models.ServiceProviderCredentials.objects.get_or_create(
+            service_provider=services[audience_id],
+            client_id=audience_id,
+        )
+        credentials.set_client_secret(f"{audience_id}-secret", save=True)
+
+    for source, actions in LASUITE_FIND_ACTIONS.items():
+        rule, _ = tx_models.TokenExchangeRule.objects.get_or_create(
+            source_service=services[source],
+            target_service=services["find"],
+        )
+        for name, granted_scope in actions.items():
+            action, _ = tx_models.ActionScope.objects.get_or_create(name=name)
+            tx_models.ActionScopeGrant.objects.get_or_create(
+                action=action,
+                target_service=services["find"],
+                granted_scope=granted_scope,
+            )
+            tx_models.TokenExchangeActionPermission.objects.get_or_create(
+                rule=rule,
+                action=action,
+            )
+
 
 def create_demo(stdout):
     """Create a database with demo data for developers to work in a realistic environment."""
@@ -86,6 +139,8 @@ def create_demo(stdout):
         rule=source_to_target_rule,
         action=target_write_action,
     )
+
+    create_lasuite_demo(stdout)
 
 
 class Command(BaseCommand):
