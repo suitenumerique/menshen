@@ -21,7 +21,10 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
   breaking change: API errors now raise `httpx2.HTTPStatusError` and request
   timeouts raise `httpx2.TimeoutException` (instead of `requests` exceptions).
   Note that `httpx2` relies on the system certificate store (via `truststore`)
-  instead of `certifi` to verify TLS certificates.
+  instead of `certifi` to verify TLS certificates. If your test suite mocks
+  the client HTTP requests with `responses` (that only intercepts `requests`),
+  you will need to migrate your tests to an `httpx2` mocking library such as
+  `httpx2-pytest`.
 
 #### Dependencies
 
