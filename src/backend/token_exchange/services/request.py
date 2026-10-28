@@ -293,7 +293,7 @@ class RequestService:
         response: MenshenTokenExchangeResponse,
         user_info: IntrospectionResponse,
         audiences: list[str],
-        source_audience: str,
+        source_service: ServiceProvider,
     ) -> ExchangedToken:
         """Save exchanged token."""
         expires_at = timezone.now() + timedelta(seconds=response.expires_in)
@@ -318,20 +318,20 @@ class RequestService:
             # in this case we default to an empty string.
             subject_token_jti=user_info.jti or "",
             subject_token_scope=user_info.scope,
-            source_service=ServiceProvider.objects.get(audience_id=source_audience),
+            source_service=source_service,
         )
 
     @classmethod
     def exchange(
-        cls, source_audience: str, request: TokenExchangeRequest, persist: bool = False
+        cls, source_service: ServiceProvider, request: TokenExchangeRequest, persist: bool = False
     ) -> tuple[MenshenTokenExchangeResponse, ExchangedToken | None]:
         """Generate a token exchange response."""
         requested_audiences: list[str] = (
-            request.audiences if request.audience else [source_audience]
+            request.audiences if request.audience else [source_service.audience_id]
         )
         rules = list(
             TokenExchangeRule.objects.filter(
-                source_service__audience_id=source_audience,
+                source_service=source_service,
                 target_service__audience_id__in=requested_audiences,
                 is_active=True,
             ).select_related("target_service")
@@ -342,7 +342,7 @@ class RequestService:
 
         # Introspect request subject token
         user_info: IntrospectionResponse = cls._introspect_subject_token(
-            request.subject_token, source_audience
+            request.subject_token, source_service.audience_id
         )
 
         # If no scope is specifically required, we switch to "best-effort" mode by returning
@@ -389,7 +389,7 @@ class RequestService:
             return (response, None)
 
         # Save exchanged token to database
-        exchanged_token = cls._save(request, response, user_info, audiences, source_audience)
+        exchanged_token = cls._save(request, response, user_info, audiences, source_service)
 
         # Log the exchange
         logger.info(
@@ -397,7 +397,7 @@ class RequestService:
             "expires_at=%s, subject_jti=%s, kid=%s, scopes_granted=%s, grants=%s",
             exchanged_token.subject_sub,
             exchanged_token.subject_email,
-            source_audience,
+            source_service.audience_id,
             exchanged_token.audiences,
             exchanged_token.token_type,
             exchanged_token.expires_at,

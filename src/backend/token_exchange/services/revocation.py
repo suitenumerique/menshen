@@ -3,6 +3,7 @@
 import logging
 
 from token_exchange.exceptions import TokenExchangeError
+from token_exchange.models import ServiceProvider
 
 from .mixins import ExchangedTokenMixin
 
@@ -20,7 +21,7 @@ class RevocationService(ExchangedTokenMixin):
     """
 
     @classmethod
-    def revoke(cls, token: str, audience: str) -> None:
+    def revoke(cls, token: str, source_service: ServiceProvider) -> None:
         """Generate token revocation response."""
         try:
             exchanged_token = cls.get_exchanged_token(token)
@@ -28,7 +29,7 @@ class RevocationService(ExchangedTokenMixin):
             logger.error("Token revocation failed (not found).")
             return
 
-        if not cls.is_token_valid(exchanged_token, audience):
+        if not cls.is_token_valid(exchanged_token, source_service.audience_id):
             logger.error("Token revocation failed (invalid token).")
             return
 

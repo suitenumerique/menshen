@@ -60,7 +60,7 @@ def exchange(
 
     # Forge token exchange response
     exchange_response, _ = RequestService.exchange(
-        source_audience=source_service.audience_id, request=token_exchange_request, persist=True
+        source_service=source_service, request=token_exchange_request, persist=True
     )
 
     return exchange_response
@@ -80,8 +80,8 @@ def introspect(
         Introspect a token according to RFC 7662
     """
     # Authenticated service provider
-    source_service = request.auth  # ty: ignore
-    return IntrospectionService.introspect(introspection_request.token, source_service.audience_id)
+    target_service = request.auth  # ty: ignore
+    return IntrospectionService.introspect(introspection_request.token, target_service)
 
 
 @api.post("/revoke/", response=None)
@@ -97,4 +97,4 @@ def revoke(request: HttpRequest, token_revocation_request: Form[RevocationReques
     """
     # Authenticated service provider
     source_service = request.auth  # ty: ignore
-    RevocationService.revoke(token_revocation_request.token, source_service.audience_id)
+    RevocationService.revoke(token_revocation_request.token, source_service)

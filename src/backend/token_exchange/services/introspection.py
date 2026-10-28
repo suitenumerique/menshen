@@ -3,6 +3,7 @@
 import logging
 
 from token_exchange.exceptions import TokenExchangeError
+from token_exchange.models import ServiceProvider
 from token_exchange.schemas import IntrospectionResponse
 
 from .mixins import ExchangedTokenMixin
@@ -21,15 +22,15 @@ class IntrospectionService(ExchangedTokenMixin):
     """
 
     @classmethod
-    def introspect(cls, token: str, audience: str) -> IntrospectionResponse:
-        """Introspect a given token for a service audience."""
+    def introspect(cls, token: str, target_service: ServiceProvider) -> IntrospectionResponse:
+        """Introspect a given token from a target service."""
         try:
             exchanged_token = cls.get_exchanged_token(token)
         except TokenExchangeError:
             logger.error("Token introspection failed (not found).")
             return IntrospectionResponse(active=False)
 
-        if not cls.is_token_valid(exchanged_token, audience):
+        if not cls.is_token_valid(exchanged_token, target_service.audience_id):
             logger.error("Token introspection failed (invalid token).")
             return IntrospectionResponse(active=False)
 

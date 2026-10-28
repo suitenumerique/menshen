@@ -11,12 +11,12 @@ from token_exchange.services.token import TokenGenerator
 def test_instrospection_service_revoke_with_an_unknown_token(target_service, caplog):
     """Test the instrospection service response generation with a token that does not exist."""
     with caplog.at_level(logging.INFO):
-        IntrospectionService.introspect("foo", target_service.audience_id)
+        IntrospectionService.introspect("foo", target_service)
     assert "Token introspection failed (not found)." in caplog.messages
 
 
 def test_introspection_service_introspect_with_valid_jwt(target_service, settings, caplog):
-    """Test the introspection service response generation with an valid JWT."""
+    """Test the introspection service response generation with a valid JWT."""
     now = int(datetime.now(tz=UTC).timestamp())
     raw_jwt = TokenGenerator.generate_jwt(
         sub="ef7d37b4-080c-4df7-b0f8-3560dc7138aa",
@@ -30,7 +30,7 @@ def test_introspection_service_introspect_with_valid_jwt(target_service, setting
     exchanged_token = JWTExchangedTokenFactory(raw_token=raw_jwt)
 
     with caplog.at_level(logging.INFO):
-        response = IntrospectionService.introspect(raw_jwt, target_service.audience_id)
+        response = IntrospectionService.introspect(raw_jwt, target_service)
     assert response.active
     assert response.scope == "openid email profile"
     assert response.sub == "ef7d37b4-080c-4df7-b0f8-3560dc7138aa"

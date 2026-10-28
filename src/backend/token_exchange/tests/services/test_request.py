@@ -53,7 +53,7 @@ def test_request_service_validate_target_only_unknown_audiences(source_service, 
         ),
         caplog.at_level(logging.INFO),
     ):
-        RequestService.exchange(source_service.audience_id, request)
+        RequestService.exchange(source_service, request)
     assert "Only unknown audience(s) requested: service:foo" in caplog.messages
 
 
@@ -72,7 +72,7 @@ def test_request_service_validate_target_with_unknown_audience(source_service, c
         ),
         caplog.at_level(logging.INFO),
     ):
-        RequestService.exchange(source_service.audience_id, request)
+        RequestService.exchange(source_service, request)
     assert "Unknown audience(s) requested: service:foo" in caplog.messages
 
 
@@ -95,7 +95,7 @@ def test_request_service_introspect_subject_token_request_failure(
     with pytest.raises(
         TokenExchangeResourceServerIntrospectionError, match="Failed to introspect subject token"
     ):
-        RequestService.exchange(source_service.audience_id, request)
+        RequestService.exchange(source_service, request)
 
     # ConnectionError
     monkeypatch.setattr(
@@ -105,7 +105,7 @@ def test_request_service_introspect_subject_token_request_failure(
     with pytest.raises(
         TokenExchangeResourceServerIntrospectionError, match="Failed to introspect subject token"
     ):
-        RequestService.exchange(source_service.audience_id, request)
+        RequestService.exchange(source_service, request)
 
 
 def test_request_service_introspect_subject_token_suspicious_introspection_response_audience(
@@ -133,7 +133,7 @@ def test_request_service_introspect_subject_token_suspicious_introspection_respo
         f"{settings.OIDC_RS_BACKEND_CLASS}.get_user_info_with_introspection", mock_user_info
     )
     with pytest.raises(SuspiciousOperation), caplog.at_level(logging.INFO):
-        RequestService.exchange(source_service.audience_id, request)
+        RequestService.exchange(source_service, request)
 
     assert (
         "Introspected token audience is different from requesting service: "
@@ -167,7 +167,7 @@ def test_request_service_introspect_subject_token_missing_identity(
         ),
         caplog.at_level(logging.WARNING),
     ):
-        RequestService.exchange(source_service.audience_id, request)
+        RequestService.exchange(source_service, request)
 
     assert "Introspection response has no 'sub'" in caplog.messages
 
@@ -186,7 +186,7 @@ def test_request_service_validate_pure_scopes_from_request(source_service):
         audience="service:target",
         scope="target:read target:write",
     )
-    response, _ = RequestService.exchange(source_service.audience_id, request)
+    response, _ = RequestService.exchange(source_service, request)
 
     # Scopes from request scope are granted
     assert response.scope == "target:read target:write"
@@ -208,7 +208,7 @@ def test_request_service_validate_pure_scopes_from_request_with_extra_scopes(sou
     with pytest.raises(
         TokenExchangeInvalidScopesError, match="You cannot request more scope than rules allow"
     ):
-        RequestService.exchange(source_service.audience_id, request)
+        RequestService.exchange(source_service, request)
 
 
 def test_request_service_validate_scope_action_from_request_with_granted_required_source_scope(
@@ -256,7 +256,7 @@ def test_request_service_validate_scope_action_from_request_with_granted_require
         scope="action:update-target",
     )
     with assertNumQueries(4):
-        response, _ = RequestService.exchange(source_service.audience_id, request)
+        response, _ = RequestService.exchange(source_service, request)
 
     # Scopes from request action are granted
     assert response.scope == "target:update"
@@ -295,7 +295,7 @@ def test_request_service_validate_scope_action_from_request_when_action_has_no_p
         ),
         caplog.at_level(logging.INFO),
     ):
-        RequestService.exchange(source_service.audience_id, request)
+        RequestService.exchange(source_service, request)
 
     # Scopes from request action are not granted
     assert (
@@ -339,7 +339,7 @@ def test_request_service_validate_scope_action_from_request_when_action_cannot_b
         ),
         caplog.at_level(logging.INFO),
     ):
-        RequestService.exchange(source_service.audience_id, request)
+        RequestService.exchange(source_service, request)
 
     # Scopes from request action are not granted
     assert "Missing required source scope(s): target:update" in caplog.messages
@@ -356,7 +356,7 @@ def test_request_service_generate_exchange_token_with_type(token_type, source_se
         scope="target:write",
         requested_token_type=token_type,
     )
-    response, _ = RequestService.exchange(source_service.audience_id, request)
+    response, _ = RequestService.exchange(source_service, request)
     assert isinstance(response.access_token, str)
     assert len(response.access_token) >= 32
 
@@ -392,7 +392,7 @@ def test_request_service_generate_exchange_token_jwt_no_sub_claim(
         TokenExchangeIntrospectionError,
         match=r"Subject token introspection failed to provide an identity \(sub\)",
     ):
-        RequestService.exchange(source_service.audience_id, request)
+        RequestService.exchange(source_service, request)
 
 
 def test_request_service_generate_exchange_token_jwt_configuration(source_service, monkeypatch):
@@ -407,7 +407,7 @@ def test_request_service_generate_exchange_token_jwt_configuration(source_servic
     )
     monkeypatch.setattr(RequestService, "kid", None)
     with pytest.raises(TokenExchangeConfigurationError, match="JWT signing key is not configured."):
-        RequestService.exchange(source_service.audience_id, request)
+        RequestService.exchange(source_service, request)
 
 
 def test_request_service_generate_exchange_token_unsupported_type(source_service):
@@ -423,7 +423,7 @@ def test_request_service_generate_exchange_token_unsupported_type(source_service
     with pytest.raises(
         TokenExchangeConfigurationError, match="Configured request token type is not supported."
     ):
-        RequestService.exchange(source_service.audience_id, request)
+        RequestService.exchange(source_service, request)
 
 
 def test_request_service_generate_exchange_token_jwt_invalid_token(source_service, monkeypatch):
@@ -438,7 +438,7 @@ def test_request_service_generate_exchange_token_jwt_invalid_token(source_servic
     )
     monkeypatch.setattr(TokenGenerator, "generate_jwt", Mock(side_effect=ValueError()))
     with pytest.raises(TokenExchangeIssuingError, match="An error occurred while issuing JWT."):
-        RequestService.exchange(source_service.audience_id, request)
+        RequestService.exchange(source_service, request)
 
 
 @pytest.mark.parametrize(
@@ -456,7 +456,7 @@ def test_request_service_generate_exchange_response(source_service, token_type):
     )
     # No persisted token exists
     assert ExchangedToken.objects.count() == 0
-    response, _ = RequestService.exchange(source_service.audience_id, request)
+    response, _ = RequestService.exchange(source_service, request)
     # Exchanged token should not have been persisted
     assert ExchangedToken.objects.count() == 0
     assert isinstance(response.access_token, str)
@@ -512,9 +512,7 @@ def test_request_service_generate_exchange_response_with_persist(
 
     # No persisted token exists
     assert ExchangedToken.objects.count() == 0
-    response, exchanged_token = RequestService.exchange(
-        source_service.audience_id, request, persist=True
-    )
+    response, exchanged_token = RequestService.exchange(source_service, request, persist=True)
     assert ExchangedToken.objects.count() == 1
     assert exchanged_token
     assert exchanged_token.token != response.access_token
@@ -538,9 +536,7 @@ def test_request_service_save_with_actor_token(settings, source_service):
         actor_token=raw_actor_token,
         actor_token_type=AllowedActorTokenType.ACCESS_TOKEN,
     )
-    response, exchanged_token = RequestService.exchange(
-        source_service.audience_id, request, persist=True
-    )
+    response, exchanged_token = RequestService.exchange(source_service, request, persist=True)
     assert exchanged_token
     assert exchanged_token.actor_token == hash_token(raw_actor_token)
     assert exchanged_token.actor_token != raw_actor_token
@@ -560,8 +556,6 @@ def test_request_service_save_without_actor_token(settings, source_service, empt
         actor_token=empty_actor_token,
         actor_token_type=None,
     )
-    response, exchanged_token = RequestService.exchange(
-        source_service.audience_id, request, persist=True
-    )
+    response, exchanged_token = RequestService.exchange(source_service, request, persist=True)
     assert exchanged_token
     assert exchanged_token.actor_token is None

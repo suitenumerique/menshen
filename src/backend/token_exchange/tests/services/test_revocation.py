@@ -11,7 +11,7 @@ from token_exchange.services.revocation import RevocationService
 def test_revocation_service_revoke_with_an_unknown_token(target_service, caplog):
     """Test the revocation service revocation with a token that does not exist."""
     with caplog.at_level(logging.INFO):
-        RevocationService.revoke("foo", target_service.audience_id)
+        RevocationService.revoke("foo", target_service)
     assert "Token revocation failed (not found)." in caplog.messages
 
 
@@ -26,7 +26,7 @@ def test_revocation_service_revoke(target_service, caplog):
     assert not exchanged_token.is_revoked()
 
     with caplog.at_level(logging.INFO):
-        response = RevocationService.revoke(raw_token, target_service.audience_id)
+        response = RevocationService.revoke(raw_token, target_service)
 
     exchanged_token.refresh_from_db()
     assert exchanged_token.is_revoked()
