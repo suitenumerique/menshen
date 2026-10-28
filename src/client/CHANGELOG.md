@@ -25,6 +25,9 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
   the client HTTP requests with `responses` (that only intercepts `requests`),
   you will need to migrate your tests to an `httpx2` mocking library such as
   `httpx2-pytest`.
+- Rename the `menshen_client.client` module to `menshen_client.clients` (use
+  `from menshen_client import TokenExchangeClient` instead of importing from
+  the module)
 
 #### Dependencies
 

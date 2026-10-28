@@ -6,7 +6,7 @@ from dataclasses import asdict
 import httpx2
 import pytest
 
-from menshen_client.client import TokenExchangeClient
+from menshen_client.clients import TokenExchangeClient
 from menshen_client.enums import TokenExchangeResponseTokenType, TokenType
 from menshen_client.exceptions import ResponseParsingError
 from menshen_client.schemas import (
