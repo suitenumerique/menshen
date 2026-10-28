@@ -1,6 +1,6 @@
 """Menshen client."""
 
-from .client import TokenExchangeAsyncClient, TokenExchangeClient
+from .clients import TokenExchangeAsyncClient, TokenExchangeClient
 from .enums import TokenExchangeResponseTokenType, TokenType
 from .schemas import (
     Configuration,

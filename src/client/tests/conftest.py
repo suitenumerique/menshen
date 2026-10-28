@@ -2,7 +2,7 @@
 
 import pytest
 
-from menshen_client.client import TokenExchangeAsyncClient, TokenExchangeClient
+from menshen_client.clients import TokenExchangeAsyncClient, TokenExchangeClient
 from menshen_client.enums import TokenExchangeResponseTokenType, TokenType
 from menshen_client.schemas import (
     Configuration,
