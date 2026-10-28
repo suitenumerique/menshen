@@ -8,6 +8,18 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 
 ## [Unreleased]
 
+### Changed
+
+- Migrate `TokenExchangeClient` from `requests` to `httpx2`. This is a
+  breaking change: API errors now raise `httpx2.HTTPStatusError` and request
+  timeouts raise `httpx2.TimeoutException` (instead of `requests` exceptions).
+  Note that `httpx2` relies on the system certificate store (via `truststore`)
+  instead of `certifi` to verify TLS certificates.
+
+#### Dependencies
+
+- Replace `requests` by `httpx2`
+
 ## [v0.2.0] - 2026-10-12
 
 ### Added

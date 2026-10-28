@@ -2,11 +2,10 @@
 
 import logging
 from dataclasses import asdict
+from json import JSONDecodeError
 from typing import cast
 
-import requests
-from requests.auth import HTTPBasicAuth
-from requests.exceptions import JSONDecodeError
+import httpx2
 
 from .exceptions import ResponseParsingError
 from .schemas import (
@@ -27,8 +26,10 @@ class TokenExchangeClient:
     def __init__(self, config: Configuration) -> None:
         """Instantiate the API client."""
         self.config = config
-        self.session = requests.Session()
-        self.session.auth = HTTPBasicAuth(self.config.client_id, self.config.client_secret)
+        self.session = httpx2.Client(
+            auth=httpx2.BasicAuth(self.config.client_id, self.config.client_secret),
+            timeout=self.config.requests_timeout,
+        )
 
     def _post(
         self,
@@ -39,9 +40,9 @@ class TokenExchangeClient:
     ) -> TokenExchangeResponse | IntrospectionResponse | None:
         """Perform POST request for an API endpoint."""
         logger.debug("Will request %s endpoint with: %s", url, request)
-        api_response = self.session.post(
-            url, data=asdict(request), timeout=self.config.requests_timeout
-        )
+        # Unset optional fields should not be sent as empty form values
+        data = {key: value for key, value in asdict(request).items() if value is not None}
+        api_response = self.session.post(url, data=data)
         api_response.raise_for_status()
 
         if response_klass is None:
