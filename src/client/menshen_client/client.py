@@ -1,4 +1,4 @@
-"""Menshen client: synchronous client."""
+"""Menshen client: API clients."""
 
 import logging
 from dataclasses import asdict
@@ -20,29 +20,33 @@ from .schemas import (
 logger = logging.getLogger(__name__)
 
 
-class TokenExchangeClient:
-    """Token Exchange API client."""
+class _BaseTokenExchangeClient:
+    """Token Exchange API client base class with transport-agnostic logic."""
 
     def __init__(self, config: Configuration) -> None:
         """Instantiate the API client."""
         self.config = config
-        self.session = httpx2.Client(
-            auth=httpx2.BasicAuth(self.config.client_id, self.config.client_secret),
-            timeout=self.config.requests_timeout,
-        )
 
-    def _post(
-        self,
-        url: str,
-        request: TokenExchangeRequest | IntrospectionRequest | RevocationRequest,
+    def _auth(self) -> httpx2.BasicAuth:
+        """Get the API client authentication."""
+        return httpx2.BasicAuth(self.config.client_id, self.config.client_secret)
+
+    @staticmethod
+    def _form_data(
+        url: str, request: TokenExchangeRequest | IntrospectionRequest | RevocationRequest
+    ) -> dict:
+        """Get the POST request form data for an API endpoint."""
+        logger.debug("Will request %s endpoint with: %s", url, request)
+        # Unset optional fields should not be sent as empty form values
+        return {key: value for key, value in asdict(request).items() if value is not None}
+
+    @staticmethod
+    def _parse_response(
+        api_response: httpx2.Response,
         response_klass: type[TokenExchangeResponse | IntrospectionResponse] | None = None,
         error_message: str | None = None,
     ) -> TokenExchangeResponse | IntrospectionResponse | None:
-        """Perform POST request for an API endpoint."""
-        logger.debug("Will request %s endpoint with: %s", url, request)
-        # Unset optional fields should not be sent as empty form values
-        data = {key: value for key, value in asdict(request).items() if value is not None}
-        api_response = self.session.post(url, data=data)
+        """Parse an API endpoint response."""
         api_response.raise_for_status()
 
         if response_klass is None:
@@ -56,6 +60,26 @@ class TokenExchangeClient:
 
         logger.debug("Successful response: %s", response)
         return response
+
+
+class TokenExchangeClient(_BaseTokenExchangeClient):
+    """Token Exchange API client."""
+
+    def __init__(self, config: Configuration) -> None:
+        """Instantiate the API client."""
+        super().__init__(config)
+        self.session = httpx2.Client(auth=self._auth(), timeout=self.config.requests_timeout)
+
+    def _post(
+        self,
+        url: str,
+        request: TokenExchangeRequest | IntrospectionRequest | RevocationRequest,
+        response_klass: type[TokenExchangeResponse | IntrospectionResponse] | None = None,
+        error_message: str | None = None,
+    ) -> TokenExchangeResponse | IntrospectionResponse | None:
+        """Perform POST request for an API endpoint."""
+        api_response = self.session.post(url, data=self._form_data(url, request))
+        return self._parse_response(api_response, response_klass, error_message)
 
     def exchange(self, request: TokenExchangeRequest) -> TokenExchangeResponse:
         """Request an exchange token."""
