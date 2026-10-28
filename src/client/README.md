@@ -39,6 +39,22 @@ In this example, the client identifier and secret are those provided by your
 Menshen instance administrator that should have registered a service provider
 for your service. The `server_root_url` is the root URL of your Menshen server.
 
+The client keeps a pool of HTTP connections to your Menshen server. It is
+recommended to create a single long-lived client instance for your
+application and to close it when you no longer need it:
+
+```python
+client.close()
+```
+
+Alternatively, you can use the client as a context manager to automatically
+close its connections:
+
+```python
+with TokenExchangeClient(config=config) as client:
+    exchange_response = client.exchange(exchange_request)
+```
+
 ### Token exchange request
 
 To generate an exchange token given a subject token and a related token type

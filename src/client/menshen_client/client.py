@@ -3,7 +3,8 @@
 import logging
 from dataclasses import asdict
 from json import JSONDecodeError
-from typing import cast
+from types import TracebackType
+from typing import Self, cast
 
 import httpx2
 
@@ -69,6 +70,21 @@ class TokenExchangeClient(_BaseTokenExchangeClient):
         """Instantiate the API client."""
         super().__init__(config)
         self.session = httpx2.Client(auth=self._auth(), timeout=self.config.requests_timeout)
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        self.close()
+
+    def close(self) -> None:
+        """Close the API client HTTP connections."""
+        self.session.close()
 
     def _post(
         self,
