@@ -124,3 +124,66 @@ class TokenExchangeClient(_BaseTokenExchangeClient):
     def revoke(self, request: RevocationRequest) -> None:
         """Revoke exchanged token."""
         self._post(self.config.revocation_url, request)
+
+
+class TokenExchangeAsyncClient(_BaseTokenExchangeClient):
+    """Token Exchange API asynchronous client."""
+
+    def __init__(self, config: Configuration) -> None:
+        """Instantiate the API client."""
+        super().__init__(config)
+        self.session = httpx2.AsyncClient(auth=self._auth(), timeout=self.config.requests_timeout)
+
+    async def __aenter__(self) -> Self:
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        await self.aclose()
+
+    async def aclose(self) -> None:
+        """Close the API client HTTP connections."""
+        await self.session.aclose()
+
+    async def _post(
+        self,
+        url: str,
+        request: TokenExchangeRequest | IntrospectionRequest | RevocationRequest,
+        response_klass: type[TokenExchangeResponse | IntrospectionResponse] | None = None,
+        error_message: str | None = None,
+    ) -> TokenExchangeResponse | IntrospectionResponse | None:
+        """Perform POST request for an API endpoint."""
+        api_response = await self.session.post(url, data=self._form_data(url, request))
+        return self._parse_response(api_response, response_klass, error_message)
+
+    async def exchange(self, request: TokenExchangeRequest) -> TokenExchangeResponse:
+        """Request an exchange token."""
+        return cast(
+            TokenExchangeResponse,
+            await self._post(
+                self.config.token_url,
+                request,
+                TokenExchangeResponse,
+                "Invalid token exchange response",
+            ),
+        )
+
+    async def introspect(self, request: IntrospectionRequest) -> IntrospectionResponse:
+        """Introspect exchanged token."""
+        return cast(
+            IntrospectionResponse,
+            await self._post(
+                self.config.introspection_url,
+                request,
+                IntrospectionResponse,
+                "Invalid introspection response",
+            ),
+        )
+
+    async def revoke(self, request: RevocationRequest) -> None:
+        """Revoke exchanged token."""
+        await self._post(self.config.revocation_url, request)

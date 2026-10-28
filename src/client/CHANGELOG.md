@@ -12,6 +12,8 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 
 - Add `TokenExchangeClient.close()` method and allow to use the client as a
   context manager to close its HTTP connections
+- Add `TokenExchangeAsyncClient`, an asynchronous version of the
+  `TokenExchangeClient`
 
 ### Changed
 
