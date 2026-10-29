@@ -22,13 +22,14 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 - Improve core services method signature to inject a ServiceProvider instead of
   a simple audience string
 
+#### Dependencies
+
+- Upgrade `django` to `6.1.2`
+
 ### Fixed
 
 - Exchanged JWTs remain valid until they expire, even after a signing key
   rotation
-
-### Fixed
-
 - Introspection response `client_id` now returns the audience id of the service
   provider that requested the token exchange instead of the resource server
   client id
