@@ -8,6 +8,8 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 
 ## [Unreleased]
 
+## [v0.5.0] - 2026-10-29
+
 ### Added
 
 - Add La Suite Find, Docs and Drive services to demo fixtures and the
@@ -107,7 +109,8 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 
 - Implement base Token Exchange (RFC 8693) endpoints
 
-[unreleased]: https://github.com/suitenumerique/menshen/compare/v0.4.0...HEAD
+[unreleased]: https://github.com/suitenumerique/menshen/compare/v0.5.0...HEAD
+[v0.5.0]: https://github.com/suitenumerique/menshen/releases/v0.5.0
 [v0.4.0]: https://github.com/suitenumerique/menshen/releases/v0.4.0
 [v0.3.0]: https://github.com/suitenumerique/menshen/releases/v0.3.0
 [v0.2.0]: https://github.com/suitenumerique/menshen/releases/v0.2.0
