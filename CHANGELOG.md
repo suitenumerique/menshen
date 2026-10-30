@@ -8,6 +8,16 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- Add `TOKEN_EXCHANGE_API_DOCS_ENABLED` and
+  `TOKEN_EXCHANGE_API_OPENAPI_ENABLED` settings to hide or disable the API
+  documentation (interactive docs and OpenAPI schema), disabled by default and
+  both enabled in development
+- Add `TOKEN_EXCHANGE_API_DOCS_URL` and `TOKEN_EXCHANGE_API_OPENAPI_URL`
+  settings to configure the API documentation urls (defaults to `/docs` and
+  `/openapi.json`)
+
 ## [v0.5.0] - 2026-10-29
 
 ### Added

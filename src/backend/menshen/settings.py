@@ -392,6 +392,23 @@ class Base(Configuration):
         environ_prefix=None,
     )
 
+    # Token Exchange API documentation
+    # https://django-ninja.dev/guide/openapi/#hiding-or-disabling-the-docs
+    TOKEN_EXCHANGE_API_DOCS_ENABLED = values.BooleanValue(
+        default=False, environ_name="TOKEN_EXCHANGE_API_DOCS_ENABLED", environ_prefix=None
+    )
+    TOKEN_EXCHANGE_API_OPENAPI_ENABLED = values.BooleanValue(
+        default=False, environ_name="TOKEN_EXCHANGE_API_OPENAPI_ENABLED", environ_prefix=None
+    )
+    TOKEN_EXCHANGE_API_DOCS_URL = values.Value(
+        default="/docs", environ_name="TOKEN_EXCHANGE_API_DOCS_URL", environ_prefix=None
+    )
+    TOKEN_EXCHANGE_API_OPENAPI_URL = values.Value(
+        default="/openapi.json",
+        environ_name="TOKEN_EXCHANGE_API_OPENAPI_URL",
+        environ_prefix=None,
+    )
+
     # Logging
     # We want to make it easy to log to console but by default we log production
     # to Sentry and don't want to log to console.
@@ -545,6 +562,10 @@ class Development(Base):
     ALLOWED_HOSTS = ["*"]
     CSRF_TRUSTED_ORIGINS = ["http://localhost:8072", "http://localhost:3000"]
     DEBUG = True
+
+    # Token Exchange API documentation is available in development
+    TOKEN_EXCHANGE_API_DOCS_ENABLED = True
+    TOKEN_EXCHANGE_API_OPENAPI_ENABLED = True
 
     SESSION_COOKIE_NAME = "menshen_sessionid"
 

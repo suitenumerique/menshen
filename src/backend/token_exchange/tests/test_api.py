@@ -1,6 +1,7 @@
 """Menshen: views tests for the token_exchange application."""
 
 import base64
+import importlib
 import logging
 from datetime import UTC, datetime, timedelta
 from unittest import mock
@@ -10,6 +11,7 @@ import pytest
 from ninja.testing import TestClient
 from requests import HTTPError
 
+from token_exchange import api as api_module
 from token_exchange.api import api
 from token_exchange.enums import TokenType
 from token_exchange.factories import (
@@ -21,6 +23,69 @@ from token_exchange.factories import (
 from token_exchange.models import ExchangedToken, TokenTypeChoices
 from token_exchange.services.token import TokenGenerator
 from token_exchange.utils import hash_token
+
+
+def test_api_docs_urls_disabled_by_default():
+    """Test that API documentation urls are disabled by default."""
+    assert api.docs_url is None
+    assert api.openapi_url is None
+
+
+@pytest.mark.parametrize(
+    ("docs_enabled", "openapi_enabled", "expected_docs_url", "expected_openapi_url"),
+    [
+        (False, False, None, None),
+        (True, True, "/docs", "/openapi.json"),
+        (False, True, None, "/openapi.json"),
+        (True, False, "/docs", None),
+    ],
+)
+def test_api_docs_urls_settings(
+    settings, docs_enabled, openapi_enabled, expected_docs_url, expected_openapi_url
+):
+    """Test the API documentation urls depending on the docs settings."""
+    settings.TOKEN_EXCHANGE_API_DOCS_ENABLED = docs_enabled
+    settings.TOKEN_EXCHANGE_API_OPENAPI_ENABLED = openapi_enabled
+
+    api_instance = importlib.reload(api_module).api
+
+    assert api_instance.docs_url == expected_docs_url
+    assert api_instance.openapi_url == expected_openapi_url
+
+
+@pytest.mark.parametrize(
+    ("docs_url", "openapi_url"),
+    [
+        ("/api-docs", "/schema.json"),
+        (None, "/openapi.json"),
+        ("/docs", None),
+        (None, None),
+    ],
+)
+def test_api_docs_urls_custom(settings, docs_url, openapi_url):
+    """Test the API documentation urls depending on the urls settings."""
+    settings.TOKEN_EXCHANGE_API_DOCS_ENABLED = docs_url is not None
+    settings.TOKEN_EXCHANGE_API_OPENAPI_ENABLED = openapi_url is not None
+    settings.TOKEN_EXCHANGE_API_DOCS_URL = docs_url or "/docs"
+    settings.TOKEN_EXCHANGE_API_OPENAPI_URL = openapi_url or "/openapi.json"
+
+    api_instance = importlib.reload(api_module).api
+
+    assert api_instance.docs_url == docs_url
+    assert api_instance.openapi_url == openapi_url
+
+
+def test_api_docs_urls_should_differ(settings):
+    """Test that the docs urls should be different from the openapi url."""
+    settings.TOKEN_EXCHANGE_API_DOCS_ENABLED = True
+    settings.TOKEN_EXCHANGE_API_OPENAPI_ENABLED = True
+    settings.TOKEN_EXCHANGE_API_DOCS_URL = "/docs"
+    settings.TOKEN_EXCHANGE_API_OPENAPI_URL = "/docs"
+
+    with pytest.raises(
+        AssertionError, match="Please use different urls for openapi_url and docs_url"
+    ):
+        _ = importlib.reload(api_module).api.urls
 
 
 @pytest.mark.parametrize(

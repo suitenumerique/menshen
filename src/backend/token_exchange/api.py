@@ -23,7 +23,15 @@ from .services.revocation import RevocationService
 logger = logging.getLogger(__name__)
 
 # For every endpoint service should be authenticated
-api = NinjaAPI(auth=ServiceProviderBasicAuthentication())
+api = NinjaAPI(
+    auth=ServiceProviderBasicAuthentication(),
+    docs_url=settings.TOKEN_EXCHANGE_API_DOCS_URL
+    if settings.TOKEN_EXCHANGE_API_DOCS_ENABLED
+    else None,
+    openapi_url=settings.TOKEN_EXCHANGE_API_OPENAPI_URL
+    if settings.TOKEN_EXCHANGE_API_OPENAPI_ENABLED
+    else None,
+)
 
 
 # Menshen API exception handler
