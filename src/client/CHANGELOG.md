@@ -8,6 +8,31 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- Add `TokenExchangeClient.close()` method and allow to use the client as a
+  context manager to close its HTTP connections
+- Add `TokenExchangeAsyncClient`, an asynchronous version of the
+  `TokenExchangeClient`
+
+### Changed
+
+- Migrate `TokenExchangeClient` from `requests` to `httpx2`. This is a
+  breaking change: API errors now raise `httpx2.HTTPStatusError` and request
+  timeouts raise `httpx2.TimeoutException` (instead of `requests` exceptions).
+  Note that `httpx2` relies on the system certificate store (via `truststore`)
+  instead of `certifi` to verify TLS certificates. If your test suite mocks
+  the client HTTP requests with `responses` (that only intercepts `requests`),
+  you will need to migrate your tests to an `httpx2` mocking library such as
+  `httpx2-pytest`.
+- Rename the `menshen_client.client` module to `menshen_client.clients` (use
+  `from menshen_client import TokenExchangeClient` instead of importing from
+  the module)
+
+#### Dependencies
+
+- Replace `requests` by `httpx2`
+
 ## [v0.2.0] - 2026-10-12
 
 ### Added

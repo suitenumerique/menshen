@@ -2,7 +2,7 @@
 
 import pytest
 
-from menshen_client.client import TokenExchangeClient
+from menshen_client.clients import TokenExchangeAsyncClient, TokenExchangeClient
 from menshen_client.enums import TokenExchangeResponseTokenType, TokenType
 from menshen_client.schemas import (
     Configuration,
@@ -43,6 +43,18 @@ def config(client_id, client_secret, server_root_url) -> Configuration:
 def client(config):
     """Get configured Menshen client."""
     return TokenExchangeClient(config=config)
+
+
+@pytest.fixture
+def async_client(config):
+    """Get configured Menshen asynchronous client."""
+    return TokenExchangeAsyncClient(config=config)
+
+
+@pytest.fixture
+def anyio_backend():
+    """Run asynchronous tests with asyncio."""
+    return "asyncio"
 
 
 @pytest.fixture
