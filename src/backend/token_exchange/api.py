@@ -1,7 +1,5 @@
 """Menshen: views for the token_exchange application."""
 
-import logging
-
 from django.conf import settings
 from django.http import HttpRequest
 from ninja import Form, NinjaAPI
@@ -19,8 +17,6 @@ from .schemas import (
 from .services.introspection import IntrospectionService
 from .services.request import RequestService
 from .services.revocation import RevocationService
-
-logger = logging.getLogger(__name__)
 
 # For every endpoint service should be authenticated
 api = NinjaAPI(

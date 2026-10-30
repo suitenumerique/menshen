@@ -39,6 +39,20 @@ def ip_user_info(monkeypatch, settings) -> None:
     )
 
 
+@pytest.fixture
+def get_log_events(caplog):
+    """Return the list of structlog event names captured by caplog."""
+
+    def _get_log_events() -> list[str]:
+        return [
+            record.msg["event"]
+            for record in caplog.records
+            if isinstance(record.msg, dict) and "event" in record.msg
+        ]
+
+    return _get_log_events
+
+
 @pytest.fixture(name="source_service")
 def source_service_fixture(db) -> ServiceProvider:
     """Generate the standard source service."""

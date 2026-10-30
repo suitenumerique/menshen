@@ -8,14 +8,14 @@ from token_exchange.models import TokenTypeChoices
 from token_exchange.services.revocation import RevocationService
 
 
-def test_revocation_service_revoke_with_an_unknown_token(target_service, caplog):
+def test_revocation_service_revoke_with_an_unknown_token(target_service, caplog, get_log_events):
     """Test the revocation service revocation with a token that does not exist."""
     with caplog.at_level(logging.INFO):
         RevocationService.revoke("foo", target_service)
-    assert "Token revocation failed (not found)." in caplog.messages
+    assert "token_revocation_failed" in get_log_events()
 
 
-def test_revocation_service_revoke(target_service, caplog):
+def test_revocation_service_revoke(target_service, caplog, get_log_events):
     """Test the revocation service revocation."""
     raw_token = str(uuid4())
     exchanged_token = ExchangedTokenFactory.create(
@@ -30,12 +30,5 @@ def test_revocation_service_revoke(target_service, caplog):
 
     exchanged_token.refresh_from_db()
     assert exchanged_token.is_revoked()
-    assert (
-        "Token revoked: "
-        f"token_jti={exchanged_token.subject_token_jti}, "
-        f"sub={exchanged_token.subject_sub}, "
-        f"email={exchanged_token.subject_email}, "
-        f"type={exchanged_token.token_type}, "
-        f"audiences={exchanged_token.audiences}"
-    ) in caplog.messages
+    assert "token_revoked" in get_log_events()
     assert response is None

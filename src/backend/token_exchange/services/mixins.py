@@ -1,12 +1,12 @@
 """Menshen: services:mixins for the token_exchange application."""
 
-import logging
+import structlog
 
 from token_exchange.exceptions import TokenExchangeError
 from token_exchange.models import ExchangedToken
 from token_exchange.utils import hash_token
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 class ExchangedTokenMixin:
@@ -25,7 +25,7 @@ class ExchangedTokenMixin:
                 token=hash_token(token)
             )
         except ExchangedToken.DoesNotExist as exc:
-            logger.info("Token not found.")
+            logger.info("token_not_found")
             raise TokenExchangeError("Token not found.") from exc
 
         return exchanged_token
@@ -36,18 +36,19 @@ class ExchangedTokenMixin:
         # Token has already expired or has been revoked
         if not token.is_valid():
             logger.warning(
-                "Token is invalid: token_jti=%s, type=%s, kid=%s",
-                token.subject_token_jti,
-                token.token_type,
-                token.jwt_kid or "N/A",
+                "exchanged_token_invalid",
+                token_jti=token.subject_token_jti,
+                type=token.token_type,
+                kid=token.jwt_kid or "N/A",
             )
             return False
 
         # Check token audiences against requesting service
         if audience not in token.audiences:
             logger.error(
-                "'%s' service tried to act on an exchanged token that is beyond its audience",
-                audience,
+                "token_audience_mismatch",
+                audience=audience,
+                audiences=token.audiences,
             )
             return False
 

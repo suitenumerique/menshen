@@ -341,7 +341,7 @@ def test_exchange_view_invalid_token(source_api_client, payload, error):
 
 
 @pytest.mark.django_db
-def test_exchange_view_with_only_unknown_audience(source_api_client, caplog):
+def test_exchange_view_with_only_unknown_audience(source_api_client, caplog, get_log_events):
     """Test the TokenExchangeView when the token points to an unknown audience."""
     payload = {
         "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
@@ -357,11 +357,11 @@ def test_exchange_view_with_only_unknown_audience(source_api_client, caplog):
         "detail": "Only unknown audience(s) requested.",
         "code": "invalid_target",
     }
-    assert "Only unknown audience(s) requested: foo" in caplog.messages
+    assert "unknown_audiences_requested" in get_log_events()
 
 
 @pytest.mark.django_db
-def test_exchange_view_with_unknown_audience(source_api_client, caplog):
+def test_exchange_view_with_unknown_audience(source_api_client, caplog, get_log_events):
     """Test the TokenExchangeView when the token points to an unknown audience."""
     payload = {
         "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
@@ -374,7 +374,7 @@ def test_exchange_view_with_unknown_audience(source_api_client, caplog):
         response = source_api_client.post("/exchange/", data=payload)
     assert response.status_code == 400  # BAD_REQUEST
     assert response.json() == {"detail": "Unknown audience(s) requested.", "code": "invalid_target"}
-    assert "Unknown audience(s) requested: foo" in caplog.messages
+    assert "unknown_audiences_requested" in get_log_events()
 
 
 @pytest.mark.django_db
@@ -401,7 +401,9 @@ def test_exchange_view_with_introspection_error(source_api_client, monkeypatch, 
 
 
 @pytest.mark.django_db
-def test_exchange_view_with_inactive_rule(source_api_client, source_service, caplog):
+def test_exchange_view_with_inactive_rule(
+    source_api_client, source_service, caplog, get_log_events
+):
     """Test the TokenExchangeView when the token points to an inactive service rule."""
     other_service = ServiceProviderFactory(audience_id="service:other")
 
@@ -421,7 +423,7 @@ def test_exchange_view_with_inactive_rule(source_api_client, source_service, cap
         response = source_api_client.post("/exchange/", data=payload)
     assert response.status_code == 400  # BAD_REQUEST
     assert response.json() == {"detail": "Unknown audience(s) requested.", "code": "invalid_target"}
-    assert "Unknown audience(s) requested: service:other" in caplog.messages
+    assert "unknown_audiences_requested" in get_log_events()
 
 
 @pytest.mark.django_db
@@ -598,13 +600,13 @@ def test_introspect_view_without_token(target_api_client, payload, error):
 
 
 @pytest.mark.django_db
-def test_introspect_view_with_unknown_token(target_api_client, caplog):
+def test_introspect_view_with_unknown_token(target_api_client, caplog, get_log_events):
     """Test the TokenIntrospectView with no or empty exchange token."""
     with caplog.at_level(logging.INFO):
         response = target_api_client.post("/introspect/", data={"token": uuid4().hex})
     assert response.status_code == 200  # OK
     assert response.json() == {"active": False}
-    assert "Token not found." in caplog.messages
+    assert "token_not_found" in get_log_events()
 
 
 @pytest.mark.django_db
@@ -624,13 +626,14 @@ def test_introspect_view_invalid_token(  # noqa: PLR0913,PLR0917
     target_api_client,
     target_service,
     caplog,
+    get_log_events,
     token_type,
     expires_at,
     revoked_at,
 ):
     """Test the TokenIntrospectView with an invalid exchange token (expired or revoked)."""
     raw_token = str(uuid4())
-    exchanged_token = ExchangedTokenFactory(
+    ExchangedTokenFactory(
         expires_at=expires_at,
         revoked_at=revoked_at,
         token_type=token_type,
@@ -644,10 +647,7 @@ def test_introspect_view_invalid_token(  # noqa: PLR0913,PLR0917
         )
     assert response.status_code == 200  # OK
     assert response.json() == {"active": False}
-    assert (
-        f"Token is invalid: token_jti={exchanged_token.subject_token_jti}, "
-        f"type={token_type}, kid=N/A"
-    ) in caplog.messages
+    assert "exchanged_token_invalid" in get_log_events()
 
 
 @pytest.mark.django_db
@@ -675,7 +675,7 @@ def test_introspect_view_ignores_jwt_signature(target_api_client, target_service
 
 
 @pytest.mark.django_db
-def test_introspect_view_invalid_audience(target_api_client, caplog):
+def test_introspect_view_invalid_audience(target_api_client, caplog, get_log_events):
     """Test the TokenIntrospectView with an invalid audience from requesting service."""
     raw_token = str(uuid4())
     ExchangedTokenFactory(
@@ -687,9 +687,7 @@ def test_introspect_view_invalid_audience(target_api_client, caplog):
         response = target_api_client.post("/introspect/", data={"token": raw_token})
     assert response.status_code == 200  # OK
     assert response.json() == {"active": False}
-    assert (
-        "'service:target' service tried to act on an exchanged token that is beyond its audience"
-    ) in caplog.messages
+    assert "token_audience_mismatch" in get_log_events()
 
 
 @pytest.mark.django_db
@@ -717,11 +715,11 @@ def test_introspect_view_introspection_with_wrong_token_type_hint(
 
 @pytest.mark.django_db
 def test_introspect_view_introspection_with_token_type_hint(
-    target_api_client, target_service, caplog
+    target_api_client, target_service, caplog, get_log_events
 ):
     """Test the TokenIntrospectView instrospection."""
     raw_token = str(uuid4())
-    exchanged_token = ExchangedTokenFactory(
+    ExchangedTokenFactory(
         token_type=TokenTypeChoices.ACCESS_TOKEN,
         audiences=[target_service.audience_id],
         raw_token=raw_token,
@@ -734,15 +732,11 @@ def test_introspect_view_introspection_with_token_type_hint(
     assert response.status_code == 200  # OK
     introspected_token = response.json()
     assert introspected_token["active"]
-    assert (
-        f"Token introspected (active): token_jti={exchanged_token.subject_token_jti}, "
-        f"type={exchanged_token.token_type}, kid={exchanged_token.jwt_kid or 'N/A'}"
-        in caplog.messages
-    )
+    assert "token_introspected" in get_log_events()
 
 
 @pytest.mark.django_db
-def test_introspect_view_introspection(target_api_client, target_service, caplog):
+def test_introspect_view_introspection(target_api_client, target_service, caplog, get_log_events):
     """Test the TokenIntrospectView instrospection."""
     raw_token = str(uuid4())
     exchanged_token = ExchangedTokenFactory(
@@ -756,11 +750,7 @@ def test_introspect_view_introspection(target_api_client, target_service, caplog
             data={"token": raw_token},
         )
     assert response.status_code == 200  # OK
-    assert (
-        f"Token introspected (active): token_jti={exchanged_token.subject_token_jti}, "
-        f"type={exchanged_token.token_type}, kid={exchanged_token.jwt_kid or 'N/A'}"
-        in caplog.messages
-    )
+    assert "token_introspected" in get_log_events()
     introspected_token = response.json()
     assert introspected_token["active"]
     assert introspected_token["client_id"] == exchanged_token.source_service.audience_id  # ty: ignore
@@ -826,17 +816,17 @@ def test_revocation_view_without_token(source_api_client, payload, error):
 
 
 @pytest.mark.django_db
-def test_revocation_view_with_unknown_token(source_api_client, caplog):
+def test_revocation_view_with_unknown_token(source_api_client, caplog, get_log_events):
     """Test the TokenRevocationView instrospection with no or empty token."""
     with caplog.at_level(logging.INFO):
         response = source_api_client.post("/revoke/", data={"token": uuid4().hex})
     assert response.status_code == 200  # OK
     assert not len(response.content)
-    assert "Token revocation failed (not found)." in caplog.messages
+    assert "token_revocation_failed" in get_log_events()
 
 
 @pytest.mark.django_db
-def test_revocation_view(target_api_client, target_service, caplog):
+def test_revocation_view(target_api_client, target_service, caplog, get_log_events):
     """Test the TokenRevocationView revocation."""
     raw_token = str(uuid4())
     exchanged_token = ExchangedTokenFactory.create(
@@ -853,14 +843,7 @@ def test_revocation_view(target_api_client, target_service, caplog):
         response = target_api_client.post("/revoke/", data={"token": raw_token})
     assert response.status_code == 200  # OK
     assert not len(response.content)
-    assert (
-        "Token revoked: "
-        f"token_jti={exchanged_token.subject_token_jti}, "
-        f"sub={exchanged_token.subject_sub}, "
-        f"email={exchanged_token.subject_email}, "
-        f"type={exchanged_token.token_type}, "
-        f"audiences={exchanged_token.audiences}"
-    ) in caplog.messages
+    assert "token_revoked" in get_log_events()
 
     # revoked_at field should have been updated
     exchanged_token.refresh_from_db()

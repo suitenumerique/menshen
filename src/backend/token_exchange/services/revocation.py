@@ -1,13 +1,13 @@
 """Menshen: services:revocation for the token_exchange application."""
 
-import logging
+import structlog
 
 from token_exchange.exceptions import TokenExchangeError
 from token_exchange.models import ServiceProvider
 
 from .mixins import ExchangedTokenMixin
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 class RevocationService(ExchangedTokenMixin):
@@ -26,20 +26,20 @@ class RevocationService(ExchangedTokenMixin):
         try:
             exchanged_token = cls.get_exchanged_token(token)
         except TokenExchangeError:
-            logger.error("Token revocation failed (not found).")
+            logger.error("token_revocation_failed", reason="token_not_found")
             return
 
         if not cls.is_token_valid(exchanged_token, source_service.audience_id):
-            logger.error("Token revocation failed (invalid token).")
+            logger.error("token_revocation_failed", reason="invalid_token")
             return
 
         exchanged_token.revoke()
 
         logger.info(
-            "Token revoked: token_jti=%s, sub=%s, email=%s, type=%s, audiences=%s",
-            exchanged_token.subject_token_jti,
-            exchanged_token.subject_sub,
-            exchanged_token.subject_email,
-            exchanged_token.token_type,
-            exchanged_token.audiences,
+            "token_revoked",
+            token_jti=exchanged_token.subject_token_jti,
+            sub=exchanged_token.subject_sub,
+            email=exchanged_token.subject_email,
+            type=exchanged_token.token_type,
+            audiences=exchanged_token.audiences,
         )
