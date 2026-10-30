@@ -18,10 +18,13 @@ from typing import cast
 
 import dj_database_url
 import sentry_sdk
+import structlog
 from configurations import Configuration, values
 from django.utils.translation import gettext_lazy as _
 from lasuite.configuration.values import SecretFileValue
 from sentry_sdk.integrations.django import DjangoIntegration
+
+from menshen.logging import configure_structlog, get_processors
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -157,6 +160,7 @@ class Base(Configuration):
     MIDDLEWARE = [
         "django.middleware.security.SecurityMiddleware",
         "whitenoise.middleware.WhiteNoiseMiddleware",
+        "django_structlog.middlewares.RequestMiddleware",
         "django.contrib.sessions.middleware.SessionMiddleware",
         "django.middleware.locale.LocaleMiddleware",
         "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -184,6 +188,7 @@ class Base(Configuration):
         "token_exchange",
         # Third party apps
         "dockerflow.django",
+        "django_structlog",
         # Django
         "django.contrib.admin",
         "django.contrib.auth",
@@ -416,15 +421,19 @@ class Base(Configuration):
         "version": 1,
         "disable_existing_loggers": False,
         "formatters": {
-            "simple": {
-                "format": "{asctime} {name} {levelname} {message}",
-                "style": "{",
+            "structlog": {
+                "()": structlog.stdlib.ProcessorFormatter,
+                "processors": [
+                    structlog.stdlib.ProcessorFormatter.remove_processors_meta,
+                    structlog.processors.JSONRenderer(),
+                ],
+                "foreign_pre_chain": get_processors(),
             },
         },
         "handlers": {
             "console": {
                 "class": "logging.StreamHandler",
-                "formatter": "simple",
+                "formatter": "structlog",
             },
         },
         # Override root logger to send it to console
@@ -484,6 +493,12 @@ class Base(Configuration):
         settings to be loaded.
         """
         super().post_setup()
+
+        # Configure structlog to be rendered by the standard library logging.
+        # This is required before Django applies the LOGGING configuration,
+        # so that structlog events are already wrapped for the
+        # ProcessorFormatter when the first record is emitted.
+        configure_structlog()
 
         # The SENTRY_DSN setting should be available to activate sentry for an environment
         if cls.SENTRY_DSN is not None:
@@ -571,6 +586,54 @@ class Development(Base):
 
     DEBUG_TOOLBAR_CONFIG = {
         "SHOW_TOOLBAR_CALLBACK": lambda request: True,
+    }
+
+    LOGGING = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "formatters": {
+            "structlog": {
+                "()": structlog.stdlib.ProcessorFormatter,
+                "processors": [
+                    structlog.stdlib.ProcessorFormatter.remove_processors_meta,
+                    structlog.dev.ConsoleRenderer(colors=True),
+                ],
+                "foreign_pre_chain": get_processors(),
+            },
+        },
+        "handlers": {
+            "console": {
+                "class": "logging.StreamHandler",
+                "formatter": "structlog",
+            },
+        },
+        # Override root logger to send it to console
+        "root": {
+            "handlers": ["console"],
+            "level": values.Value(
+                "INFO", environ_name="LOGGING_LEVEL_LOGGERS_ROOT", environ_prefix=None
+            ),
+        },
+        "loggers": {
+            "token_exchange": {
+                "handlers": ["console"],
+                "level": values.Value(
+                    "INFO",
+                    environ_name="LOGGING_LEVEL_LOGGERS_APP",
+                    environ_prefix=None,
+                ),
+                "propagate": False,
+            },
+            "lasuite": {
+                "handlers": ["console"],
+                "level": values.Value(
+                    "INFO",
+                    environ_name="LOGGING_LEVEL_LOGGERS_LASUITE",
+                    environ_prefix=None,
+                ),
+                "propagate": False,
+            },
+        },
     }
 
     def __init__(self):

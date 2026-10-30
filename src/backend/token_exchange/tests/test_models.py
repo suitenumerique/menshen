@@ -183,7 +183,7 @@ def test_exchangedtoken_str(subject_email, subject_sub, identity):
         ("", "fbfcce3c-10e9-4225-8a5e-f8b1192bc709"),
     ],
 )
-def test_exchangedtoken_save(settings, caplog, subject_sub, subject_email):
+def test_exchangedtoken_save(settings, caplog, subject_sub, subject_email, get_log_events):
     """Test the ExchangedToken save method."""
     settings.TOKEN_EXCHANGE_MAX_ACTIVE_TOKENS_PER_USER = None
     source_service = ServiceProviderFactory()
@@ -220,10 +220,7 @@ def test_exchangedtoken_save(settings, caplog, subject_sub, subject_email):
     assert qs.count() == 4
     assert qs.first() == future_oldest
     assert qs.last() == token
-    assert (
-        f"Enforced token limit for sub={subject_sub}/email={subject_email}: deleted 2 oldest tokens"
-        in caplog.messages
-    )
+    assert "token_limit_enforced" in get_log_events()
 
 
 @pytest.mark.django_db

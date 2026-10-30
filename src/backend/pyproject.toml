@@ -25,6 +25,7 @@ requires-python = "~=3.14.6"
 dependencies = [
     "argon2-cffi==25.1.0",
     "dj-database-url==3.1.2",
+    "django-structlog==11.0.0",
     "django==6.1.2",
     "django-configurations==2.5.1",
     "django-lasuite[all]==0.1.0",
@@ -33,6 +34,7 @@ dependencies = [
     "dockerflow==2026.3.4",
     "psycopg[binary,pool]==3.3.4",
     "sentry-sdk[django]==2.68.0",
+    "structlog==26.1.0",
     "uvicorn==0.52.4",
     "whitenoise==6.12.0",
 ]

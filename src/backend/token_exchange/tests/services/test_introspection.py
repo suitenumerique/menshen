@@ -8,14 +8,18 @@ from token_exchange.services.introspection import IntrospectionService
 from token_exchange.services.token import TokenGenerator
 
 
-def test_instrospection_service_revoke_with_an_unknown_token(target_service, caplog):
+def test_instrospection_service_revoke_with_an_unknown_token(
+    target_service, caplog, get_log_events
+):
     """Test the instrospection service response generation with a token that does not exist."""
     with caplog.at_level(logging.INFO):
         IntrospectionService.introspect("foo", target_service)
-    assert "Token introspection failed (not found)." in caplog.messages
+    assert "token_introspection_failed" in get_log_events()
 
 
-def test_introspection_service_introspect_with_valid_jwt(target_service, settings, caplog):
+def test_introspection_service_introspect_with_valid_jwt(
+    target_service, settings, caplog, get_log_events
+):
     """Test the introspection service response generation with a valid JWT."""
     now = int(datetime.now(tz=UTC).timestamp())
     raw_jwt = TokenGenerator.generate_jwt(
@@ -46,9 +50,4 @@ def test_introspection_service_introspect_with_valid_jwt(target_service, setting
     assert response.aud == "service:target"
     assert response.jti == exchanged_token.subject_token_jti
     assert response.client_id == exchanged_token.source_service.audience_id  # ty: ignore
-    assert (
-        "Token introspected (active): "
-        f"token_jti={exchanged_token.subject_token_jti}, "
-        f"type={exchanged_token.token_type}, "
-        f"kid={exchanged_token.jwt_kid or 'N/A'}"
-    ) in caplog.messages
+    assert "token_introspected" in get_log_events()

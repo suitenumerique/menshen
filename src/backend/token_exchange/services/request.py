@@ -1,9 +1,9 @@
 """Menshen: services:request for the token_exchange application."""
 
-import logging
 from collections.abc import Callable
 from datetime import timedelta
 
+import structlog
 from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
 from django.db.models import F
@@ -43,7 +43,7 @@ from ..schemas import (
 from ..utils import hash_token
 from .token import TokenGenerator
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 class RequestService:
@@ -70,11 +70,11 @@ class RequestService:
         """
         rules_audiences = {rule.target_service.audience_id for rule in rules}
         if not rules_audiences:
-            logger.error("Only unknown audience(s) requested: %s", ", ".join(requested_audiences))
+            logger.error("unknown_audiences_requested", audiences=requested_audiences)
             raise TokenExchangeInvalidTargetError("Only unknown audience(s) requested.")
 
         if unknown_audiences := (set(requested_audiences) - rules_audiences):
-            logger.error("Unknown audience(s) requested: %s", ", ".join(unknown_audiences))
+            logger.error("unknown_audiences_requested", audiences=sorted(unknown_audiences))
             raise TokenExchangeInvalidTargetError("Unknown audience(s) requested.")
 
     @classmethod
@@ -103,15 +103,15 @@ class RequestService:
         # Check the user audience is the same as the requesting service
         if getattr(introspection_response, settings.OIDC_RS_AUDIENCE_CLAIM) != source_audience:
             logger.error(
-                "Introspected token audience is different from requesting service: %s, %s",
-                getattr(introspection_response, settings.OIDC_RS_AUDIENCE_CLAIM),
-                source_audience,
+                "subject_token_audience_mismatch",
+                token_audience=getattr(introspection_response, settings.OIDC_RS_AUDIENCE_CLAIM),
+                audience=source_audience,
             )
             raise SuspiciousOperation()
 
         # We require the user sub
         if not introspection_response.sub:
-            logger.warning("Introspection response has no 'sub'")
+            logger.warning("introspection_missing_sub")
             raise TokenExchangeIntrospectionError(
                 "Subject token introspection failed to provide an identity (sub)."
             )
@@ -145,9 +145,9 @@ class RequestService:
         # Service cannot ask for more scopes than rules allow
         if not requested_accesses.issubset(set(rules_accesses.keys())):
             logger.warning(
-                "Unsatisfied requested accesses (%s) given rules (%s)",
-                requested_accesses,
-                set(rules_accesses.keys()),
+                "unsatisfied_requested_accesses",
+                requested_accesses=sorted(requested_accesses),
+                allowed_accesses=sorted(rules_accesses.keys()),
             )
             raise TokenExchangeInvalidScopesError("You cannot request more scope than rules allow.")
 
@@ -191,9 +191,9 @@ class RequestService:
         # Service cannot ask for more scopes than rules allow
         if not requested_accesses.issubset(set(rules_accesses.keys())):
             logger.warning(
-                "Unsatisfied requested accesses (%s) given rules (%s)",
-                requested_accesses,
-                set(rules_accesses.keys()),
+                "unsatisfied_requested_accesses",
+                requested_accesses=sorted(requested_accesses),
+                allowed_accesses=sorted(rules_accesses.keys()),
             )
             raise TokenExchangeInvalidScopesError("You cannot request more scope than rules allow.")
         required_source_scopes = {
@@ -208,8 +208,8 @@ class RequestService:
         # Check if user has required source scope for this action
         if required_source_scopes and not required_source_scopes.issubset(set(user_scopes)):
             logger.error(
-                "Missing required source scope(s): %s",
-                ",".join(required_source_scopes - requested_scopes),
+                "missing_required_source_scopes",
+                missing_scopes=sorted(required_source_scopes - set(user_scopes)),
             )
             raise TokenExchangeInvalidActionError(
                 "All required source scopes are not satisfied for this action."
@@ -393,18 +393,17 @@ class RequestService:
 
         # Log the exchange
         logger.info(
-            "Token exchanged: sub=%s, email=%s, source_audience=%s, audiences=%s, token_type=%s, "
-            "expires_at=%s, subject_jti=%s, kid=%s, scopes_granted=%s, grants=%s",
-            exchanged_token.subject_sub,
-            exchanged_token.subject_email,
-            source_service.audience_id,
-            exchanged_token.audiences,
-            exchanged_token.token_type,
-            exchanged_token.expires_at,
-            exchanged_token.subject_token_jti,
-            exchanged_token.jwt_kid,
-            exchanged_token.scope,
-            exchanged_token.grants,
+            "token_exchanged",
+            sub=exchanged_token.subject_sub,
+            email=exchanged_token.subject_email,
+            source_audience=source_service.audience_id,
+            audiences=exchanged_token.audiences,
+            token_type=exchanged_token.token_type,
+            expires_at=exchanged_token.expires_at,
+            subject_jti=exchanged_token.subject_token_jti,
+            kid=exchanged_token.jwt_kid,
+            scopes_granted=exchanged_token.scope,
+            grants=exchanged_token.grants,
         )
 
         return (response, exchanged_token)

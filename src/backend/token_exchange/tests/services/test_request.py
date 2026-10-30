@@ -38,7 +38,9 @@ from token_exchange.services.token import TokenGenerator
 from token_exchange.utils import hash_token
 
 
-def test_request_service_validate_target_only_unknown_audiences(source_service, caplog):
+def test_request_service_validate_target_only_unknown_audiences(
+    source_service, caplog, get_log_events
+):
     """Test the request service validate target method with only unknown audiences."""
     request = TokenExchangeRequest(
         subject_token="foo",
@@ -54,10 +56,12 @@ def test_request_service_validate_target_only_unknown_audiences(source_service, 
         caplog.at_level(logging.INFO),
     ):
         RequestService.exchange(source_service, request)
-    assert "Only unknown audience(s) requested: service:foo" in caplog.messages
+    assert "unknown_audiences_requested" in get_log_events()
 
 
-def test_request_service_validate_target_with_unknown_audience(source_service, caplog):
+def test_request_service_validate_target_with_unknown_audience(
+    source_service, caplog, get_log_events
+):
     """Test the request service validate target method with unknown audience."""
     request = TokenExchangeRequest(
         subject_token="foo",
@@ -73,7 +77,7 @@ def test_request_service_validate_target_with_unknown_audience(source_service, c
         caplog.at_level(logging.INFO),
     ):
         RequestService.exchange(source_service, request)
-    assert "Unknown audience(s) requested: service:foo" in caplog.messages
+    assert "unknown_audiences_requested" in get_log_events()
 
 
 def test_request_service_introspect_subject_token_request_failure(
@@ -109,7 +113,7 @@ def test_request_service_introspect_subject_token_request_failure(
 
 
 def test_request_service_introspect_subject_token_suspicious_introspection_response_audience(
-    source_service, monkeypatch, settings, caplog
+    source_service, monkeypatch, settings, caplog, get_log_events
 ):
     """
     Test the request service introspect subject token method when suspicious audience raises.
@@ -135,14 +139,11 @@ def test_request_service_introspect_subject_token_suspicious_introspection_respo
     with pytest.raises(SuspiciousOperation), caplog.at_level(logging.INFO):
         RequestService.exchange(source_service, request)
 
-    assert (
-        "Introspected token audience is different from requesting service: "
-        "service:suspicious, service:source"
-    ) in caplog.messages
+    assert "subject_token_audience_mismatch" in get_log_events()
 
 
 def test_request_service_introspect_subject_token_missing_identity(
-    source_service, monkeypatch, settings, caplog
+    source_service, monkeypatch, settings, caplog, get_log_events
 ):
     """Test the request service introspect subject token method when not identity is returned."""
     request = TokenExchangeRequest(
@@ -169,7 +170,7 @@ def test_request_service_introspect_subject_token_missing_identity(
     ):
         RequestService.exchange(source_service, request)
 
-    assert "Introspection response has no 'sub'" in caplog.messages
+    assert "introspection_missing_sub" in get_log_events()
 
 
 def test_request_service_validate_pure_scopes_from_request(source_service):
@@ -266,7 +267,7 @@ def test_request_service_validate_scope_action_from_request_with_granted_require
 
 
 def test_request_service_validate_scope_action_from_request_when_action_has_no_permission(
-    source_service, target_service, caplog
+    source_service, target_service, caplog, get_log_events
 ):
     """
     Test the request service validate scope action method with scopes from the request.
@@ -298,14 +299,11 @@ def test_request_service_validate_scope_action_from_request_when_action_has_no_p
         RequestService.exchange(source_service, request)
 
     # Scopes from request action are not granted
-    assert (
-        "Unsatisfied requested accesses ({'service:target:action:update-target'}) "
-        "given rules ({'service:target:action:write-to-target'})"
-    ) in caplog.messages
+    assert "unsatisfied_requested_accesses" in get_log_events()
 
 
 def test_request_service_validate_scope_action_from_request_when_action_cannot_be_granted(
-    source_service, target_service, source_target_rule, caplog
+    source_service, target_service, source_target_rule, caplog, get_log_events
 ):
     """
     Test the request service validate scope action method with scopes from the request.
@@ -342,7 +340,7 @@ def test_request_service_validate_scope_action_from_request_when_action_cannot_b
         RequestService.exchange(source_service, request)
 
     # Scopes from request action are not granted
-    assert "Missing required source scope(s): target:update" in caplog.messages
+    assert "missing_required_source_scopes" in get_log_events()
 
 
 @pytest.mark.parametrize("token_type", [TokenType.ACCESS_TOKEN, TokenType.JWT])

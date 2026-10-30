@@ -430,6 +430,19 @@ wheels = [
 ]
 
 [[package]]
+name = "django-ipware"
+version = "8.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+    { name = "python-ipware" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/41/3a/e90c321c10cdf4c53dbad3cfd28efceb6fc164c3ec2d98cf71f4ae060c04/django_ipware-8.0.0.tar.gz", hash = "sha256:377cc7926ea377d8f544511b019cd32b28060e1c9caa3d0c43c3e5e923560f33", size = 17747, upload-time = "2026-09-22T21:30:47.55Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ea/58/29dd16630be7516b079d66537ac7725e92720807347558478a1f2a738fb6/django_ipware-8.0.0-py3-none-any.whl", hash = "sha256:63e9e589aa58c37fbcd3f7624d18a08e69d95b03c84bab7e5ad2a12b03f8c4ec", size = 12626, upload-time = "2026-09-22T21:30:46.565Z" },
+]
+
+[[package]]
 name = "django-lasuite"
 version = "0.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -479,6 +492,21 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/fb/78/203a0cdc0f1c083a5407d01f77b58099a120bb8a5a04562f56a9bb341314/django_redis-7.0.0.tar.gz", hash = "sha256:e48491c862f4350b0747ceb1016700686fb93c4f4e0fb9c490fe6c6658ffd933", size = 64601, upload-time = "2026-06-02T14:17:48.819Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7e/9f/09cdb9a1eebe8533b02a7694ca787acfc1e4d93b5b6175ff99366d4e6d64/django_redis-7.0.0-py3-none-any.whl", hash = "sha256:4b23aa6e0cd0937bb1242e9a463809e6004de3ca2150f34e986306bb6220d688", size = 38932, upload-time = "2026-06-02T14:17:47.281Z" },
+]
+
+[[package]]
+name = "django-structlog"
+version = "11.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "asgiref" },
+    { name = "django" },
+    { name = "django-ipware" },
+    { name = "structlog" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/cc/50/ddd2c8f0477b964d162271bbf28c5a3d1f98f4b6fbf72b2527a1ea76f86e/django_structlog-11.0.0.tar.gz", hash = "sha256:4ec327f669543b05941c5a1ba7881e9a400493a0098d71a5dce0fc7b0ce97558", size = 25227, upload-time = "2026-10-24T18:08:04.089Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ff/36/6e3742fd9c8f151563e08f5be19128497ad31110ca719d7a08cf94b5e95e/django_structlog-11.0.0-py3-none-any.whl", hash = "sha256:4f5d3822bfa1667fec6324e959b6824a4c3fd975b0d5143f0b5bec3ec97f3463", size = 20992, upload-time = "2026-10-24T18:08:02.304Z" },
 ]
 
 [[package]]
@@ -692,9 +720,11 @@ dependencies = [
     { name = "django-lasuite", extra = ["all"] },
     { name = "django-ninja" },
     { name = "django-redis" },
+    { name = "django-structlog" },
     { name = "dockerflow" },
     { name = "psycopg", extra = ["binary", "pool"] },
     { name = "sentry-sdk", extra = ["django"] },
+    { name = "structlog" },
     { name = "uvicorn" },
     { name = "whitenoise" },
 ]
@@ -724,9 +754,11 @@ requires-dist = [
     { name = "django-lasuite", extras = ["all"], specifier = "==0.1.0" },
     { name = "django-ninja", specifier = "==1.7.1" },
     { name = "django-redis", specifier = "==7.0.0" },
+    { name = "django-structlog", specifier = "==11.0.0" },
     { name = "dockerflow", specifier = "==2026.3.4" },
     { name = "psycopg", extras = ["binary", "pool"], specifier = "==3.3.4" },
     { name = "sentry-sdk", extras = ["django"], specifier = "==2.68.0" },
+    { name = "structlog", specifier = "==26.1.0" },
     { name = "uvicorn", specifier = "==0.52.4" },
     { name = "whitenoise", specifier = "==6.12.0" },
 ]
@@ -1063,6 +1095,15 @@ wheels = [
 ]
 
 [[package]]
+name = "python-ipware"
+version = "4.1.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/80/1c/dca9478d5e2c51c5effcc8fbc9903c40c59a8f107d2ef5ea2e4cf53085f0/python_ipware-4.1.1.tar.gz", hash = "sha256:fd6102058e74c29112b4376f8abbae718852c95f8de6965801de88ca9780d22f", size = 40567, upload-time = "2026-10-01T18:44:47.003Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fb/63/4c5c354d10ec19d6258acc04cb8bbc36ba670019e2ad9c60e8289af9e845/python_ipware-4.1.1-py3-none-any.whl", hash = "sha256:52eedd4cb7bb9e1bb6b9dd92db974e729fe54be22e1389703e21c60344b9f039", size = 27636, upload-time = "2026-10-01T18:44:46.055Z" },
+]
+
+[[package]]
 name = "redis"
 version = "7.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1171,6 +1212,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/28/e3/55dcc2cfbc3ca9c29519eb6884dd1415ecb53b0e934862d3559ddcb7e20b/stack_data-0.6.3.tar.gz", hash = "sha256:836a778de4fec4dcd1dcd89ed8abff8a221f58308462e1c4aa2a3cf30148f0b9", size = 44707, upload-time = "2023-09-30T13:58:05.479Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f1/7b/ce1eafaf1a76852e2ec9b22edecf1daa58175c090266e9f6c64afcd81d91/stack_data-0.6.3-py3-none-any.whl", hash = "sha256:d5558e0c25a4cb0853cddad3d77da9891a08cb85dd9f9f91b9f8cd66e511e695", size = 24521, upload-time = "2023-09-30T13:58:03.53Z" },
+]
+
+[[package]]
+name = "structlog"
+version = "26.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/5e/89/b4a0bcfdf4f71a3dea31379f095929613d7e4528a0996bca6aa964cd0dca/structlog-26.1.0.tar.gz", hash = "sha256:f63a716cbd1b1291cf7661de7794b455acfa4c43c5bcf1630e6ad5ddc1adb3b7", size = 1459881, upload-time = "2026-06-06T07:33:39.348Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a9/18/489c97b834dfff9cf2fc2507cede4bcd4b11e67f84bc462acd1992496f86/structlog-26.1.0-py3-none-any.whl", hash = "sha256:e081a26d6c373e6d201eca24eede26d8ffab07f88f477822e679183428d3d91e", size = 73764, upload-time = "2026-06-06T07:33:38.046Z" },
 ]
 
 [[package]]

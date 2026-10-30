@@ -1,10 +1,10 @@
 """Menshen: models for the token_exchange application."""
 
 import datetime
-import logging
 import re
 import uuid
 
+import structlog
 from django.conf import settings
 from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.postgres.fields import ArrayField
@@ -18,7 +18,7 @@ from django.utils.translation import gettext_lazy as _
 from .enums import TokenExchangeTokenTypeHint, TokenType
 from .schemas import IntrospectionResponse
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 def validate_action_scope_name(value: str) -> None:
@@ -539,10 +539,10 @@ class ExchangedToken(BaseModel):
         to_delete = active_tokens_count - max_tokens
         ExchangedToken.objects.filter(id__in=[t.id for t in active_tokens_qs[:to_delete]]).delete()
         logger.info(
-            "Enforced token limit for sub=%s/email=%s: deleted %d oldest tokens",
-            self.subject_sub,
-            self.subject_email,
-            to_delete,
+            "token_limit_enforced",
+            sub=self.subject_sub,
+            email=self.subject_email,
+            deleted=to_delete,
         )
 
     def is_expired(self) -> bool:

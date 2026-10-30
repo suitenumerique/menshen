@@ -17,6 +17,7 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 - Add `TOKEN_EXCHANGE_API_DOCS_URL` and `TOKEN_EXCHANGE_API_OPENAPI_URL`
   settings to configure the API documentation urls (defaults to `/docs` and
   `/openapi.json`)
+- Switch backend logging to structured logging with `structlog`
 
 ## [v0.5.0] - 2026-10-29
 
