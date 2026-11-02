@@ -20,6 +20,9 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 - Add `OIDC_OP_JWKS_ENDPOINT`, `OIDC_RS_PRIVATE_KEY_STR` and
   `OIDC_RS_ENCRYPTION_KEY_TYPE` settings to support the
   `JWTResourceServerBackend`
+- Add a `client_id` claim to exchanged JWTs identifying the service provider
+  that requested the token exchange (as its audience id), so that target
+  services know which service requested the token
 
 ### Changed
 
