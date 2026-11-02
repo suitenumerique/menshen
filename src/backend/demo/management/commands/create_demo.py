@@ -146,7 +146,7 @@ def create_demo(stdout):
 class Command(BaseCommand):
     """A management command to create a demo database."""
 
-    help = __doc__
+    help = __doc__ or ""
 
     def add_arguments(self, parser):
         """Add argument to require forcing execution when not in debug mode."""

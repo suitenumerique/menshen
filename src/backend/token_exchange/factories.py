@@ -19,7 +19,7 @@ fake = Faker()
 class ExchangedTokenFactory(factory.django.DjangoModelFactory):
     """A factory to create ExchangedToken instances for testing."""
 
-    class Meta:  # noqa: D106
+    class Meta:  # noqa: D106  # ty: ignore[invalid-attribute-override]
         model = models.ExchangedToken
 
     class Params:  # noqa: D106
@@ -61,7 +61,7 @@ class ExpiredExchangedTokenFactory(ExchangedTokenFactory):
 class JWTExchangedTokenFactory(ExchangedTokenFactory):
     """A factory to create JWT ExchangedToken instances for testing."""
 
-    class Params:  # noqa: D106
+    class Params:  # noqa: D106  # ty: ignore[invalid-attribute-override]
         # Raw JWT value: only its HMAC hash is stored in the token field.
         # Pass raw_token=<jwt> to control the presented token in tests.
         raw_token = factory.LazyFunction(lambda: "")
@@ -100,7 +100,7 @@ class JWTExchangedTokenFactory(ExchangedTokenFactory):
 class ServiceProviderFactory(factory.django.DjangoModelFactory):
     """Create a ServiceProvider that will query token exchange endpoint."""
 
-    class Meta:  # noqa: D106
+    class Meta:  # noqa: D106  # ty: ignore[invalid-attribute-override]
         model = models.ServiceProvider
 
     name = factory.LazyFunction(fake.uuid4)
@@ -110,7 +110,7 @@ class ServiceProviderFactory(factory.django.DjangoModelFactory):
 class ServiceProviderCredentialsFactory(factory.django.DjangoModelFactory):
     """Allow a ServiceProvider to authenticate against the token exchange endpoint."""
 
-    class Meta:  # noqa: D106
+    class Meta:  # noqa: D106  # ty: ignore[invalid-attribute-override]
         model = models.ServiceProviderCredentials
 
     service_provider = factory.SubFactory("token_exchange.factories.ServiceProviderFactory")
@@ -133,7 +133,7 @@ class ServiceProviderCredentialsFactory(factory.django.DjangoModelFactory):
 class TokenExchangeRuleFactory(factory.django.DjangoModelFactory):
     """Factory for creating TokenExchangeRule instances."""
 
-    class Meta:  # noqa: D106
+    class Meta:  # noqa: D106  # ty: ignore[invalid-attribute-override]
         model = models.TokenExchangeRule
 
     source_service = factory.SubFactory("token_exchange.factories.ServiceProviderFactory")
@@ -144,7 +144,7 @@ class TokenExchangeRuleFactory(factory.django.DjangoModelFactory):
 class ScopeGrantFactory(factory.django.DjangoModelFactory):
     """Factory for creating ScopeGrant instances."""
 
-    class Meta:  # noqa: D106
+    class Meta:  # noqa: D106  # ty: ignore[invalid-attribute-override]
         model = models.ScopeGrant
 
     rule = factory.SubFactory(TokenExchangeRuleFactory)
@@ -156,7 +156,7 @@ class ScopeGrantFactory(factory.django.DjangoModelFactory):
 class ActionScopeFactory(factory.django.DjangoModelFactory):
     """Factory for creating ActionScope instances."""
 
-    class Meta:  # noqa: D106
+    class Meta:  # noqa: D106  # ty: ignore[invalid-attribute-override]
         model = models.ActionScope
 
     name = factory.Sequence(lambda n: f"action_{n}")
@@ -166,7 +166,7 @@ class ActionScopeFactory(factory.django.DjangoModelFactory):
 class ActionScopeGrantFactory(factory.django.DjangoModelFactory):
     """Factory for creating ActionScopeGrant instances."""
 
-    class Meta:  # noqa: D106
+    class Meta:  # noqa: D106  # ty: ignore[invalid-attribute-override]
         model = models.ActionScopeGrant
 
     action = factory.SubFactory(ActionScopeFactory)
@@ -178,7 +178,7 @@ class ActionScopeGrantFactory(factory.django.DjangoModelFactory):
 class TokenExchangeActionPermissionFactory(factory.django.DjangoModelFactory):
     """Factory for creating TokenExchangeActionPermission instances."""
 
-    class Meta:  # noqa: D106
+    class Meta:  # noqa: D106  # ty: ignore[invalid-attribute-override]
         model = models.TokenExchangeActionPermission
 
     rule = factory.SubFactory(TokenExchangeRuleFactory)

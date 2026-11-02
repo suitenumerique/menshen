@@ -85,7 +85,7 @@ class ServiceProvider(BaseModel):
     name = models.CharField(_("name"), max_length=256, unique=True)
     audience_id = models.CharField(_("audience id"), max_length=256, unique=True, db_index=True)
 
-    class Meta:  # noqa: D106
+    class Meta:  # noqa: D106  # ty: ignore[invalid-attribute-override]
         db_table = "menshen_service_provider"
         verbose_name = _("service provider")
         verbose_name_plural = _("service providers")
@@ -134,7 +134,7 @@ class ServiceProviderCredentials(BaseModel):
         default=True,
     )
 
-    class Meta:  # noqa: D106
+    class Meta:  # noqa: D106  # ty: ignore[invalid-attribute-override]
         db_table = "menshen_service_provider_credentials"
         verbose_name = _("service provider credentials")
         verbose_name_plural = _("service providers credentials")
@@ -196,7 +196,7 @@ class TokenExchangeRule(BaseModel):
         verbose_name=_("Is Active"),
     )
 
-    class Meta:  # noqa: D106
+    class Meta:  # noqa: D106  # ty: ignore[invalid-attribute-override]
         unique_together = ("source_service", "target_service")
         db_table = "menshen_tx_rule"
         verbose_name = _("Token Exchange Rule")
@@ -239,7 +239,7 @@ class ScopeGrant(BaseModel):
         help_text=_("Optional throttle rate (e.g., '5/h', '100/day')"),
     )
 
-    class Meta:  # noqa: D106
+    class Meta:  # noqa: D106  # ty: ignore[invalid-attribute-override]
         db_table = "menshen_tx_scope_grant"
         verbose_name = _("Scope Grant")
         verbose_name_plural = _("Scope Grants")
@@ -270,7 +270,7 @@ class ActionScope(BaseModel):
         help_text=_("Human-readable description of this action"),
     )
 
-    class Meta:  # noqa: D106
+    class Meta:  # noqa: D106  # ty: ignore[invalid-attribute-override]
         db_table = "menshen_tx_action_scope"
         verbose_name = _("Action Scope")
         verbose_name_plural = _("Action Scopes")
@@ -317,7 +317,7 @@ class ActionScopeGrant(BaseModel):
         help_text=_("Optional throttle rate (e.g., '5/h', '100/day')"),
     )
 
-    class Meta:  # noqa: D106
+    class Meta:  # noqa: D106  # ty: ignore[invalid-attribute-override]
         db_table = "menshen_tx_action_scope_grant"
         verbose_name = _("Action Scope Grant")
         verbose_name_plural = _("Action Scope Grants")
@@ -354,7 +354,7 @@ class TokenExchangeActionPermission(BaseModel):
         help_text=_("Scope required in source token to use this action (empty = no requirement)"),
     )
 
-    class Meta:  # noqa: D106
+    class Meta:  # noqa: D106  # ty: ignore[invalid-attribute-override]
         db_table = "menshen_tx_action_permission"
         verbose_name = _("Token Exchange Action Permission")
         verbose_name_plural = _("Token Exchange Action Permissions")
@@ -478,7 +478,7 @@ class ExchangedToken(BaseModel):
         help_text=_("The service provider that requested the token exchange"),
     )
 
-    class Meta:  # noqa: D106
+    class Meta:  # noqa: D106  # ty: ignore[invalid-attribute-override]
         db_table = "menshen_tx_exchanged_token"
         ordering = ["-created_at"]
         verbose_name = _("Exchanged Token")
