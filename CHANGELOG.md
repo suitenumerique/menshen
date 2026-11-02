@@ -22,6 +22,7 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 
 #### Dependencies
 
+- Upgrade `django-lasuite` to `1.0.0`
 - Upgrade `psycopg` to `3.3.6`
 - Upgrade `sentry-sdk` to `2.73.0`
 - Upgrade `uvicorn` to `0.54.0`
