@@ -36,7 +36,7 @@ jobs:
         uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
           python-version: ${{ matrix.python-version }}
-          version: "0.13.4"
+          version: "0.13.5"
           enable-cache: true
 
       - name: Build the project
@@ -65,7 +65,7 @@ jobs:
         uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
           python-version: ${{ matrix.python-version }}
-          version: "0.13.4"
+          version: "0.13.5"
           enable-cache: true
 
       - name: Check code formatting with ruff
@@ -100,7 +100,7 @@ jobs:
         uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
           python-version: ${{ matrix.python-version }}
-          version: "0.13.4"
+          version: "0.13.5"
           enable-cache: true
 
       - name: Run tests
