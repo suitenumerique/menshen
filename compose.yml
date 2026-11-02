@@ -303,7 +303,7 @@ services:
 
   # Utils
   openssl:
-    image: alpine/openssl:3.5.8
+    image: alpine/openssl:3.5.9
 
   playwright:
     build:
