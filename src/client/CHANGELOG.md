@@ -8,6 +8,8 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 
 ## [Unreleased]
 
+## [v0.3.0] - 2026-11-02
+
 ### Added
 
 - Add `TokenExchangeClient.close()` method and allow to use the client as a
@@ -46,6 +48,7 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 
 - Add base Menshen API client
 
-[Unreleased]: https://github.com/suitenumerique/menshen/compare/v0.2.0-client...HEAD
+[Unreleased]: https://github.com/suitenumerique/menshen/compare/v0.3.0-client...HEAD
+[v0.3.0]: https://github.com/suitenumerique/menshen/releases/v0.3.0-client
 [v0.2.0]: https://github.com/suitenumerique/menshen/releases/v0.2.0-client
 [v0.1.0]: https://github.com/suitenumerique/menshen/releases/v0.1.0-client
