@@ -470,6 +470,22 @@ def test_request_service_generate_exchange_response(source_service, token_type):
     assert response.grants[0].scope == "target:write"
 
 
+def test_request_service_generate_exchange_jwt_token_includes_client_id(source_service):
+    """The exchanged JWT should include a client_id claim identifying the source service."""
+    request = TokenExchangeRequest(
+        subject_token="foo",
+        subject_token_type=AllowedSubjectTokenType.ACCESS_TOKEN,
+        grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
+        audience="service:target",
+        scope="target:write",
+        requested_token_type=AllowedRequestedTokenType.JWT,
+    )
+    response, _ = RequestService.exchange(source_service, request)
+
+    decoded = TokenGenerator.verify_jwt(response.access_token)
+    assert decoded.claims["client_id"] == source_service.audience_id
+
+
 @pytest.mark.parametrize(
     "token_type", [AllowedRequestedTokenType.ACCESS_TOKEN, AllowedRequestedTokenType.JWT]
 )

@@ -259,6 +259,7 @@ class RequestService:
         audiences: list[str],
         grants: list[MenshenJWTGrantClaim],
         expires_in: int,
+        source_service: ServiceProvider,
     ) -> str:
         """Generate an exchange token given a token exchange request."""
         match token_type:
@@ -278,6 +279,7 @@ class RequestService:
                         may_act=None,  # TODO: Parse from actor_token if needed  # noqa: FIX002
                         kid=cls.kid,
                         grants=grants,
+                        client_id=source_service.audience_id,
                     )
                 except ValueError as exc:
                     raise TokenExchangeIssuingError("An error occurred while issuing JWT.") from exc
@@ -373,7 +375,7 @@ class RequestService:
             or settings.TOKEN_EXCHANGE_DEFAULT_EXPIRES_IN
         )
         access_token: str = cls._generate_exchange_token(
-            requested_token_type, user_info, scope, audiences, grants, expires_in
+            requested_token_type, user_info, scope, audiences, grants, expires_in, source_service
         )
         response = MenshenTokenExchangeResponse(
             access_token=access_token,
