@@ -1,5 +1,5 @@
 [build-system]
-requires = ["uv_build>=0.12.17,<0.13"]
+requires = ["uv_build>=0.13.5,<0.14"]
 build-backend = "uv_build"
 
 [project]
@@ -41,8 +41,8 @@ dev = [
     "httpx2-pytest==2.0.0",
     "pytest==9.1.1",
     "pytest-cov==7.1.0",
-    "ruff==0.16.4",
-    "ty==0.0.74",
+    "ruff==0.17.2",
+    "ty==0.0.92",
 ]
 
 [tool.uv.build-backend]

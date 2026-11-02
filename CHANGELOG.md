@@ -18,6 +18,14 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
   settings to configure the API documentation urls (defaults to `/docs` and
   `/openapi.json`)
 
+### Changed
+
+#### Dependencies
+
+- Upgrade `psycopg` to `3.3.6`
+- Upgrade `sentry-sdk` to `2.73.0`
+- Upgrade `uvicorn` to `0.54.0`
+
 ## [v0.5.0] - 2026-10-29
 
 ### Added
