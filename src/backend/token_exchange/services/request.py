@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.utils.module_loading import import_string
 from lasuite.oidc_resource_server.backend import ResourceServerBackend
 from requests import RequestException
+from rest_framework.exceptions import AuthenticationFailed
 
 from ..enums import (
     AllowedRequestedTokenType,
@@ -19,6 +20,7 @@ from ..enums import (
 )
 from ..exceptions import (
     TokenExchangeConfigurationError,
+    TokenExchangeInactiveUserError,
     TokenExchangeIntrospectionError,
     TokenExchangeInvalidActionError,
     TokenExchangeInvalidScopesError,
@@ -93,6 +95,14 @@ class RequestService:
         """Introspect the token exchange request subject token."""
         try:
             user_info = cls._introspection_backend().get_user_info_with_introspection(token)
+        except AuthenticationFailed as exc:
+            logger.info("Subject token introspection failed: user is inactive.")
+            raise TokenExchangeInactiveUserError("Introspected user is not active.") from exc
+        except SuspiciousOperation as exc:
+            logger.warning("Subject token introspection failed: suspicious introspection response.")
+            raise TokenExchangeResourceServerIntrospectionError(
+                "Failed to introspect subject token."
+            ) from exc
         except RequestException as exc:
             raise TokenExchangeResourceServerIntrospectionError(
                 "Failed to introspect subject token."

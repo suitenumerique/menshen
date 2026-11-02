@@ -34,6 +34,14 @@ class TokenExchangeResourceServerIntrospectionError(APIError):
     default_code: str = "invalid_introspection"
 
 
+class TokenExchangeInactiveUserError(APIError):
+    """Exception raised when the subject token user is inactive."""
+
+    status_code: int = 403
+    default_detail: str = "Introspected user is not active."
+    default_code: str = "inactive_user"
+
+
 class TokenExchangeConfigurationError(APIError):
     """Exception raised when server configuration is not valid."""
 

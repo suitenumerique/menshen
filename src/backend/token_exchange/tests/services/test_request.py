@@ -9,6 +9,7 @@ from django.core.exceptions import SuspiciousOperation
 from pytest_django.asserts import assertNumQueries
 from requests import ConnectionError as ConnectionError_
 from requests import HTTPError
+from rest_framework.exceptions import AuthenticationFailed
 
 from token_exchange.enums import (
     AllowedActorTokenType,
@@ -19,6 +20,7 @@ from token_exchange.enums import (
 )
 from token_exchange.exceptions import (
     TokenExchangeConfigurationError,
+    TokenExchangeInactiveUserError,
     TokenExchangeIntrospectionError,
     TokenExchangeInvalidActionError,
     TokenExchangeInvalidScopesError,
@@ -106,6 +108,62 @@ def test_request_service_introspect_subject_token_request_failure(
         TokenExchangeResourceServerIntrospectionError, match="Failed to introspect subject token"
     ):
         RequestService.exchange(source_service, request)
+
+
+def test_request_service_introspect_subject_token_inactive_user(
+    source_service, settings, monkeypatch, caplog
+):
+    """Test the request service introspect subject token method when the user is inactive."""
+    request = TokenExchangeRequest(
+        subject_token="foo",
+        subject_token_type=AllowedSubjectTokenType.ACCESS_TOKEN,
+        grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
+        audience="service:target",
+    )
+
+    # The OIDC backend raises AuthenticationFailed when the introspected user is inactive
+    monkeypatch.setattr(
+        f"{settings.OIDC_RS_BACKEND_CLASS}.get_user_info_with_introspection",
+        Mock(side_effect=AuthenticationFailed("Introspected user is not active")),
+    )
+    with (
+        pytest.raises(TokenExchangeInactiveUserError, match="Introspected user is not active"),
+        caplog.at_level(logging.INFO),
+    ):
+        RequestService.exchange(source_service, request)
+
+    assert "Subject token introspection failed: user is inactive." in caplog.messages
+
+
+def test_request_service_introspect_subject_token_suspicious_operation(
+    source_service, settings, monkeypatch, caplog
+):
+    """Test the request service introspect subject token method when suspicious operation raises."""
+    request = TokenExchangeRequest(
+        subject_token="foo",
+        subject_token_type=AllowedSubjectTokenType.ACCESS_TOKEN,
+        grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
+        audience="service:target",
+    )
+
+    # The OIDC backend raises SuspiciousOperation when the introspection response
+    # cannot be processed (invalid JSON, claim validation failure, ...)
+    monkeypatch.setattr(
+        f"{settings.OIDC_RS_BACKEND_CLASS}.get_user_info_with_introspection",
+        Mock(side_effect=SuspiciousOperation("Failed to validate token's claims")),
+    )
+    with (
+        pytest.raises(
+            TokenExchangeResourceServerIntrospectionError,
+            match="Failed to introspect subject token",
+        ),
+        caplog.at_level(logging.WARNING),
+    ):
+        RequestService.exchange(source_service, request)
+
+    assert "Subject token introspection failed: suspicious introspection response." in (
+        caplog.messages
+    )
 
 
 def test_request_service_introspect_subject_token_suspicious_introspection_response_audience(

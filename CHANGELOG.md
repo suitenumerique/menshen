@@ -27,6 +27,14 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 - Upgrade `sentry-sdk` to `2.73.0`
 - Upgrade `uvicorn` to `0.54.0`
 
+### Fixed
+
+- Return a proper 403 response when the introspected subject token user is not
+  active
+- Return a proper 422 error response instead of an internal Django error page
+  when the subject token introspection response cannot be processed
+  (`SuspiciousOperation` raised by the introspection backend)
+
 ## [v0.5.0] - 2026-10-29
 
 ### Added

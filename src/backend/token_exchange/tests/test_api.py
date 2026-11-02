@@ -8,8 +8,10 @@ from unittest import mock
 from uuid import uuid4
 
 import pytest
+from django.core.exceptions import SuspiciousOperation
 from ninja.testing import TestClient
 from requests import HTTPError
+from rest_framework.exceptions import AuthenticationFailed
 
 from token_exchange import api as api_module
 from token_exchange.api import api
@@ -391,6 +393,53 @@ def test_exchange_view_with_introspection_error(source_api_client, monkeypatch, 
     monkeypatch.setattr(
         f"{settings.OIDC_RS_BACKEND_CLASS}.get_user_info_with_introspection",
         mock.Mock(side_effect=HTTPError("Connection fails")),
+    )
+    response = source_api_client.post("/exchange/", data=payload)
+    assert response.status_code == 422  # UNPROCESSABLE_ENTITY
+    assert response.json() == {
+        "detail": "Failed to introspect subject token.",
+        "code": "invalid_introspection",
+    }
+
+
+@pytest.mark.django_db
+def test_exchange_view_with_inactive_user(source_api_client, monkeypatch, settings):
+    """Test the TokenExchangeView when the subject token user is inactive."""
+    payload = {
+        "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+        "subject_token": "fake-access-token",
+        "subject_token_type": TokenType.ACCESS_TOKEN,
+        "audience": "service:target",
+    }
+
+    # The OIDC backend raises AuthenticationFailed when the introspected user is inactive
+    monkeypatch.setattr(
+        f"{settings.OIDC_RS_BACKEND_CLASS}.get_user_info_with_introspection",
+        mock.Mock(side_effect=AuthenticationFailed("Introspected user is not active")),
+    )
+    response = source_api_client.post("/exchange/", data=payload)
+    assert response.status_code == 403  # FORBIDDEN
+    assert response.json() == {
+        "detail": "Introspected user is not active.",
+        "code": "inactive_user",
+    }
+
+
+@pytest.mark.django_db
+def test_exchange_view_with_suspicious_operation(source_api_client, monkeypatch, settings):
+    """Test the TokenExchangeView when the subject token introspection raises."""
+    payload = {
+        "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+        "subject_token": "fake-access-token",
+        "subject_token_type": TokenType.ACCESS_TOKEN,
+        "audience": "service:target",
+    }
+
+    # The OIDC backend raises SuspiciousOperation when the introspection response
+    # cannot be processed (invalid JSON, claim validation failure, ...)
+    monkeypatch.setattr(
+        f"{settings.OIDC_RS_BACKEND_CLASS}.get_user_info_with_introspection",
+        mock.Mock(side_effect=SuspiciousOperation("Failed to validate token's claims")),
     )
     response = source_api_client.post("/exchange/", data=payload)
     assert response.status_code == 422  # UNPROCESSABLE_ENTITY
