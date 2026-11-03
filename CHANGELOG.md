@@ -8,6 +8,12 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- Add `SENTRY_TRACES_SAMPLE_RATE` and `SENTRY_PROFILES_SAMPLE_RATE` settings to
+  configure Sentry performance tracing and profiling (disabled by default, only
+  active when `SENTRY_DSN` is defined)
+
 ## [v0.6.0] - 2026-11-03
 
 ### Added

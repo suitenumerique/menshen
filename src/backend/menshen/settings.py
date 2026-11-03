@@ -53,6 +53,8 @@ class Base(Configuration):
     variables:
 
     * SENTRY_DSN
+    * SENTRY_TRACES_SAMPLE_RATE
+    * SENTRY_PROFILES_SAMPLE_RATE
     * DB_NAME
     * DB_HOST
     * DB_PASSWORD
@@ -252,6 +254,12 @@ class Base(Configuration):
 
     # Sentry
     SENTRY_DSN = values.URLValue(None, environ_name="SENTRY_DSN", environ_prefix=None)
+    SENTRY_TRACES_SAMPLE_RATE = values.FloatValue(
+        None, environ_name="SENTRY_TRACES_SAMPLE_RATE", environ_prefix=None
+    )
+    SENTRY_PROFILES_SAMPLE_RATE = values.FloatValue(
+        None, environ_name="SENTRY_PROFILES_SAMPLE_RATE", environ_prefix=None
+    )
 
     # Session
     SESSION_ENGINE = "django.contrib.sessions.backends.cache"
@@ -492,6 +500,9 @@ class Base(Configuration):
                 environment=cls.__name__.lower(),
                 release=get_release(),
                 integrations=[DjangoIntegration()],
+                traces_sample_rate=cast(float, cls.SENTRY_TRACES_SAMPLE_RATE),
+                profiles_sample_rate=cast(float, cls.SENTRY_PROFILES_SAMPLE_RATE),
+                profile_lifecycle="trace",
             )
             sentry_sdk.set_tag("application", "backend")
 
