@@ -583,7 +583,7 @@ wheels = [
 
 [[package]]
 name = "menshen"
-version = "0.5.0"
+version = "0.6.0"
 source = { editable = "." }
 dependencies = [
     { name = "argon2-cffi" },
