@@ -25,6 +25,9 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 - Add `TOKEN_EXCHANGE_API_DOCS_URL` and `TOKEN_EXCHANGE_API_OPENAPI_URL`
   settings to configure the API documentation urls (defaults to `/docs` and
   `/openapi.json`)
+- Add a `client_id` claim to exchanged JWTs identifying the service provider
+  that requested the token exchange (as its audience id), so that target
+  services know which service requested the token
 
 ### Changed
 
