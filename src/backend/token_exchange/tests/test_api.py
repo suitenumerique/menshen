@@ -885,11 +885,38 @@ def test_revocation_view_with_unknown_token(source_api_client, caplog):
 
 
 @pytest.mark.django_db
-def test_revocation_view(target_api_client, target_service, caplog):
-    """Test the TokenRevocationView revocation."""
+def test_revocation_view_by_target_service(
+    target_api_client, source_service, target_service, caplog
+):
+    """Test the TokenRevocationView revocation by the target service (not allowed)."""
     raw_token = str(uuid4())
     exchanged_token = ExchangedTokenFactory.create(
         token_type=TokenTypeChoices.ACCESS_TOKEN,
+        source_service=source_service,
+        audiences=[target_service.audience_id],
+        raw_token=raw_token,
+    )
+
+    with caplog.at_level(logging.INFO):
+        response = target_api_client.post("/revoke/", data={"token": raw_token})
+    assert response.status_code == 200  # OK
+    assert not len(response.content)
+    assert (
+        "'service:target' service tried to revoke an exchanged token it did not request"
+        in caplog.messages
+    )
+
+    exchanged_token.refresh_from_db()
+    assert not exchanged_token.is_revoked()
+
+
+@pytest.mark.django_db
+def test_revocation_view(source_api_client, source_service, target_service, caplog):
+    """Test the TokenRevocationView revocation by the source service."""
+    raw_token = str(uuid4())
+    exchanged_token = ExchangedTokenFactory.create(
+        token_type=TokenTypeChoices.ACCESS_TOKEN,
+        source_service=source_service,
         audiences=[target_service.audience_id],
         raw_token=raw_token,
     )
@@ -899,7 +926,7 @@ def test_revocation_view(target_api_client, target_service, caplog):
 
     before = datetime.now(tz=UTC)
     with caplog.at_level(logging.INFO):
-        response = target_api_client.post("/revoke/", data={"token": raw_token})
+        response = source_api_client.post("/revoke/", data={"token": raw_token})
     assert response.status_code == 200  # OK
     assert not len(response.content)
     assert (

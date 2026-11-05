@@ -16,6 +16,9 @@ class RevocationService(ExchangedTokenMixin):
 
     Use this service to revoke an exchanged token.
 
+    Only the service that requested the exchanged token (the source service) is
+    allowed to revoke it (RFC 7009 section 2.1).
+
     Note that the request is supposed to be valid when submitted to this service.
 
     """
@@ -29,8 +32,18 @@ class RevocationService(ExchangedTokenMixin):
             logger.error("Token revocation failed (not found).")
             return
 
-        if not cls.is_token_valid(exchanged_token, source_service.audience_id):
+        if not exchanged_token.is_valid():
             logger.error("Token revocation failed (invalid token).")
+            return
+
+        # RFC 7009 (section 2.1): only the client the token was issued to can
+        # revoke it. With RFC 8693, the token is issued to the service that
+        # requested the exchange (the source service), not to its audiences.
+        if exchanged_token.source_service_id != source_service.id:
+            logger.error(
+                "'%s' service tried to revoke an exchanged token it did not request",
+                source_service.audience_id,
+            )
             return
 
         exchanged_token.revoke()

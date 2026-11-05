@@ -14,6 +14,11 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
   configure Sentry performance tracing and profiling (disabled by default, only
   active when `SENTRY_DSN` is defined)
 
+### Fixed
+
+- Only allow the service that requested a token exchange (source service) to
+  revoke the exchanged token, instead of its target services (RFC 7009)
+
 ## [v0.6.0] - 2026-11-03
 
 ### Added

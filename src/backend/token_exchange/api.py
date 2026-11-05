@@ -98,7 +98,8 @@ def revoke(request: HttpRequest, token_revocation_request: Form[RevocationReques
     RFC 7009 Token Revocation endpoint.
 
     This endpoint allows revoking exchanged tokens before their
-    natural expiration.
+    natural expiration. Only the service that requested the token
+    exchange (the source service) is allowed to revoke a token.
 
     POST /auth/token/revoke/
         Revoke a token according to RFC 7009
