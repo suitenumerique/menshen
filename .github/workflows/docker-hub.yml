@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   build-and-push-backend:
-    uses: ./.github/workflows/_docker-publish.yml
+    uses: $/.github/workflows/_docker-publish.yml
     permissions:
       contents: read
     secrets:
