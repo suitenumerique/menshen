@@ -1,6 +1,6 @@
 """Menshen: services:introspection for the token_exchange application."""
 
-import logging
+import structlog
 
 from token_exchange.exceptions import TokenExchangeError
 from token_exchange.models import ServiceProvider
@@ -8,7 +8,7 @@ from token_exchange.schemas import IntrospectionResponse
 
 from .mixins import ExchangedTokenMixin
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 class IntrospectionService(ExchangedTokenMixin):
@@ -27,17 +27,17 @@ class IntrospectionService(ExchangedTokenMixin):
         try:
             exchanged_token = cls.get_exchanged_token(token)
         except TokenExchangeError:
-            logger.error("Token introspection failed (not found).")
+            logger.error("token_introspection_failed", reason="token_not_found")
             return IntrospectionResponse(active=False)
 
         if not cls.is_token_valid(exchanged_token, target_service.audience_id):
-            logger.error("Token introspection failed (invalid token).")
+            logger.error("token_introspection_failed", reason="invalid_token")
             return IntrospectionResponse(active=False)
 
         logger.info(
-            "Token introspected (active): token_jti=%s, type=%s, kid=%s",
-            exchanged_token.subject_token_jti,
-            exchanged_token.token_type,
-            exchanged_token.jwt_kid or "N/A",
+            "token_introspected",
+            token_jti=exchanged_token.subject_token_jti,
+            type=exchanged_token.token_type,
+            kid=exchanged_token.jwt_kid or "N/A",
         )
         return exchanged_token.to_introspection_response()

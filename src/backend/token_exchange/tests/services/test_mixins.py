@@ -1,11 +1,11 @@
 """Menshen: service mixins tests for the token_exchange application."""
 
-import logging
 from datetime import UTC, datetime, timedelta
 from unittest import mock
 from uuid import uuid4
 
 import pytest
+from structlog.testing import capture_logs
 
 from token_exchange.exceptions import TokenExchangeError
 from token_exchange.factories import ExchangedTokenFactory, JWTExchangedTokenFactory
@@ -14,14 +14,14 @@ from token_exchange.services.mixins import ExchangedTokenMixin
 from token_exchange.services.token import TokenGenerator
 
 
-def test_exchanged_token_mixin_when_token_not_found(caplog):
+def test_exchanged_token_mixin_when_token_not_found():
     """Test the ExchangedTokenMixin get_exchanged_token method when the token is not found."""
     with (
-        caplog.at_level(logging.INFO),
+        capture_logs() as log_events,
         pytest.raises(TokenExchangeError, match=r"Token not found\."),
     ):
         ExchangedTokenMixin.get_exchanged_token("foo")
-    assert "Token not found." in caplog.messages
+    assert log_events == [{"event": "token_not_found", "log_level": "info"}]
 
 
 def test_exchanged_token_mixin_get_exchanged_token(target_service):
@@ -60,9 +60,7 @@ def test_exchanged_token_mixin_get_exchanged_token_with_wrong_hash_key(target_se
         ),
     ],
 )
-def test_exchanged_token_mixin_token_expired_or_revoked(
-    target_service, expires_at, revoked_at, caplog
-):
+def test_exchanged_token_mixin_token_expired_or_revoked(target_service, expires_at, revoked_at):
     """Test the ExchangedTokenMixin with an expired or revoked token."""
     exchanged_token = ExchangedTokenFactory.build(
         token_type=TokenTypeChoices.ACCESS_TOKEN,
@@ -70,28 +68,35 @@ def test_exchanged_token_mixin_token_expired_or_revoked(
         expires_at=expires_at,
         revoked_at=revoked_at,
     )
-    with caplog.at_level(logging.INFO):
+    with capture_logs() as log_events:
         assert not ExchangedTokenMixin.is_token_valid(exchanged_token, target_service.audience_id)
-    assert (
-        "Token is invalid: "
-        f"token_jti={exchanged_token.subject_token_jti}, "
-        f"type={exchanged_token.token_type}, "
-        f"kid={exchanged_token.jwt_kid or 'N/A'}"
-    ) in caplog.messages
+    assert log_events == [
+        {
+            "event": "exchanged_token_invalid",
+            "log_level": "warning",
+            "token_jti": exchanged_token.subject_token_jti,
+            "type": exchanged_token.token_type,
+            "kid": "N/A",
+        }
+    ]
 
 
-def test_exchanged_token_mixin_token_with_bad_audiences(target_service, caplog):
+def test_exchanged_token_mixin_token_with_bad_audiences(target_service):
     """Test the ExchangedTokenMixin with a bad audience."""
     exchanged_token = ExchangedTokenFactory.build(
         token_type=TokenTypeChoices.ACCESS_TOKEN,
         audiences=["service:foo"],
     )
-    with caplog.at_level(logging.INFO):
+    with capture_logs() as log_events:
         assert not ExchangedTokenMixin.is_token_valid(exchanged_token, target_service.audience_id)
-    assert (
-        f"'{target_service.audience_id}' service tried to act on an exchanged token "
-        "that is beyond its audience"
-    ) in caplog.messages
+    assert log_events == [
+        {
+            "event": "token_audience_mismatch",
+            "log_level": "error",
+            "audience": target_service.audience_id,
+            "audiences": ["service:foo"],
+        }
+    ]
 
 
 def test_exchanged_token_mixin_valid_access_token(target_service):
@@ -103,21 +108,24 @@ def test_exchanged_token_mixin_valid_access_token(target_service):
     assert ExchangedTokenMixin.is_token_valid(exchanged_token, target_service.audience_id)
 
 
-def test_exchanged_token_mixin_token_without_source_service(target_service, caplog):
+def test_exchanged_token_mixin_token_without_source_service(target_service):
     """Test the ExchangedTokenMixin with a token whose source service does not exist."""
     exchanged_token = ExchangedTokenFactory.build(
         token_type=TokenTypeChoices.ACCESS_TOKEN,
         audiences=[target_service.audience_id],
         source_service=None,
     )
-    with caplog.at_level(logging.INFO):
+    with capture_logs() as log_events:
         assert not ExchangedTokenMixin.is_token_valid(exchanged_token, target_service.audience_id)
-    assert (
-        "Token is invalid: "
-        f"token_jti={exchanged_token.subject_token_jti}, "
-        f"type={exchanged_token.token_type}, "
-        f"kid={exchanged_token.jwt_kid or 'N/A'}"
-    ) in caplog.messages
+    assert log_events == [
+        {
+            "event": "exchanged_token_invalid",
+            "log_level": "warning",
+            "token_jti": exchanged_token.subject_token_jti,
+            "type": exchanged_token.token_type,
+            "kid": "N/A",
+        }
+    ]
 
 
 def test_exchanged_token_mixin_valid_jwt(target_service):

@@ -19,6 +19,10 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 - Only allow the service that requested a token exchange (source service) to
   revoke the exchanged token, instead of its target services (RFC 7009)
 
+### Changed
+
+- Switch backend logging to structured logging with `structlog`
+
 ## [v0.6.0] - 2026-11-03
 
 ### Added

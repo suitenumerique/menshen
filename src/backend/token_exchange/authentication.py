@@ -1,5 +1,6 @@
 """Menshen: authentication backends for the token_exchange application."""
 
+import structlog
 from django.http import HttpRequest
 from ninja.errors import AuthenticationError
 from ninja.security import HttpBasicAuth
@@ -29,4 +30,6 @@ class ServiceProviderBasicAuthentication(HttpBasicAuth):
         if not credentials.check_client_secret(password):
             raise AuthenticationError(message="Invalid service provider credentials.")
 
-        return credentials.service_provider
+        service_provider = credentials.service_provider
+        structlog.contextvars.bind_contextvars(service_provider_id=str(service_provider.pk))
+        return service_provider
