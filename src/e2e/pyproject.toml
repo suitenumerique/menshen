@@ -7,7 +7,7 @@ version = "0.1.0"
 description = "Menshen playground e2e testing using Playwright"
 readme = "README.md"
 authors = [{ "name" = "DINUM", "email" = "dev@mail.numerique.gouv.fr" }]
-requires-python = ">=3.14"
+requires-python = "~=3.14.0"
 keywords = ["Django", "OAuth", "e2e"]
 license = "MIT"
 dependencies = [
