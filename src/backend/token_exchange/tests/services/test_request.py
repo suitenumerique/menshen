@@ -1,6 +1,5 @@
 """Menshen: request service tests for the token_exchange application."""
 
-import logging
 from unittest.mock import Mock
 from uuid import uuid4
 
@@ -10,6 +9,7 @@ from pytest_django.asserts import assertNumQueries
 from requests import ConnectionError as ConnectionError_
 from requests import HTTPError
 from rest_framework.exceptions import AuthenticationFailed
+from structlog.testing import capture_logs
 
 from token_exchange.enums import (
     AllowedActorTokenType,
@@ -40,7 +40,7 @@ from token_exchange.services.token import TokenGenerator
 from token_exchange.utils import hash_token
 
 
-def test_request_service_validate_target_only_unknown_audiences(source_service, caplog):
+def test_request_service_validate_target_only_unknown_audiences(source_service):
     """Test the request service validate target method with only unknown audiences."""
     request = TokenExchangeRequest(
         subject_token="foo",
@@ -49,17 +49,23 @@ def test_request_service_validate_target_only_unknown_audiences(source_service, 
         audience="service:foo",
     )
     with (
+        capture_logs() as log_events,
         pytest.raises(
             TokenExchangeInvalidTargetError,
             match=r"Only unknown audience\(s\) requested",
         ),
-        caplog.at_level(logging.INFO),
     ):
         RequestService.exchange(source_service, request)
-    assert "Only unknown audience(s) requested: service:foo" in caplog.messages
+    assert log_events == [
+        {
+            "event": "unknown_audiences_requested",
+            "log_level": "error",
+            "audiences": ["service:foo"],
+        }
+    ]
 
 
-def test_request_service_validate_target_with_unknown_audience(source_service, caplog):
+def test_request_service_validate_target_with_unknown_audience(source_service):
     """Test the request service validate target method with unknown audience."""
     request = TokenExchangeRequest(
         subject_token="foo",
@@ -68,14 +74,20 @@ def test_request_service_validate_target_with_unknown_audience(source_service, c
         audience="service:target service:foo",
     )
     with (
+        capture_logs() as log_events,
         pytest.raises(
             TokenExchangeInvalidTargetError,
             match=r"Unknown audience\(s\) requested.",
         ),
-        caplog.at_level(logging.INFO),
     ):
         RequestService.exchange(source_service, request)
-    assert "Unknown audience(s) requested: service:foo" in caplog.messages
+    assert log_events == [
+        {
+            "event": "unknown_audiences_requested",
+            "log_level": "error",
+            "audiences": ["service:foo"],
+        }
+    ]
 
 
 def test_request_service_introspect_subject_token_request_failure(
@@ -111,7 +123,7 @@ def test_request_service_introspect_subject_token_request_failure(
 
 
 def test_request_service_introspect_subject_token_inactive_user(
-    source_service, settings, monkeypatch, caplog
+    source_service, settings, monkeypatch
 ):
     """Test the request service introspect subject token method when the user is inactive."""
     request = TokenExchangeRequest(
@@ -127,16 +139,22 @@ def test_request_service_introspect_subject_token_inactive_user(
         Mock(side_effect=AuthenticationFailed("Introspected user is not active")),
     )
     with (
+        capture_logs() as log_events,
         pytest.raises(TokenExchangeInactiveUserError, match="Introspected user is not active"),
-        caplog.at_level(logging.INFO),
     ):
         RequestService.exchange(source_service, request)
 
-    assert "Subject token introspection failed: user is inactive." in caplog.messages
+    assert log_events == [
+        {
+            "event": "subject_token_introspection_failed",
+            "log_level": "info",
+            "reason": "user_is_inactive",
+        }
+    ]
 
 
 def test_request_service_introspect_subject_token_suspicious_operation(
-    source_service, settings, monkeypatch, caplog
+    source_service, settings, monkeypatch
 ):
     """Test the request service introspect subject token method when suspicious operation raises."""
     request = TokenExchangeRequest(
@@ -153,21 +171,25 @@ def test_request_service_introspect_subject_token_suspicious_operation(
         Mock(side_effect=SuspiciousOperation("Failed to validate token's claims")),
     )
     with (
+        capture_logs() as log_events,
         pytest.raises(
             TokenExchangeResourceServerIntrospectionError,
             match="Failed to introspect subject token",
         ),
-        caplog.at_level(logging.WARNING),
     ):
         RequestService.exchange(source_service, request)
 
-    assert "Subject token introspection failed: suspicious introspection response." in (
-        caplog.messages
-    )
+    assert log_events == [
+        {
+            "event": "subject_token_introspection_failed",
+            "log_level": "warning",
+            "reason": "suspicious_response",
+        }
+    ]
 
 
 def test_request_service_introspect_subject_token_suspicious_introspection_response_audience(
-    source_service, monkeypatch, settings, caplog
+    source_service, monkeypatch, settings
 ):
     """
     Test the request service introspect subject token method when suspicious audience raises.
@@ -190,17 +212,21 @@ def test_request_service_introspect_subject_token_suspicious_introspection_respo
     monkeypatch.setattr(
         f"{settings.OIDC_RS_BACKEND_CLASS}.get_user_info_with_introspection", mock_user_info
     )
-    with pytest.raises(SuspiciousOperation), caplog.at_level(logging.INFO):
+    with capture_logs() as log_events, pytest.raises(SuspiciousOperation):
         RequestService.exchange(source_service, request)
 
-    assert (
-        "Introspected token audience is different from requesting service: "
-        "service:suspicious, service:source"
-    ) in caplog.messages
+    assert log_events == [
+        {
+            "event": "subject_token_audience_mismatch",
+            "log_level": "error",
+            "token_audience": "service:suspicious",
+            "audience": "service:source",
+        }
+    ]
 
 
 def test_request_service_introspect_subject_token_missing_identity(
-    source_service, monkeypatch, settings, caplog
+    source_service, monkeypatch, settings
 ):
     """Test the request service introspect subject token method when not identity is returned."""
     request = TokenExchangeRequest(
@@ -219,15 +245,15 @@ def test_request_service_introspect_subject_token_missing_identity(
         f"{settings.OIDC_RS_BACKEND_CLASS}.get_user_info_with_introspection", mock_user_info
     )
     with (
+        capture_logs() as log_events,
         pytest.raises(
             TokenExchangeIntrospectionError,
             match=r"Subject token introspection failed to provide an identity \(sub\)",
         ),
-        caplog.at_level(logging.WARNING),
     ):
         RequestService.exchange(source_service, request)
 
-    assert "Introspection response has no 'sub'" in caplog.messages
+    assert log_events == [{"event": "introspection_missing_sub", "log_level": "warning"}]
 
 
 def test_request_service_validate_pure_scopes_from_request(source_service):
@@ -324,7 +350,7 @@ def test_request_service_validate_scope_action_from_request_with_granted_require
 
 
 def test_request_service_validate_scope_action_from_request_when_action_has_no_permission(
-    source_service, target_service, caplog
+    source_service, target_service
 ):
     """
     Test the request service validate scope action method with scopes from the request.
@@ -347,23 +373,27 @@ def test_request_service_validate_scope_action_from_request_when_action_has_no_p
         scope="action:update-target",
     )
     with (
+        capture_logs() as log_events,
         pytest.raises(
             TokenExchangeInvalidScopesError,
             match="You cannot request more scope than rules allow.",
         ),
-        caplog.at_level(logging.INFO),
     ):
         RequestService.exchange(source_service, request)
 
     # Scopes from request action are not granted
-    assert (
-        "Unsatisfied requested accesses ({'service:target:action:update-target'}) "
-        "given rules ({'service:target:action:write-to-target'})"
-    ) in caplog.messages
+    assert log_events == [
+        {
+            "event": "unsatisfied_requested_accesses",
+            "log_level": "warning",
+            "requested_accesses": ["service:target:action:update-target"],
+            "allowed_accesses": ["service:target:action:write-to-target"],
+        }
+    ]
 
 
 def test_request_service_validate_scope_action_from_request_when_action_cannot_be_granted(
-    source_service, target_service, source_target_rule, caplog
+    source_service, target_service, source_target_rule
 ):
     """
     Test the request service validate scope action method with scopes from the request.
@@ -391,16 +421,22 @@ def test_request_service_validate_scope_action_from_request_when_action_cannot_b
         scope="action:update-target",
     )
     with (
+        capture_logs() as log_events,
         pytest.raises(
             TokenExchangeInvalidActionError,
             match="All required source scopes are not satisfied for this action.",
         ),
-        caplog.at_level(logging.INFO),
     ):
         RequestService.exchange(source_service, request)
 
     # Scopes from request action are not granted
-    assert "Missing required source scope(s): target:update" in caplog.messages
+    assert log_events == [
+        {
+            "event": "missing_required_source_scopes",
+            "log_level": "error",
+            "missing_scopes": ["target:update"],
+        }
+    ]
 
 
 @pytest.mark.parametrize("token_type", [TokenType.ACCESS_TOKEN, TokenType.JWT])

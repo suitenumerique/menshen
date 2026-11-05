@@ -23,6 +23,8 @@ from django.utils.translation import gettext_lazy as _
 from lasuite.configuration.values import SecretFileValue
 from sentry_sdk.integrations.django import DjangoIntegration
 
+from .logging import configure_structlog, get_logging_config
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = os.environ.get("DATA_DIR", Path("/data"))
@@ -36,6 +38,43 @@ def get_release():
         return pyproject_data["project"]["version"]
     except FileNotFoundError, KeyError:
         return "NA"  # Default: not available
+
+
+def get_project_logging_config(json_renderer: bool, **kwargs) -> dict:
+    """
+    Return the logging configuration of the project loggers.
+
+    The levels can be set from the environment. Extra keyword arguments are
+    passed to `get_logging_config`.
+    """
+    return get_logging_config(
+        json_renderer=json_renderer,
+        root_level=cast(
+            "str",
+            values.Value("INFO", environ_name="LOGGING_LEVEL_LOGGERS_ROOT", environ_prefix=None),
+        ),
+        loggers={
+            "token_exchange": {
+                "handlers": ["console"],
+                "level": values.Value(
+                    "INFO",
+                    environ_name="LOGGING_LEVEL_LOGGERS_APP",
+                    environ_prefix=None,
+                ),
+                "propagate": False,
+            },
+            "lasuite": {
+                "handlers": ["console"],
+                "level": values.Value(
+                    "INFO",
+                    environ_name="LOGGING_LEVEL_LOGGERS_LASUITE",
+                    environ_prefix=None,
+                ),
+                "propagate": False,
+            },
+        },
+        **kwargs,
+    )
 
 
 class Base(Configuration):
@@ -165,6 +204,9 @@ class Base(Configuration):
         "django.middleware.common.CommonMiddleware",
         "django.middleware.csrf.CsrfViewMiddleware",
         "django.contrib.auth.middleware.AuthenticationMiddleware",
+        # After AuthenticationMiddleware so that request.user is available to
+        # bind the user id to the request logs.
+        "django_structlog.middlewares.RequestMiddleware",
         "django.contrib.messages.middleware.MessageMiddleware",
         "dockerflow.django.middleware.DockerflowMiddleware",
     ]
@@ -172,6 +214,27 @@ class Base(Configuration):
     AUTHENTICATION_BACKENDS = [
         "django.contrib.auth.backends.ModelBackend",
     ]
+
+    # django-structlog
+    # Disable IP logging to avoid persisting the client IP address (personal
+    # data) in the logs, and bind the user id from the "pk" field.
+    DJANGO_STRUCTLOG_IP_LOGGING_ENABLED = values.BooleanValue(
+        default=False,
+        environ_name="DJANGO_STRUCTLOG_IP_LOGGING_ENABLED",
+        environ_prefix=None,
+    )
+    # The user agent can help fingerprint clients (personal data): do not log
+    # it by default either.
+    LOGGING_USER_AGENT_ENABLED = values.BooleanValue(
+        default=False,
+        environ_name="LOGGING_USER_AGENT_ENABLED",
+        environ_prefix=None,
+    )
+    DJANGO_STRUCTLOG_USER_ID_FIELD = values.Value(
+        default="pk",
+        environ_name="DJANGO_STRUCTLOG_USER_ID_FIELD",
+        environ_prefix=None,
+    )
 
     PASSWORD_HASHERS = [
         "django.contrib.auth.hashers.Argon2PasswordHasher",
@@ -186,6 +249,7 @@ class Base(Configuration):
         "token_exchange",
         # Third party apps
         "dockerflow.django",
+        "django_structlog",
         # Django
         "django.contrib.admin",
         "django.contrib.auth",
@@ -420,49 +484,7 @@ class Base(Configuration):
     # Logging
     # We want to make it easy to log to console but by default we log production
     # to Sentry and don't want to log to console.
-    LOGGING = {
-        "version": 1,
-        "disable_existing_loggers": False,
-        "formatters": {
-            "simple": {
-                "format": "{asctime} {name} {levelname} {message}",
-                "style": "{",
-            },
-        },
-        "handlers": {
-            "console": {
-                "class": "logging.StreamHandler",
-                "formatter": "simple",
-            },
-        },
-        # Override root logger to send it to console
-        "root": {
-            "handlers": ["console"],
-            "level": values.Value(
-                "INFO", environ_name="LOGGING_LEVEL_LOGGERS_ROOT", environ_prefix=None
-            ),
-        },
-        "loggers": {
-            "token_exchange": {
-                "handlers": ["console"],
-                "level": values.Value(
-                    "INFO",
-                    environ_name="LOGGING_LEVEL_LOGGERS_APP",
-                    environ_prefix=None,
-                ),
-                "propagate": False,
-            },
-            "lasuite": {
-                "handlers": ["console"],
-                "level": values.Value(
-                    "INFO",
-                    environ_name="LOGGING_LEVEL_LOGGERS_LASUITE",
-                    environ_prefix=None,
-                ),
-                "propagate": False,
-            },
-        },
-    }
+    LOGGING = get_project_logging_config(json_renderer=True)
 
     API_USERS_LIST_LIMIT = values.PositiveIntegerValue(
         default=5,
@@ -492,6 +514,12 @@ class Base(Configuration):
         settings to be loaded.
         """
         super().post_setup()
+
+        # Configure structlog to be rendered by the standard library logging.
+        # This is required before Django applies the LOGGING configuration,
+        # so that structlog events are already wrapped for the
+        # ProcessorFormatter when the first record is emitted.
+        configure_structlog()
 
         # The SENTRY_DSN setting should be available to activate sentry for an environment
         if cls.SENTRY_DSN is not None:
@@ -583,6 +611,8 @@ class Development(Base):
     DEBUG_TOOLBAR_CONFIG = {
         "SHOW_TOOLBAR_CALLBACK": lambda request: True,
     }
+
+    LOGGING = get_project_logging_config(json_renderer=False)
 
     def __init__(self):
         """Override settings."""
