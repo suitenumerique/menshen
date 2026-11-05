@@ -1,21 +1,29 @@
 """Menshen: introspection service tests for the token_exchange application."""
 
-import logging
 from datetime import UTC, datetime
+
+from structlog.testing import capture_logs
 
 from token_exchange.factories import JWTExchangedTokenFactory
 from token_exchange.services.introspection import IntrospectionService
 from token_exchange.services.token import TokenGenerator
 
 
-def test_instrospection_service_revoke_with_an_unknown_token(target_service, caplog):
+def test_instrospection_service_revoke_with_an_unknown_token(target_service):
     """Test the instrospection service response generation with a token that does not exist."""
-    with caplog.at_level(logging.INFO):
+    with capture_logs() as log_events:
         IntrospectionService.introspect("foo", target_service)
-    assert "Token introspection failed (not found)." in caplog.messages
+    assert log_events == [
+        {"event": "token_not_found", "log_level": "info"},
+        {
+            "event": "token_introspection_failed",
+            "log_level": "error",
+            "reason": "token_not_found",
+        },
+    ]
 
 
-def test_introspection_service_introspect_with_valid_jwt(target_service, settings, caplog):
+def test_introspection_service_introspect_with_valid_jwt(target_service, settings):
     """Test the introspection service response generation with a valid JWT."""
     now = int(datetime.now(tz=UTC).timestamp())
     raw_jwt = TokenGenerator.generate_jwt(
@@ -29,7 +37,7 @@ def test_introspection_service_introspect_with_valid_jwt(target_service, setting
     )
     exchanged_token = JWTExchangedTokenFactory(raw_token=raw_jwt)
 
-    with caplog.at_level(logging.INFO):
+    with capture_logs() as log_events:
         response = IntrospectionService.introspect(raw_jwt, target_service)
     assert response.active
     assert response.scope == "openid email profile"
@@ -46,9 +54,12 @@ def test_introspection_service_introspect_with_valid_jwt(target_service, setting
     assert response.aud == "service:target"
     assert response.jti == exchanged_token.subject_token_jti
     assert response.client_id == exchanged_token.source_service.audience_id  # ty: ignore
-    assert (
-        "Token introspected (active): "
-        f"token_jti={exchanged_token.subject_token_jti}, "
-        f"type={exchanged_token.token_type}, "
-        f"kid={exchanged_token.jwt_kid or 'N/A'}"
-    ) in caplog.messages
+    assert log_events == [
+        {
+            "event": "token_introspected",
+            "log_level": "info",
+            "token_jti": exchanged_token.subject_token_jti,
+            "type": exchanged_token.token_type,
+            "kid": exchanged_token.jwt_kid or "N/A",
+        }
+    ]
