@@ -612,7 +612,17 @@ class Development(Base):
         "SHOW_TOOLBAR_CALLBACK": lambda request: True,
     }
 
-    LOGGING = get_project_logging_config(json_renderer=False)
+    LOGGING = get_project_logging_config(
+        json_renderer=False,
+        # Do not flood the development console with the health checks
+        # performed by docker-compose and Kubernetes.
+        filters={
+            "exclude_health_checks": {
+                "()": "menshen.logging.HealthCheckFilter",
+            },
+        },
+        handler_filters=["exclude_health_checks"],
+    )
 
     def __init__(self):
         """Override settings."""

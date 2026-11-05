@@ -10,7 +10,9 @@ import pytest
 import structlog
 
 from menshen.logging import (
+    REQUEST_LOGGERS,
     EventDict,
+    HealthCheckFilter,
     get_logging_config,
     json_default,
     wrap_for_formatter,
@@ -87,7 +89,9 @@ def test_get_logging_config_defaults():
     assert config["disable_existing_loggers"] is False
     assert config["handlers"]["console"]["formatter"] == "structlog"
     assert config["root"] == {"handlers": ["console"]}
-    assert config["loggers"] == {}
+    assert set(config["loggers"]) == set(REQUEST_LOGGERS)
+    assert "filters" not in config
+    assert "filters" not in config["handlers"]["console"]
 
 
 def test_get_logging_config_root_level_and_loggers():
@@ -98,11 +102,74 @@ def test_get_logging_config_root_level_and_loggers():
     assert config["loggers"]["token_exchange"] == loggers["token_exchange"]
 
 
+@pytest.mark.parametrize("name", REQUEST_LOGGERS)
+def test_get_logging_config_silences_request_loggers(name):
+    """Test that request loggers duplicating django-structlog's events are silenced."""
+    config = get_logging_config(json_renderer=True)
+    assert config["loggers"][name] == {
+        "handlers": ["null"],
+        "level": "CRITICAL",
+        "propagate": False,
+    }
+    assert config["handlers"]["null"] == {"class": "logging.NullHandler"}
+
+
+def test_get_logging_config_request_loggers_can_be_overridden():
+    """Test that a silenced request logger can be configured explicitly."""
+    loggers = {"uvicorn.access": {"handlers": ["console"], "level": "INFO"}}
+    config = get_logging_config(json_renderer=True, loggers=loggers)
+    assert config["loggers"]["uvicorn.access"] == loggers["uvicorn.access"]
+    assert config["loggers"]["request.summary"]["level"] == "CRITICAL"
+
+
+def test_get_logging_config_filters():
+    """Test that filters and console handler filters are included."""
+    filters = {"exclude_health_checks": {"()": "menshen.logging.HealthCheckFilter"}}
+    config = get_logging_config(
+        json_renderer=False,
+        filters=filters,
+        handler_filters=["exclude_health_checks"],
+    )
+    assert config["filters"] == filters
+    assert config["handlers"]["console"]["filters"] == ["exclude_health_checks"]
+
+
+@pytest.mark.parametrize("level", [logging.WARNING, logging.ERROR])
+def test_health_check_filter_keeps_failing_health_checks(level):
+    """Test that failing health check records are kept."""
+    record = _structlog_record(
+        {"event": "request_finished", "request": "GET /__heartbeat__/", "code": 500},
+        level=level,
+    )
+    assert HealthCheckFilter().filter(record) is True
+
+
+def test_health_check_filter_keeps_foreign_records():
+    """Test that third-party (non-structlog) records are kept."""
+    record = logging.LogRecord(
+        name="django.request",
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=1,
+        msg="GET /__heartbeat__/",
+        args=(),
+        exc_info=None,
+    )
+    assert HealthCheckFilter().filter(record) is True
+
+
 def test_development_logging_shares_base_loggers():
     """Test that the development and base logging configure the same loggers."""
     assert Development.LOGGING["root"] == Base.LOGGING["root"]
     assert Development.LOGGING["loggers"] == Base.LOGGING["loggers"]
     assert {"token_exchange", "lasuite"} <= set(Base.LOGGING["loggers"])
+
+
+def test_development_logging_filters_health_checks():
+    """Test that the development logging configuration filters health checks."""
+    config = Development.LOGGING
+    assert config["filters"]["exclude_health_checks"]["()"] == "menshen.logging.HealthCheckFilter"
+    assert config["handlers"]["console"]["filters"] == ["exclude_health_checks"]
 
 
 def _structlog_record(event_dict, level=logging.INFO):
@@ -119,6 +186,21 @@ def _structlog_record(event_dict, level=logging.INFO):
     )
     record.__dict__.update(kwargs["extra"])
     return record
+
+
+@pytest.mark.parametrize("request_line", ["GET /__heartbeat__/", "GET /__lbheartbeat__/?check=1"])
+def test_health_check_filter_drops_structlog_health_checks(request_line):
+    """Test that django-structlog records for health checks are dropped."""
+    record = _structlog_record({"event": "request_started", "request": request_line})
+    assert HealthCheckFilter().filter(record) is False
+
+
+def test_health_check_filter_keeps_structlog_other_requests():
+    """Test that django-structlog records for other requests are kept."""
+    record = _structlog_record(
+        {"event": "request_started", "request": "GET /exchange/?next=/__heartbeat__/"}
+    )
+    assert HealthCheckFilter().filter(record) is True
 
 
 def test_wrap_for_formatter_message_is_event():
@@ -269,3 +351,21 @@ def test_request_started_user_agent(client, caplog, settings, enabled):
         assert event["user_agent"] == "test-agent/1.0"
     else:
         assert "user_agent" not in event
+
+
+@pytest.mark.parametrize(
+    ("level", "expected"),
+    [(logging.DEBUG, False), (logging.INFO, False), (logging.WARNING, True), (logging.ERROR, True)],
+)
+def test_health_check_filter_dockerflow_check_results(level, expected):
+    """Test that dockerflow check results are only kept from the WARNING level."""
+    record = logging.LogRecord(
+        name="dockerflow.checks.registry",
+        level=level,
+        pathname=__file__,
+        lineno=1,
+        msg="%s: %s",
+        args=("dockerflow.health.I001", "Can't connect to database to check migrations"),
+        exc_info=None,
+    )
+    assert HealthCheckFilter().filter(record) is expected

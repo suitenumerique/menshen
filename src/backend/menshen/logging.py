@@ -4,6 +4,7 @@ import datetime
 import logging
 import sys
 from typing import Any, cast
+from urllib.parse import urlsplit
 
 import structlog
 from django.conf import settings
@@ -102,10 +103,54 @@ def json_default(obj: Any) -> Any:
     return repr(obj)
 
 
+# Loggers emitting a line per request, already logged by django-structlog's
+# `request_started` and `request_finished` events: dockerflow's request
+# summary and the uvicorn (production) and runserver (development) access logs.
+REQUEST_LOGGERS = ("request.summary", "uvicorn.access", "django.server")
+
+
+class HealthCheckFilter(logging.Filter):
+    """
+    Drop successful health check records to reduce development log noise.
+
+    This covers django-structlog's request events for the health check paths
+    and the check results logged by dockerflow during heartbeats. Records
+    logged at `WARNING` or above are kept so that failing health checks and
+    check warnings remain visible.
+    """
+
+    def __init__(self, paths: tuple[str, ...] = ("/__heartbeat__", "/__lbheartbeat__")) -> None:
+        """Initialize the filter with the request paths to exclude."""
+        super().__init__()
+        self.paths = {path.rstrip("/") for path in paths}
+
+    def _is_health_check_path(self, path: Any) -> bool:
+        """Return whether a request path (possibly with a query string) is a health check."""
+        return isinstance(path, str) and urlsplit(path).path.rstrip("/") in self.paths
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        """Return whether the record should be logged."""
+        if record.levelno >= logging.WARNING:
+            return True
+
+        # dockerflow logs the results of the checks run by the heartbeat.
+        if record.name == "dockerflow.checks.registry":
+            return False
+
+        # django-structlog logs the request as "<METHOD> <full path>". Other
+        # request loggers are silenced (see `REQUEST_LOGGERS`).
+        request = record.msg.get("request") if isinstance(record.msg, dict) else None
+        return not (
+            isinstance(request, str) and self._is_health_check_path(request.rpartition(" ")[2])
+        )
+
+
 def get_logging_config(
     json_renderer: bool,
     root_level: str | None = None,
     loggers: dict | None = None,
+    filters: dict | None = None,
+    handler_filters: list[str] | None = None,
 ) -> dict:
     """
     Return a logging configuration rendering every record consistently.
@@ -118,7 +163,11 @@ def get_logging_config(
         json_renderer: render JSON (production) instead of a colored console
             rendering (development).
         root_level: optional level for the root logger.
-        loggers: optional configuration for named loggers.
+        loggers: optional configuration for named loggers. The request
+            loggers listed in `REQUEST_LOGGERS` are silenced unless
+            configured here.
+        filters: optional filters declared in the configuration.
+        handler_filters: optional filters applied to the console handler.
 
     """
     renderer = (
@@ -147,15 +196,28 @@ def get_logging_config(
                 "class": "logging.StreamHandler",
                 "formatter": "structlog",
             },
+            "null": {
+                "class": "logging.NullHandler",
+            },
         },
         "root": {"handlers": ["console"]},
-        "loggers": {},
+        # Silence request loggers duplicating django-structlog's request events.
+        # The CRITICAL level also keeps their errors away from Sentry, which
+        # already receives the request exceptions from its Django integration.
+        "loggers": {
+            name: {"handlers": ["null"], "level": "CRITICAL", "propagate": False}
+            for name in REQUEST_LOGGERS
+        },
     }
 
     if root_level is not None:
         cast("dict[str, Any]", config["root"])["level"] = root_level
     if loggers is not None:
         config["loggers"].update(loggers)
+    if filters is not None:
+        config["filters"] = filters
+    if handler_filters is not None:
+        cast("dict[str, Any]", config["handlers"]["console"])["filters"] = handler_filters
 
     return config
 
