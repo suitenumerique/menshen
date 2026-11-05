@@ -1,5 +1,5 @@
 # Menshen playground e2e testing using Playwright
-FROM python:3.14.8-trixie
+FROM python:3.14.10-trixie
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG DOCKER_UID
