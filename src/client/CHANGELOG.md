@@ -8,6 +8,12 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- Validate opaque exchanged tokens before sending them to Menshen
+- Raise an `InvalidTokenError` when an exchanged token is not valid (opaque and
+  JWT cases)
+
 ## [v0.3.0] - 2026-11-02
 
 ### Added

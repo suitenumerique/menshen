@@ -116,7 +116,7 @@ from menshen_client import (
 
 # Create the token instrospection request
 introspection_request = IntrospectionRequest(
-    token="exampletoken",
+    token="MZGYrOI1nQNTwCriw0iJaGk-iF7Fdk2pdJB8LMYuCF0",
     token_type_hint=TokenType.ACCESS_TOKEN,
 )
 
@@ -147,7 +147,7 @@ from menshen_client import (
 
 # Create the token revocation request
 revocation_request = RevocationRequest(
-    token="exampletoken",
+    token="MZGYrOI1nQNTwCriw0iJaGk-iF7Fdk2pdJB8LMYuCF0",
     token_type_hint=TokenType.ACCESS_TOKEN,
 )
 
@@ -175,6 +175,30 @@ using:
 
 ```python
 await client.aclose()
+```
+
+### Error handling
+
+Introspection and revocation requests strip leading and trailing whitespaces
+from the token, then validate opaque tokens against Menshen's format
+(`menshen_client.TOKEN_PATTERN`). A malformed opaque token raises an
+`InvalidTokenError` when instantiating the request (without any network call).
+JWTs (hinted with `TokenType.JWT` or shaped as `header.payload.signature`) are
+not validated locally. Any token rejected by the server also raises an
+`InvalidTokenError`. Other API errors raise an
+`httpx2.HTTPStatusError`, and request timeouts an `httpx2.TimeoutException`:
+
+```python
+import httpx2
+
+from menshen_client import InvalidTokenError
+
+try:
+    introspection_response = client.introspect(IntrospectionRequest(token=token))
+except InvalidTokenError:
+    ...  # invalid token: respond with a 401
+except (httpx2.HTTPStatusError, httpx2.TransportError):
+    ...  # Menshen is unavailable or misconfigured: respond with a 503
 ```
 
 ## License

@@ -8,7 +8,7 @@ import pytest
 
 from menshen_client.clients import TokenExchangeAsyncClient
 from menshen_client.enums import TokenExchangeResponseTokenType, TokenType
-from menshen_client.exceptions import ResponseParsingError
+from menshen_client.exceptions import InvalidTokenError, ResponseParsingError
 from menshen_client.schemas import (
     Configuration,
     IntrospectionRequest,
@@ -18,6 +18,8 @@ from menshen_client.schemas import (
 )
 
 pytestmark = pytest.mark.anyio
+
+TOKEN = "MZGYrOI1nQNTwCriw0iJaGk-iF7Fdk2pdJB8LMYuCF0"  # noqa: S105
 
 
 def test_async_client_init():
@@ -63,7 +65,7 @@ async def test_async_client_context_manager(config, httpx2_mock):
     async with TokenExchangeAsyncClient(config=config) as async_client:
         assert isinstance(async_client, TokenExchangeAsyncClient)
         assert not async_client.session.is_closed
-        await async_client.revoke(RevocationRequest(token="foo"))
+        await async_client.revoke(RevocationRequest(token=TOKEN))
     assert async_client.session.is_closed
 
 
@@ -223,7 +225,7 @@ async def test_async_client_introspect_raises_for_status(async_client, httpx2_mo
         status_code=status,
     )
     with pytest.raises(httpx2.HTTPStatusError):
-        await async_client.introspect(IntrospectionRequest(token="foo"))
+        await async_client.introspect(IntrospectionRequest(token=TOKEN))
 
 
 async def test_async_client_introspect_raises_for_timeout(async_client, httpx2_mock):
@@ -234,7 +236,7 @@ async def test_async_client_introspect_raises_for_timeout(async_client, httpx2_m
         url="https://menshen.example.org/auth/token/introspect/",
     )
     with pytest.raises(httpx2.TimeoutException):
-        await async_client.introspect(IntrospectionRequest(token="foo"))
+        await async_client.introspect(IntrospectionRequest(token=TOKEN))
 
 
 async def test_async_client_introspect_token(async_client, httpx2_mock):
@@ -245,7 +247,7 @@ async def test_async_client_introspect_token(async_client, httpx2_mock):
         status_code=200,
         json=asdict(IntrospectionResponse(active=True)),
     )
-    user_info = await async_client.introspect(IntrospectionRequest(token="foo"))
+    user_info = await async_client.introspect(IntrospectionRequest(token=TOKEN))
 
     assert isinstance(user_info, IntrospectionResponse)
     assert user_info.active
@@ -267,7 +269,7 @@ async def test_async_client_introspect_token_with_extra_field_in_response_payloa
         pytest.raises(ResponseParsingError, match="Invalid introspection response"),
         caplog.at_level(logging.INFO, logger="menshen_client"),
     ):
-        await async_client.introspect(IntrospectionRequest(token="foo"))
+        await async_client.introspect(IntrospectionRequest(token=TOKEN))
     assert (
         "Invalid introspection response: IntrospectionResponse.__init__() "
         "got an unexpected keyword argument 'foo'" in caplog.messages
@@ -288,7 +290,7 @@ async def test_async_client_introspect_token_with_missing_fields_in_response_pay
         pytest.raises(ResponseParsingError, match="Invalid introspection response"),
         caplog.at_level(logging.INFO, logger="menshen_client"),
     ):
-        await async_client.introspect(IntrospectionRequest(token="foo"))
+        await async_client.introspect(IntrospectionRequest(token=TOKEN))
     assert (
         "Invalid introspection response: IntrospectionResponse.__init__() "
         "missing 1 required positional argument: 'active'" in caplog.messages[0]
@@ -310,7 +312,7 @@ async def test_async_client_introspect_token_with_invalid_response_body(
         pytest.raises(ResponseParsingError, match="Invalid introspection response"),
         caplog.at_level(logging.INFO, logger="menshen_client"),
     ):
-        await async_client.introspect(IntrospectionRequest(token="foo"))
+        await async_client.introspect(IntrospectionRequest(token=TOKEN))
     assert (
         "Invalid introspection response: Expecting value: line 1 column 1 (char 0)"
         in caplog.messages
@@ -326,7 +328,7 @@ async def test_async_client_revoke_raises_for_status(async_client, httpx2_mock, 
         status_code=status,
     )
     with pytest.raises(httpx2.HTTPStatusError):
-        await async_client.revoke(RevocationRequest(token="foo"))
+        await async_client.revoke(RevocationRequest(token=TOKEN))
 
 
 async def test_async_client_revoke_raises_for_timeout(async_client, httpx2_mock):
@@ -337,7 +339,7 @@ async def test_async_client_revoke_raises_for_timeout(async_client, httpx2_mock)
         url="https://menshen.example.org/auth/token/revoke/",
     )
     with pytest.raises(httpx2.TimeoutException):
-        await async_client.revoke(RevocationRequest(token="foo"))
+        await async_client.revoke(RevocationRequest(token=TOKEN))
 
 
 @pytest.mark.parametrize("body", [None, "", "{}", '{"foo": "bar"}'])
@@ -349,5 +351,26 @@ async def test_async_client_revoke_token(async_client, httpx2_mock, body):
         status_code=200,
         text=body,
     )
-    revocation_response = await async_client.revoke(RevocationRequest(token="foo"))
+    revocation_response = await async_client.revoke(RevocationRequest(token=TOKEN))
     assert revocation_response is None
+
+
+@pytest.mark.parametrize(
+    ("method", "request_klass", "endpoint"),
+    [
+        ("introspect", IntrospectionRequest, "introspect"),
+        ("revoke", RevocationRequest, "revoke"),
+    ],
+)
+async def test_async_client_maps_server_422_to_invalid_token_error(
+    async_client, httpx2_mock, method, request_klass, endpoint
+):
+    """A 422 from the server is surfaced as an InvalidTokenError."""
+    httpx2_mock.add_response(
+        method="POST",
+        url=f"https://menshen.example.org/auth/token/{endpoint}/",
+        status_code=422,
+    )
+    with pytest.raises(InvalidTokenError, match="Token rejected by the server") as exc_info:
+        await getattr(async_client, method)(request_klass(token=TOKEN))
+    assert isinstance(exc_info.value.__cause__, httpx2.HTTPStatusError)

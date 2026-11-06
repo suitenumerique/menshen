@@ -2,14 +2,16 @@
 
 import logging
 from dataclasses import asdict
+from http import HTTPStatus
 from json import JSONDecodeError
 from types import TracebackType
 from typing import Self, cast
 
 import httpx2
 
-from .exceptions import ResponseParsingError
+from .exceptions import InvalidTokenError, ResponseParsingError
 from .schemas import (
+    BaseTokenRequest,
     Configuration,
     IntrospectionRequest,
     IntrospectionResponse,
@@ -44,11 +46,22 @@ class BaseTokenExchangeClient:
     @staticmethod
     def _parse_response(
         api_response: httpx2.Response,
+        request: TokenExchangeRequest | IntrospectionRequest | RevocationRequest,
         response_klass: type[TokenExchangeResponse | IntrospectionResponse] | None = None,
         error_message: str | None = None,
     ) -> TokenExchangeResponse | IntrospectionResponse | None:
         """Parse an API endpoint response."""
-        api_response.raise_for_status()
+        try:
+            api_response.raise_for_status()
+        except httpx2.HTTPStatusError as err:
+            # The server rejects malformed tokens with a validation error
+            if (
+                isinstance(request, BaseTokenRequest)
+                and api_response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+            ):
+                logger.debug("Token rejected by the server: %s", api_response.text)
+                raise InvalidTokenError("Token rejected by the server") from err
+            raise
 
         if response_klass is None:
             return None
@@ -95,7 +108,7 @@ class TokenExchangeClient(BaseTokenExchangeClient):
     ) -> TokenExchangeResponse | IntrospectionResponse | None:
         """Perform POST request for an API endpoint."""
         api_response = self.session.post(url, data=self._form_data(url, request))
-        return self._parse_response(api_response, response_klass, error_message)
+        return self._parse_response(api_response, request, response_klass, error_message)
 
     def exchange(self, request: TokenExchangeRequest) -> TokenExchangeResponse:
         """Request an exchange token."""
@@ -158,7 +171,7 @@ class TokenExchangeAsyncClient(BaseTokenExchangeClient):
     ) -> TokenExchangeResponse | IntrospectionResponse | None:
         """Perform POST request for an API endpoint."""
         api_response = await self.session.post(url, data=self._form_data(url, request))
-        return self._parse_response(api_response, response_klass, error_message)
+        return self._parse_response(api_response, request, response_klass, error_message)
 
     async def exchange(self, request: TokenExchangeRequest) -> TokenExchangeResponse:
         """Request an exchange token."""

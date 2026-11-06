@@ -7,8 +7,17 @@ from dataclasses import dataclass
 from typing import Literal
 
 from .enums import TokenExchangeResponseTokenType, TokenType
+from .exceptions import InvalidTokenError
 
 logger = logging.getLogger(__name__)
+
+# Opaque token format emitted by Menshen (must be kept in sync with the server's
+# `TokenGenerator.generate_opaque_token`): `secrets.token_urlsafe(32)`, i.e. 32 random bytes
+# encoded in unpadded base64url, hence 43 characters.
+TOKEN_PATTERN = r"\A[A-Za-z0-9_-]{43}\Z"  # noqa: S105
+
+# JWT compact serialization: header.payload.signature (base64url-encoded segments)
+JWT_PATTERN = r"\A[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\Z"
 
 
 @dataclass
@@ -131,16 +140,47 @@ class TokenExchangeResponse:
 
 
 @dataclass
-class IntrospectionRequest:
+class BaseTokenRequest:
+    """
+    Base token request (introspection and revocation).
+
+    Leading and trailing whitespaces are stripped from the token (as the server does).
+    Opaque token format is then validated locally (in sync with the server's token
+    generator) so that a malformed opaque token never triggers a network call. JWTs (identified by
+    their token type hint or by their shape) are not validated locally: the server is the
+    only judge.
+
+    Raises:
+        InvalidTokenError: if the token is not a string, or is an opaque token that does
+            not match `TOKEN_PATTERN`.
+
+    """
+
+    token: str
+    token_type_hint: TokenType | None = None
+
+    @property
+    def is_jwt(self) -> bool:
+        """Whether the token is a JWT (given its type hint or its shape)."""
+        return self.token_type_hint == TokenType.JWT or bool(re.fullmatch(JWT_PATTERN, self.token))
+
+    def __post_init__(self):
+        """Strip the token and validate the opaque token format."""
+        if not isinstance(self.token, str):
+            raise InvalidTokenError("Invalid token format")
+        self.token = self.token.strip()
+        if not self.is_jwt and not re.fullmatch(TOKEN_PATTERN, self.token):
+            raise InvalidTokenError("Invalid token format")
+
+
+@dataclass
+class IntrospectionRequest(BaseTokenRequest):
     """
     Introspection request.
 
     Reference:
     https://www.rfc-editor.org/info/rfc7662/#section-2.1
     """
-
-    token: str
-    token_type_hint: TokenType | None = None
 
 
 @dataclass
@@ -172,13 +212,10 @@ class IntrospectionResponse:
 
 
 @dataclass
-class RevocationRequest:
+class RevocationRequest(BaseTokenRequest):
     """
     Exchanged token revocation request.
 
     Reference:
     https://www.rfc-editor.org/info/rfc7009/#section-2.1
     """
-
-    token: str
-    token_type_hint: TokenType | None = None
