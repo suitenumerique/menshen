@@ -25,7 +25,7 @@ class ExchangedTokenFactory(factory.django.DjangoModelFactory):
     class Params:  # noqa: D106
         # Raw token value: only its HMAC hash is stored in the token field.
         # Pass raw_token=<value> to control the presented token in tests.
-        raw_token = factory.LazyFunction(lambda: str(fake.uuid4()))
+        raw_token = factory.LazyFunction(TokenGenerator.generate_opaque_token)
         # Raw actor token value: only its HMAC hash is stored in the
         # actor_token field. Pass raw_actor_token=<value> to control it in
         # tests, or actor_token=None for no delegation.

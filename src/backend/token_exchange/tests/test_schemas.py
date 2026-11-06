@@ -442,8 +442,11 @@ def test_token_request_schema_with_invalid_token_type_hint(token_type_hint, toke
     "token",
     [
         "",
-        " " * 32,  # Only spaces
-        " " * 14 + "fake" + " " * 14,  # 32 characters but padded with spaces
+        " " * 43,  # Only spaces
+        "f4k3" * 8,  # 32 characters
+        "f4k3" * 10 + "f4",  # 42 characters
+        " " * 20 + "f4k3" + " " * 19,  # 43 characters but padded with spaces
+        "f4k3" * 5 + " " + "f4k3" * 6,  # 45 characters with an inner space
     ],
 )
 @pytest.mark.parametrize(
@@ -459,9 +462,7 @@ def test_token_request_schema_invalid_token(token, token_request_schema):
         "token": token,
     }
 
-    with pytest.raises(
-        ValidationError, match=r"String should match pattern '\^\\s\*\\S\{32\,\}\\s\*\$'"
-    ):
+    with pytest.raises(ValidationError, match=r"String should match pattern '\^\\S\{43\,\}\$'"):
         token_request_schema.model_validate_json(json.dumps(payload))
 
 
@@ -472,12 +473,38 @@ def test_token_request_schema_invalid_token(token, token_request_schema):
         RevocationRequest,
     ],
 )
-def test_token_request_schema_valid_access_token(token_request_schema):
-    """Test ExchangedToken*Request schemas with a valid access token."""
+@pytest.mark.parametrize(
+    "token",
+    [
+        "MZGYrOI1nQNTwCriw0iJaGk-iF7Fdk2pdJB8LMYuCF0",  # Opaque token (43 characters)
+        "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.c2lnbmF0dXJl",  # JWT
+    ],
+)
+def test_token_request_schema_valid_token(token_request_schema, token):
+    """Test ExchangedToken*Request schemas with a valid opaque token or JWT."""
     payload = {
-        "token": "f4k3" * 8,  # 32 characters
+        "token": token,
     }
 
     token_request = token_request_schema.model_validate_json(json.dumps(payload))
-    assert token_request.token == "f4k3" * 8
+    assert token_request.token == token
     assert token_request.token_type_hint is None
+
+
+@pytest.mark.parametrize(
+    "token_request_schema",
+    [
+        IntrospectionRequest,
+        RevocationRequest,
+    ],
+)
+@pytest.mark.parametrize("padding", [(" ", ""), ("", "\n"), ("\t ", " \r\n")])
+def test_token_request_schema_strips_token(token_request_schema, padding):
+    """Test ExchangedToken*Request schemas strip leading and trailing whitespaces."""
+    token = secrets.token_urlsafe(32)
+    payload = {
+        "token": f"{padding[0]}{token}{padding[1]}",
+    }
+
+    token_request = token_request_schema.model_validate_json(json.dumps(payload))
+    assert token_request.token == token

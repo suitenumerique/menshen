@@ -14,6 +14,12 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
   configure Sentry performance tracing and profiling (disabled by default, only
   active when `SENTRY_DSN` is defined)
 
+### Changed
+
+- Strip leading and trailing whitespaces from the token of introspection and
+  revocation requests, and require at least 43 characters (the length of an
+  opaque token) instead of 32
+
 ### Fixed
 
 - Only allow the service that requested a token exchange (source service) to

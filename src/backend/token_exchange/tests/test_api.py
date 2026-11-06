@@ -4,7 +4,6 @@ import base64
 import importlib
 from datetime import UTC, datetime, timedelta
 from unittest import mock
-from uuid import uuid4
 
 import pytest
 from django.core.exceptions import SuspiciousOperation
@@ -142,7 +141,7 @@ def test_view_auth_with_invalid_credentials(endpoint):
 
     # Create the service
     service_provider = ServiceProviderFactory.create(audience_id="test:inactive-service")
-    client_secret = uuid4().hex
+    client_secret = TokenGenerator.generate_opaque_token()
     credentials = ServiceProviderCredentialsFactory(
         service_provider=service_provider, client_secret=client_secret, is_active=True
     )
@@ -204,7 +203,7 @@ def test_view_auth_with_inactive_credentials(endpoint):
 
     # Create the inactive service
     service_provider = ServiceProviderFactory.create(audience_id="test:inactive-service")
-    client_secret = uuid4().hex
+    client_secret = TokenGenerator.generate_opaque_token()
     credentials = ServiceProviderCredentialsFactory(
         service_provider=service_provider, client_secret=client_secret, is_active=False
     )
@@ -234,7 +233,7 @@ def test_view_auth_with_inactive_service(endpoint):
 
     # Create the inactive service
     service_provider = ServiceProviderFactory.create(audience_id="test:inactive-service")
-    client_secret = uuid4().hex
+    client_secret = TokenGenerator.generate_opaque_token()
     credentials = ServiceProviderCredentialsFactory(
         service_provider=service_provider, client_secret=client_secret, is_active=False
     )
@@ -639,8 +638,8 @@ def test_exchange_view_with_requested_refresh_token_type(source_api_client):
                     "form",
                     "token",
                 ],
-                "msg": "String should match pattern '^\\s*\\S{32,}\\s*$'",
-                "ctx": {"pattern": "^\\s*\\S{32,}\\s*$"},
+                "msg": "String should match pattern '^\\S{43,}$'",
+                "ctx": {"pattern": "^\\S{43,}$"},
             },
         ),
         (
@@ -651,8 +650,8 @@ def test_exchange_view_with_requested_refresh_token_type(source_api_client):
                     "form",
                     "token",
                 ],
-                "msg": "String should match pattern '^\\s*\\S{32,}\\s*$'",
-                "ctx": {"pattern": "^\\s*\\S{32,}\\s*$"},
+                "msg": "String should match pattern '^\\S{43,}$'",
+                "ctx": {"pattern": "^\\S{43,}$"},
             },
         ),
     ],
@@ -668,7 +667,9 @@ def test_introspect_view_without_token(target_api_client, payload, error):
 def test_introspect_view_with_unknown_token(target_api_client):
     """Test the TokenIntrospectView with no or empty exchange token."""
     with capture_logs() as log_events:
-        response = target_api_client.post("/introspect/", data={"token": uuid4().hex})
+        response = target_api_client.post(
+            "/introspect/", data={"token": TokenGenerator.generate_opaque_token()}
+        )
     assert response.status_code == 200  # OK
     assert response.json() == {"active": False}
     assert [e for e in log_events if e["event"] == "token_not_found"] == [
@@ -693,7 +694,7 @@ def test_introspect_view_invalid_token(  # noqa: PLR0913,PLR0917
     target_api_client, target_service, token_type, expires_at, revoked_at
 ):
     """Test the TokenIntrospectView with an invalid exchange token (expired or revoked)."""
-    raw_token = str(uuid4())
+    raw_token = TokenGenerator.generate_opaque_token()
     exchanged_token = ExchangedTokenFactory(
         expires_at=expires_at,
         revoked_at=revoked_at,
@@ -722,7 +723,7 @@ def test_introspect_view_invalid_token(  # noqa: PLR0913,PLR0917
 @pytest.mark.django_db
 def test_introspect_view_ignores_jwt_signature(target_api_client, target_service):
     """Test the TokenIntrospectView with an unknown (badly signed) JWT exchange token."""
-    raw_token = str(uuid4())
+    raw_token = TokenGenerator.generate_opaque_token()
     ExchangedTokenFactory(
         token_type=TokenTypeChoices.JWT,
         audiences=[target_service.audience_id],
@@ -743,7 +744,7 @@ def test_introspect_view_ignores_jwt_signature(target_api_client, target_service
 @pytest.mark.django_db
 def test_introspect_view_invalid_audience(target_api_client):
     """Test the TokenIntrospectView with an invalid audience from requesting service."""
-    raw_token = str(uuid4())
+    raw_token = TokenGenerator.generate_opaque_token()
     ExchangedTokenFactory(
         token_type=TokenTypeChoices.JWT,
         audiences=["service:foo"],
@@ -769,7 +770,7 @@ def test_introspect_view_introspection_with_wrong_token_type_hint(
     target_api_client, target_service, token_type_hint
 ):
     """Test the TokenIntrospectView instrospection with a falsy token type hint."""
-    raw_token = str(uuid4())
+    raw_token = TokenGenerator.generate_opaque_token()
     ExchangedTokenFactory(
         token_type=TokenTypeChoices.ACCESS_TOKEN,
         audiences=[target_service.audience_id],
@@ -788,7 +789,7 @@ def test_introspect_view_introspection_with_wrong_token_type_hint(
 @pytest.mark.django_db
 def test_introspect_view_introspection_with_token_type_hint(target_api_client, target_service):
     """Test the TokenIntrospectView instrospection."""
-    raw_token = str(uuid4())
+    raw_token = TokenGenerator.generate_opaque_token()
     exchanged_token = ExchangedTokenFactory(
         token_type=TokenTypeChoices.ACCESS_TOKEN,
         audiences=[target_service.audience_id],
@@ -816,7 +817,7 @@ def test_introspect_view_introspection_with_token_type_hint(target_api_client, t
 @pytest.mark.django_db
 def test_introspect_view_introspection(target_api_client, target_service):
     """Test the TokenIntrospectView instrospection."""
-    raw_token = str(uuid4())
+    raw_token = TokenGenerator.generate_opaque_token()
     exchanged_token = ExchangedTokenFactory(
         token_type=TokenTypeChoices.ACCESS_TOKEN,
         audiences=[target_service.audience_id],
@@ -840,6 +841,20 @@ def test_introspect_view_introspection(target_api_client, target_service):
     introspected_token = response.json()
     assert introspected_token["active"]
     assert introspected_token["client_id"] == exchanged_token.source_service.audience_id  # ty: ignore
+
+
+@pytest.mark.django_db
+def test_introspect_view_introspection_strips_token(target_api_client, target_service):
+    """Test the TokenIntrospectView strips leading and trailing whitespaces from the token."""
+    raw_token = TokenGenerator.generate_opaque_token()
+    ExchangedTokenFactory(
+        token_type=TokenTypeChoices.ACCESS_TOKEN,
+        audiences=[target_service.audience_id],
+        raw_token=raw_token,
+    )
+    response = target_api_client.post("/introspect/", data={"token": f"  {raw_token}\n"})
+    assert response.status_code == 200  # OK
+    assert response.json()["active"]
 
 
 @pytest.mark.django_db
@@ -876,8 +891,8 @@ def test_introspect_view_introspection(target_api_client, target_service):
                     "form",
                     "token",
                 ],
-                "msg": "String should match pattern '^\\s*\\S{32,}\\s*$'",
-                "ctx": {"pattern": "^\\s*\\S{32,}\\s*$"},
+                "msg": "String should match pattern '^\\S{43,}$'",
+                "ctx": {"pattern": "^\\S{43,}$"},
             },
         ),
         (
@@ -888,8 +903,8 @@ def test_introspect_view_introspection(target_api_client, target_service):
                     "form",
                     "token",
                 ],
-                "msg": "String should match pattern '^\\s*\\S{32,}\\s*$'",
-                "ctx": {"pattern": "^\\s*\\S{32,}\\s*$"},
+                "msg": "String should match pattern '^\\S{43,}$'",
+                "ctx": {"pattern": "^\\S{43,}$"},
             },
         ),
     ],
@@ -905,7 +920,9 @@ def test_revocation_view_without_token(source_api_client, payload, error):
 def test_revocation_view_with_unknown_token(source_api_client):
     """Test the TokenRevocationView instrospection with no or empty token."""
     with capture_logs() as log_events:
-        response = source_api_client.post("/revoke/", data={"token": uuid4().hex})
+        response = source_api_client.post(
+            "/revoke/", data={"token": TokenGenerator.generate_opaque_token()}
+        )
     assert response.status_code == 200  # OK
     assert not len(response.content)
     assert [e for e in log_events if e["event"] == "token_revocation_failed"] == [
@@ -920,7 +937,7 @@ def test_revocation_view_with_unknown_token(source_api_client):
 @pytest.mark.django_db
 def test_revocation_view_by_target_service(target_api_client, source_service, target_service):
     """Test the TokenRevocationView revocation by the target service (not allowed)."""
-    raw_token = str(uuid4())
+    raw_token = TokenGenerator.generate_opaque_token()
     exchanged_token = ExchangedTokenFactory.create(
         token_type=TokenTypeChoices.ACCESS_TOKEN,
         source_service=source_service,
@@ -946,7 +963,7 @@ def test_revocation_view_by_target_service(target_api_client, source_service, ta
 @pytest.mark.django_db
 def test_revocation_view(source_api_client, source_service, target_service):
     """Test the TokenRevocationView revocation by the source service."""
-    raw_token = str(uuid4())
+    raw_token = TokenGenerator.generate_opaque_token()
     exchanged_token = ExchangedTokenFactory.create(
         token_type=TokenTypeChoices.ACCESS_TOKEN,
         source_service=source_service,

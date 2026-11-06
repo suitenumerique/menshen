@@ -10,7 +10,13 @@ from django.conf import settings
 from django.utils import timezone
 from joserfc.jwt import ClaimsOption, JWTClaimsRegistry
 from ninja import Field, Schema
-from pydantic import ConfigDict, PlainSerializer, field_validator, model_validator
+from pydantic import (
+    ConfigDict,
+    PlainSerializer,
+    StringConstraints,
+    field_validator,
+    model_validator,
+)
 from pydantic_core import PydanticUndefined
 
 from .enums import (
@@ -295,8 +301,11 @@ class MenshenTokenExchangeResponse(TokenExchangeResponse):
 class BaseTokenRequest(Schema):
     """Base token request."""
 
-    # When striped the token should be at least 32 characters long (opaque token)
-    token: str = Field(pattern=r"^\s*\S{32,}\s*$")
+    # Leading and trailing whitespaces are stripped before validation. Once stripped, the
+    # token should be at least 43 characters long: an opaque token is generated using
+    # `secrets.token_urlsafe(32)` (32 random bytes encoded in base64url, hence 43
+    # characters), while a JWT is always longer.
+    token: Annotated[str, StringConstraints(strip_whitespace=True, pattern=r"^\S{43,}$")]
     token_type_hint: TokenExchangeTokenTypeHint | None = None
 
     @field_validator("token_type_hint", mode="before")
