@@ -468,6 +468,25 @@ def test_request_service_generate_exchange_token_jwt_configuration(source_servic
         RequestService.exchange(source_service, request)
 
 
+@pytest.mark.parametrize("kid", [None, "current-kid"])
+def test_request_service_save_opaque_token_without_kid(source_service, monkeypatch, kid):
+    """Test that an opaque access token is saved without a key id, configured or not."""
+    request = TokenExchangeRequest(
+        subject_token="foo",
+        subject_token_type=AllowedSubjectTokenType.ACCESS_TOKEN,
+        grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
+        audience="service:target",
+        scope="target:write",
+        requested_token_type=AllowedRequestedTokenType.ACCESS_TOKEN,
+    )
+    monkeypatch.setattr(RequestService, "kid", kid)
+    response, exchanged_token = RequestService.exchange(source_service, request, persist=True)
+    assert response.issued_token_type == AllowedRequestedTokenType.ACCESS_TOKEN
+    assert exchanged_token
+    exchanged_token.refresh_from_db()
+    assert exchanged_token.jwt_kid == ""
+
+
 def test_request_service_generate_exchange_token_unsupported_type(source_service):
     """Test the request service generate exchange token method with an unsupported token type."""
     request = TokenExchangeRequest.model_construct(
