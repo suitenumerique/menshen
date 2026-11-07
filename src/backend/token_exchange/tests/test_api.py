@@ -26,6 +26,7 @@ from token_exchange.factories import (
     TokenExchangeRuleFactory,
 )
 from token_exchange.models import ExchangedToken, TokenTypeChoices
+from token_exchange.services.request import RequestService
 from token_exchange.services.token import TokenGenerator
 from token_exchange.utils import hash_token
 
@@ -585,6 +586,30 @@ def test_exchange_view_with_requested_token_type(requested_token_type, source_ap
     # Check saved token grants
     saved_exchanged_token = ExchangedToken.objects.get()
     assert saved_exchanged_token.token != exchanged_token["access_token"]
+    assert saved_exchanged_token.token == hash_token(exchanged_token["access_token"])
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("kid", [None, "current-kid"])
+def test_exchange_view_opaque_token_with_and_without_kid(source_api_client, monkeypatch, kid):
+    """Test that an opaque token is issued with or without TOKEN_EXCHANGE_JWT_CURRENT_KID."""
+    # The setting is read when RequestService is defined
+    monkeypatch.setattr(RequestService, "kid", kid)
+    payload = {
+        "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+        "subject_token": "foo",
+        "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
+        "audience": "service:target",
+        "requested_token_type": TokenType.ACCESS_TOKEN,
+    }
+    response = source_api_client.post("/exchange/", data=payload)
+    assert response.status_code == 200  # OK
+    exchanged_token = response.json()
+    assert exchanged_token["issued_token_type"] == TokenType.ACCESS_TOKEN
+
+    # Opaque tokens are not signed: no key id is stored
+    saved_exchanged_token = ExchangedToken.objects.get()
+    assert saved_exchanged_token.jwt_kid == ""
     assert saved_exchanged_token.token == hash_token(exchanged_token["access_token"])
 
 
