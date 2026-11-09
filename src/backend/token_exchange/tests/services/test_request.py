@@ -4,13 +4,12 @@ import logging
 from unittest.mock import Mock
 from uuid import uuid4
 
+import httpx2
 import pytest
 from django.core.exceptions import SuspiciousOperation
 from pytest_django.asserts import assertNumQueries
-from requests import ConnectionError as ConnectionError_
-from requests import HTTPError
-from rest_framework.exceptions import AuthenticationFailed
 
+from oidc.exceptions import IntrospectionInactiveTokenError
 from token_exchange.enums import (
     AllowedActorTokenType,
     AllowedRequestedTokenType,
@@ -89,10 +88,10 @@ def test_request_service_introspect_subject_token_request_failure(
         audience="service:target",
     )
 
-    # HTTPError
+    # HTTP error
     monkeypatch.setattr(
         f"{settings.OIDC_RS_BACKEND_CLASS}.get_user_info_with_introspection",
-        Mock(side_effect=HTTPError("Connection fails")),
+        Mock(side_effect=httpx2.HTTPError("Connection fails")),
     )
     with pytest.raises(
         TokenExchangeResourceServerIntrospectionError, match="Failed to introspect subject token"
@@ -102,7 +101,7 @@ def test_request_service_introspect_subject_token_request_failure(
     # ConnectionError
     monkeypatch.setattr(
         f"{settings.OIDC_RS_BACKEND_CLASS}.get_user_info_with_introspection",
-        Mock(side_effect=ConnectionError_("Connection fails")),
+        Mock(side_effect=httpx2.ConnectError("Connection fails")),
     )
     with pytest.raises(
         TokenExchangeResourceServerIntrospectionError, match="Failed to introspect subject token"
@@ -121,10 +120,10 @@ def test_request_service_introspect_subject_token_inactive_user(
         audience="service:target",
     )
 
-    # The OIDC backend raises AuthenticationFailed when the introspected user is inactive
+    # The OIDC backend raises IntrospectionInactiveTokenError when the introspected user is inactive
     monkeypatch.setattr(
         f"{settings.OIDC_RS_BACKEND_CLASS}.get_user_info_with_introspection",
-        Mock(side_effect=AuthenticationFailed("Introspected user is not active")),
+        Mock(side_effect=IntrospectionInactiveTokenError("Introspected user is not active")),
     )
     with (
         pytest.raises(TokenExchangeInactiveUserError, match="Introspected user is not active"),
@@ -184,7 +183,6 @@ def test_request_service_introspect_subject_token_suspicious_introspection_respo
 
     # Monkeypatch OIDC backend token introspection
     def mock_user_info(self, _):
-        self.token_origin_audience = "service:source"
         return {"active": True, "client_id": "service:suspicious"}
 
     monkeypatch.setattr(
@@ -212,7 +210,6 @@ def test_request_service_introspect_subject_token_missing_identity(
 
     # Monkeypatch OIDC backend token introspection
     def mock_user_info(self, _):
-        self.token_origin_audience = "service:source"
         return {"active": True, "client_id": "service:source"}
 
     monkeypatch.setattr(
@@ -292,7 +289,6 @@ def test_request_service_validate_scope_action_from_request_with_granted_require
 
     # Monkeypatch OIDC backend token introspection
     def mock_user_info(self, _):
-        self.token_origin_audience = "service:source"
         return {
             "active": True,
             "client_id": "service:source",
@@ -434,7 +430,6 @@ def test_request_service_generate_exchange_token_jwt_no_sub_claim(
 
     # Monkeypatch OIDC backend token introspection
     def mock_user_info(self, _):
-        self.token_origin_audience = "service:source"
         return {
             "active": True,
             "client_id": "service:source",
@@ -545,7 +540,6 @@ def test_request_service_generate_exchange_response_with_persist(
     if subject_token_type == AllowedSubjectTokenType.JWT:
 
         def mock_user_info(self, _):
-            self.token_origin_audience = "service:source"
             return {
                 "active": True,
                 "client_id": "service:source",

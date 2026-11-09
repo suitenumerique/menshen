@@ -26,7 +26,6 @@ def ip_user_info(monkeypatch, settings) -> None:
 
     # Monkeypatch OIDC backend token introspection
     def mock_user_info(self, _):
-        self.token_origin_audience = "service:source"
         return {
             "active": True,
             "client_id": "service:source",

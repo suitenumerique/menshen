@@ -13,6 +13,24 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 - Add `SENTRY_TRACES_SAMPLE_RATE` and `SENTRY_PROFILES_SAMPLE_RATE` settings to
   configure Sentry performance tracing and profiling (disabled by default, only
   active when `SENTRY_DSN` is defined)
+- Add `OIDC_OP_JWKS_ENDPOINT`, `OIDC_RS_PRIVATE_KEY_STR` and
+  `OIDC_RS_ENCRYPTION_KEY_TYPE` settings for JWT token introspection
+  (`oidc.backends.JWTResourceServerBackend`, RFC 9701)
+
+### Changed
+
+- Vendor the OIDC token introspection backends in a new `oidc` module (using
+  `httpx2`), the default `OIDC_RS_BACKEND_CLASS` is now
+  `oidc.backends.ResourceServerBackend`
+- Rename the `LOGGING_LEVEL_LOGGERS_LASUITE` setting to
+  `LOGGING_LEVEL_LOGGERS_OIDC`
+
+### Removed
+
+- Remove the `django-lasuite` dependency (and transitively
+  `djangorestframework`, `mozilla-django-oidc` and `requests`)
+- Remove unused `OIDC_OP_TOKEN_ENDPOINT`, `OIDC_OP_USER_ENDPOINT` and
+  `OIDC_FALLBACK_TO_EMAIL_FOR_IDENTIFICATION` settings
 
 ### Fixed
 
