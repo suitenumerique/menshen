@@ -4,14 +4,15 @@ import logging
 from collections.abc import Callable
 from datetime import timedelta
 
+import httpx2
 from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
 from django.db.models import F
 from django.utils import timezone
 from django.utils.module_loading import import_string
-from lasuite.oidc_resource_server.backend import ResourceServerBackend
-from requests import RequestException
-from rest_framework.exceptions import AuthenticationFailed
+
+from oidc.backends import ResourceServerBackend
+from oidc.exceptions import IntrospectionInactiveTokenError
 
 from ..enums import (
     AllowedRequestedTokenType,
@@ -81,21 +82,15 @@ class RequestService:
 
     @classmethod
     def _introspection_backend(cls) -> ResourceServerBackend:
-        """Cache the introspection backend loading (given configuration)."""
-        # Get configured introspection backend
-        introspection_backend = import_string(settings.OIDC_RS_BACKEND_CLASS)()
-        # Prevent backend from enforcing scopes
-        introspection_backend._scopes = [  # noqa: SLF001
-            "openid"
-        ]
-        return introspection_backend
+        """Get the configured introspection backend."""
+        return import_string(settings.OIDC_RS_BACKEND_CLASS)()
 
     @classmethod
     def _introspect_subject_token(cls, token: str, source_audience: str) -> IntrospectionResponse:
         """Introspect the token exchange request subject token."""
         try:
             user_info = cls._introspection_backend().get_user_info_with_introspection(token)
-        except AuthenticationFailed as exc:
+        except IntrospectionInactiveTokenError as exc:
             logger.info("Subject token introspection failed: user is inactive.")
             raise TokenExchangeInactiveUserError("Introspected user is not active.") from exc
         except SuspiciousOperation as exc:
@@ -103,7 +98,7 @@ class RequestService:
             raise TokenExchangeResourceServerIntrospectionError(
                 "Failed to introspect subject token."
             ) from exc
-        except RequestException as exc:
+        except httpx2.HTTPError as exc:
             raise TokenExchangeResourceServerIntrospectionError(
                 "Failed to introspect subject token."
             ) from exc

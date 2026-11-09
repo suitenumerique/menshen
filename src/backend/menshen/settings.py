@@ -20,8 +20,9 @@ import dj_database_url
 import sentry_sdk
 from configurations import Configuration, values
 from django.utils.translation import gettext_lazy as _
-from lasuite.configuration.values import SecretFileValue
 from sentry_sdk.integrations.django import DjangoIntegration
+
+from menshen.values import SecretFileValue
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -195,8 +196,6 @@ class Base(Configuration):
         "django.contrib.sites",
         "django.contrib.messages",
         "django.contrib.staticfiles",
-        # OIDC third party
-        "mozilla_django_oidc",
     ]
 
     # Cache
@@ -268,7 +267,7 @@ class Base(Configuration):
 
     # OIDC Resource Server settings
     OIDC_RS_BACKEND_CLASS = values.Value(
-        "lasuite.oidc_resource_server.backend.ResourceServerBackend",
+        "oidc.backends.ResourceServerBackend",
         environ_name="OIDC_RS_BACKEND_CLASS",
         environ_prefix=None,
     )
@@ -276,21 +275,14 @@ class Base(Configuration):
     OIDC_VERIFY_SSL = values.BooleanValue(
         default=True, environ_name="OIDC_VERIFY_SSL", environ_prefix=None
     )
-    OIDC_FALLBACK_TO_EMAIL_FOR_IDENTIFICATION = values.BooleanValue(
-        default=False,
-        environ_name="OIDC_FALLBACK_TO_EMAIL_FOR_IDENTIFICATION",
-        environ_prefix=None,
-    )
     OIDC_TIMEOUT = values.PositiveIntegerValue(3, environ_name="OIDC_TIMEOUT", environ_prefix=None)
     OIDC_PROXY = values.Value(None, environ_name="OIDC_PROXY", environ_prefix=None)
     OIDC_OP_INTROSPECTION_ENDPOINT = values.Value(
         None, environ_name="OIDC_OP_INTROSPECTION_ENDPOINT", environ_prefix=None
     )
-    OIDC_OP_TOKEN_ENDPOINT = values.Value(
-        None, environ_name="OIDC_OP_TOKEN_ENDPOINT", environ_prefix=None
-    )
-    OIDC_OP_USER_ENDPOINT = values.Value(
-        None, environ_name="OIDC_OP_USER_ENDPOINT", environ_prefix=None
+    # Only used by the JWT introspection backend
+    OIDC_OP_JWKS_ENDPOINT = values.Value(
+        None, environ_name="OIDC_OP_JWKS_ENDPOINT", environ_prefix=None
     )
 
     # Resource server backend class is used for token introspection
@@ -309,6 +301,12 @@ class Base(Configuration):
     )
     OIDC_RS_SIGNING_ALGO = values.Value(
         "ES256", environ_name="OIDC_RS_SIGNING_ALGO", environ_prefix=None
+    )
+    OIDC_RS_ENCRYPTION_KEY_TYPE = values.Value(
+        "RSA", environ_name="OIDC_RS_ENCRYPTION_KEY_TYPE", environ_prefix=None
+    )
+    OIDC_RS_PRIVATE_KEY_STR = SecretFileValue(
+        None, environ_name="OIDC_RS_PRIVATE_KEY_STR", environ_prefix=None
     )
     OIDC_RS_SCOPES = values.ListValue(
         ["openid"], environ_name="OIDC_RS_SCOPES", environ_prefix=None
@@ -452,11 +450,11 @@ class Base(Configuration):
                 ),
                 "propagate": False,
             },
-            "lasuite": {
+            "oidc": {
                 "handlers": ["console"],
                 "level": values.Value(
                     "INFO",
-                    environ_name="LOGGING_LEVEL_LOGGERS_LASUITE",
+                    environ_name="LOGGING_LEVEL_LOGGERS_OIDC",
                     environ_prefix=None,
                 ),
                 "propagate": False,
