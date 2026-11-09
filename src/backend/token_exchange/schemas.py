@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from functools import cache
 from typing import Annotated, Literal, Self
 from uuid import UUID, uuid4
@@ -298,14 +299,18 @@ class MenshenTokenExchangeResponse(TokenExchangeResponse):
     grants: list[MenshenJWTGrantClaim]
 
 
+# JWT compact serialization: header.payload.signature (base64url-encoded segments). Note
+# that opaque tokens are base64url-encoded random values, hence they never contain dots.
+JWT_PATTERN = r"\A[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\Z"
+
+
 class BaseTokenRequest(Schema):
     """Base token request."""
 
-    # Leading and trailing whitespaces are stripped before validation. Once stripped, the
-    # token should be at least 43 characters long: an opaque token is generated using
-    # `secrets.token_urlsafe(32)` (32 random bytes encoded in base64url, hence 43
-    # characters), while a JWT is always longer.
-    token: Annotated[str, StringConstraints(strip_whitespace=True, pattern=r"^\S{43,}$")]
+    # Leading and trailing whitespaces are stripped before validation. Once stripped, an
+    # opaque token should be at least TOKEN_EXCHANGE_OPAQUE_TOKEN_MIN_LENGTH characters long
+    # (see the `check_opaque_token_length` validator).
+    token: Annotated[str, StringConstraints(strip_whitespace=True, pattern=r"^\S+$")]
     token_type_hint: TokenExchangeTokenTypeHint | None = None
 
     @field_validator("token_type_hint", mode="before")
@@ -315,6 +320,24 @@ class BaseTokenRequest(Schema):
         if value in TokenExchangeTokenTypeHint:
             return value
         return None
+
+    @model_validator(mode="after")
+    def check_opaque_token_length(self) -> Self:
+        """
+        Ensure an opaque token is at least TOKEN_EXCHANGE_OPAQUE_TOKEN_MIN_LENGTH long.
+
+        JWTs (identified by their token type hint or by their shape) are not concerned, as
+        their length does not depend on this setting.
+        """
+        if self.token_type_hint == TokenExchangeTokenTypeHint.JWT or re.fullmatch(
+            JWT_PATTERN, self.token
+        ):
+            return self
+        # Read the setting at runtime (not at import time) so that it can be overridden
+        min_length = settings.TOKEN_EXCHANGE_OPAQUE_TOKEN_MIN_LENGTH
+        if len(self.token) < min_length:
+            raise ValueError(f"Token should be at least {min_length} characters long")
+        return self
 
 
 class IntrospectionRequest(BaseTokenRequest):

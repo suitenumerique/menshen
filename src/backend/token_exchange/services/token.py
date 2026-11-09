@@ -43,11 +43,21 @@ class TokenGenerator:
         """
         Generate a secure opaque token.
 
+        The token length (in characters) is configured with the
+        TOKEN_EXCHANGE_OPAQUE_TOKEN_LENGTH setting. As `secrets.token_urlsafe(nbytes)`
+        returns `ceil(4 * nbytes / 3)` characters (unpadded base64url), we use the smallest
+        `nbytes` that produces at least `length` characters, i.e.
+        `(3 * (length - 1)) // 4 + 1`, and slice the result as base64url cannot produce a
+        `4k + 1` characters long text. For the default length (43 characters), we use 32
+        bytes (256 bits).
+
         Returns:
             str: A URL-safe random token
 
         """
-        return secrets.token_urlsafe(32)
+        length = settings.TOKEN_EXCHANGE_OPAQUE_TOKEN_LENGTH
+        nbytes = (3 * (length - 1)) // 4 + 1
+        return secrets.token_urlsafe(nbytes)[:length]
 
     @classmethod
     def generate_jwt(  # noqa: PLR0913,PLR0917

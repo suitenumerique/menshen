@@ -11,10 +11,12 @@ from .exceptions import InvalidTokenError
 
 logger = logging.getLogger(__name__)
 
-# Opaque token format emitted by Menshen (must be kept in sync with the server's
-# `TokenGenerator.generate_opaque_token`): `secrets.token_urlsafe(32)`, i.e. 32 random bytes
-# encoded in unpadded base64url, hence 43 characters.
-TOKEN_PATTERN = r"\A[A-Za-z0-9_-]{43}\Z"  # noqa: S105
+# Opaque token alphabet (base64url) used by Menshen's `TokenGenerator.generate_opaque_token`
+TOKEN_PATTERN = r"\A[A-Za-z0-9_-]+\Z"  # noqa: S105
+
+# Default minimum opaque token length (in characters) accepted by Menshen (must be kept in
+# sync with the server's TOKEN_EXCHANGE_OPAQUE_TOKEN_MIN_LENGTH setting default)
+OPAQUE_TOKEN_MIN_LENGTH = 43
 
 # JWT compact serialization: header.payload.signature (base64url-encoded segments)
 JWT_PATTERN = r"\A[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\Z"
@@ -34,6 +36,8 @@ class Configuration:
         - introspection: the exchanged token introspection API endpoint path
         - revocation_endpoint: the exchanged token revocation API endpoint path
         - requests_timeout: the default timeout for API requests
+        - opaque_token_min_length: the minimum opaque token length (in characters), it
+          should match the server's TOKEN_EXCHANGE_OPAQUE_TOKEN_MIN_LENGTH setting
     """
 
     client_id: str
@@ -43,6 +47,7 @@ class Configuration:
     introspection_endpoint: str = "/auth/token/introspect/"
     revocation_endpoint: str = "/auth/token/revoke/"
     requests_timeout: float | None = 3.0  # None means no timeout
+    opaque_token_min_length: int = OPAQUE_TOKEN_MIN_LENGTH
 
     def _fully_qualified_endpoint_url(self, endpoint: str) -> str:
         """
@@ -145,14 +150,11 @@ class BaseTokenRequest:
     Base token request (introspection and revocation).
 
     Leading and trailing whitespaces are stripped from the token (as the server does).
-    Opaque token format is then validated locally (in sync with the server's token
-    generator) so that a malformed opaque token never triggers a network call. JWTs (identified by
-    their token type hint or by their shape) are not validated locally: the server is the
-    only judge.
+    Note that the opaque token format is validated by the API client (as it depends on its
+    configuration) before sending the request.
 
     Raises:
-        InvalidTokenError: if the token is not a string, or is an opaque token that does
-            not match `TOKEN_PATTERN`.
+        InvalidTokenError: if the token is not a string.
 
     """
 
@@ -165,12 +167,10 @@ class BaseTokenRequest:
         return self.token_type_hint == TokenType.JWT or bool(re.fullmatch(JWT_PATTERN, self.token))
 
     def __post_init__(self):
-        """Strip the token and validate the opaque token format."""
+        """Strip the token."""
         if not isinstance(self.token, str):
             raise InvalidTokenError("Invalid token format")
         self.token = self.token.strip()
-        if not self.is_jwt and not re.fullmatch(TOKEN_PATTERN, self.token):
-            raise InvalidTokenError("Invalid token format")
 
 
 @dataclass

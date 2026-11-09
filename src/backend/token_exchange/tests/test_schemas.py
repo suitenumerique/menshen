@@ -443,9 +443,6 @@ def test_token_request_schema_with_invalid_token_type_hint(token_type_hint, toke
     [
         "",
         " " * 43,  # Only spaces
-        "f4k3" * 8,  # 32 characters
-        "f4k3" * 10 + "f4",  # 42 characters
-        " " * 20 + "f4k3" + " " * 19,  # 43 characters but padded with spaces
         "f4k3" * 5 + " " + "f4k3" * 6,  # 45 characters with an inner space
     ],
 )
@@ -457,13 +454,60 @@ def test_token_request_schema_with_invalid_token_type_hint(token_type_hint, toke
     ],
 )
 def test_token_request_schema_invalid_token(token, token_request_schema):
-    """Test ExchangedToken*Request schemas with an invalid token."""
+    """Test ExchangedToken*Request schemas with an empty token or with inner spaces."""
     payload = {
         "token": token,
     }
 
-    with pytest.raises(ValidationError, match=r"String should match pattern '\^\\S\{43\,\}\$'"):
+    with pytest.raises(ValidationError, match=r"String should match pattern '\^\\S\+\$'"):
         token_request_schema.model_validate_json(json.dumps(payload))
+
+
+@pytest.mark.parametrize(
+    "token",
+    [
+        "f4k3" * 8,  # 32 characters
+        "f4k3" * 10 + "f4",  # 42 characters
+        " " * 20 + "f4k3" + " " * 19,  # 43 characters but padded with spaces
+    ],
+)
+@pytest.mark.parametrize(
+    "token_request_schema",
+    [
+        IntrospectionRequest,
+        RevocationRequest,
+    ],
+)
+def test_token_request_schema_too_short_token(token, token_request_schema):
+    """Test ExchangedToken*Request schemas with a too short token (default min length)."""
+    payload = {
+        "token": token,
+    }
+
+    with pytest.raises(ValidationError, match="Token should be at least 43 characters long"):
+        token_request_schema.model_validate_json(json.dumps(payload))
+
+
+@pytest.mark.parametrize(
+    "token_request_schema",
+    [
+        IntrospectionRequest,
+        RevocationRequest,
+    ],
+)
+@pytest.mark.parametrize("min_length", [32, 43, 64])
+def test_token_request_schema_configured_min_length(settings, token_request_schema, min_length):
+    """Test ExchangedToken*Request schemas with a configured token min length."""
+    settings.TOKEN_EXCHANGE_OPAQUE_TOKEN_MIN_LENGTH = min_length
+
+    token = "a" * min_length
+    token_request = token_request_schema.model_validate_json(json.dumps({"token": token}))
+    assert token_request.token == token
+
+    with pytest.raises(
+        ValidationError, match=f"Token should be at least {min_length} characters long"
+    ):
+        token_request_schema.model_validate_json(json.dumps({"token": token[:-1]}))
 
 
 @pytest.mark.parametrize(
@@ -489,6 +533,55 @@ def test_token_request_schema_valid_token(token_request_schema, token):
     token_request = token_request_schema.model_validate_json(json.dumps(payload))
     assert token_request.token == token
     assert token_request.token_type_hint is None
+
+
+@pytest.mark.parametrize(
+    "token_request_schema",
+    [
+        IntrospectionRequest,
+        RevocationRequest,
+    ],
+)
+@pytest.mark.parametrize(
+    ("token", "token_type_hint"),
+    [
+        # JWT-shaped tokens, whatever their type hint
+        ("eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.c2lnbmF0dXJl", None),
+        ("a.b.c", TokenExchangeTokenTypeHint.ACCESS_TOKEN),
+        # Tokens hinted as JWT, whatever their shape
+        ("f4k3", TokenExchangeTokenTypeHint.JWT),
+    ],
+)
+def test_token_request_schema_min_length_ignores_jwt(
+    settings, token_request_schema, token, token_type_hint
+):
+    """Test ExchangedToken*Request schemas do not apply the opaque token min length to JWTs."""
+    settings.TOKEN_EXCHANGE_OPAQUE_TOKEN_MIN_LENGTH = 1024
+
+    payload = {"token": token, "token_type_hint": token_type_hint}
+    token_request = token_request_schema.model_validate_json(json.dumps(payload))
+    assert token_request.token == token
+
+
+@pytest.mark.parametrize(
+    "token_request_schema",
+    [
+        IntrospectionRequest,
+        RevocationRequest,
+    ],
+)
+@pytest.mark.parametrize(
+    "token_type_hint",
+    [None, TokenExchangeTokenTypeHint.ACCESS_TOKEN, TokenExchangeTokenTypeHint.REFRESH_TOKEN],
+)
+@pytest.mark.parametrize("token", ["a.b", "a..c", "a.b.c.d", "é.b.c"])
+def test_token_request_schema_min_length_applies_to_non_jwt(
+    token_request_schema, token_type_hint, token
+):
+    """Test ExchangedToken*Request schemas apply the min length to non JWT-shaped tokens."""
+    payload = {"token": token, "token_type_hint": token_type_hint}
+    with pytest.raises(ValidationError, match="Token should be at least 43 characters long"):
+        token_request_schema.model_validate_json(json.dumps(payload))
 
 
 @pytest.mark.parametrize(

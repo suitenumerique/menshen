@@ -1,7 +1,7 @@
 """Tests for the TokenExchangeAsyncClient."""
 
 import logging
-from dataclasses import asdict
+from dataclasses import asdict, replace
 
 import httpx2
 import pytest
@@ -20,6 +20,7 @@ from menshen_client.schemas import (
 pytestmark = pytest.mark.anyio
 
 TOKEN = "MZGYrOI1nQNTwCriw0iJaGk-iF7Fdk2pdJB8LMYuCF0"  # noqa: S105
+JWT = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.c2lnbmF0dXJl"
 
 
 def test_async_client_init():
@@ -374,3 +375,98 @@ async def test_async_client_maps_server_422_to_invalid_token_error(
     with pytest.raises(InvalidTokenError, match="Token rejected by the server") as exc_info:
         await getattr(async_client, method)(request_klass(token=TOKEN))
     assert isinstance(exc_info.value.__cause__, httpx2.HTTPStatusError)
+
+
+@pytest.mark.parametrize(
+    ("method", "request_klass", "endpoint"),
+    [
+        ("introspect", IntrospectionRequest, "introspect"),
+        ("revoke", RevocationRequest, "revoke"),
+    ],
+)
+@pytest.mark.parametrize(
+    ("token", "token_type_hint"),
+    [
+        (TOKEN, None),
+        (TOKEN, TokenType.ACCESS_TOKEN),
+        ("a" * 64, None),
+        ("-" * 43, None),
+        ("_" * 43, None),
+        (f" {TOKEN}\n", None),
+        (JWT, None),
+        (JWT, TokenType.ACCESS_TOKEN),
+        ("foo", TokenType.JWT),  # Hinted JWTs are left to the server
+    ],
+)
+async def test_async_client_token_validation_accepts_token(  # noqa: PLR0913,PLR0917
+    async_client, httpx2_mock, method, request_klass, endpoint, token, token_type_hint
+):
+    """Valid opaque tokens and JWTs are sent to the server."""
+    httpx2_mock.add_response(
+        method="POST",
+        url=f"https://menshen.example.org/auth/token/{endpoint}/",
+        json={"active": True},
+    )
+    await getattr(async_client, method)(request_klass(token=token, token_type_hint=token_type_hint))
+    assert len(httpx2_mock.get_requests()) == 1
+
+
+@pytest.mark.parametrize(
+    ("method", "request_klass"),
+    [("introspect", IntrospectionRequest), ("revoke", RevocationRequest)],
+)
+@pytest.mark.parametrize(
+    "token",
+    [
+        "",
+        " " * 43,
+        "foo",
+        "a" * 32,
+        "a" * 42,
+        TOKEN[:-1] + "=",
+        TOKEN[:-1] + "+",
+        TOKEN[:-1] + "/",
+        TOKEN[:-1] + "é",
+        TOKEN[:20] + " " + TOKEN[21:],
+        "a.b",
+        "a..c",
+        "a.b.c.d",
+        "é.b.c",
+    ],
+)
+async def test_async_client_token_validation_rejects_malformed_opaque_token(
+    async_client, httpx2_mock, method, request_klass, token
+):
+    """Malformed opaque tokens are rejected without any network call."""
+    with pytest.raises(InvalidTokenError, match="Invalid token format"):
+        await getattr(async_client, method)(request_klass(token=token))
+    assert not httpx2_mock.get_requests()
+
+
+@pytest.mark.parametrize(
+    ("method", "request_klass", "endpoint"),
+    [
+        ("introspect", IntrospectionRequest, "introspect"),
+        ("revoke", RevocationRequest, "revoke"),
+    ],
+)
+@pytest.mark.parametrize("min_length", [32, 43, 64])
+async def test_async_client_token_validation_with_configured_min_length(  # noqa: PLR0913,PLR0917
+    config, httpx2_mock, method, request_klass, endpoint, min_length
+):
+    """The opaque token min length is configurable."""
+    async_client = TokenExchangeAsyncClient(
+        config=replace(config, opaque_token_min_length=min_length)
+    )
+
+    with pytest.raises(InvalidTokenError, match="Invalid token format"):
+        await getattr(async_client, method)(request_klass(token="a" * (min_length - 1)))
+    assert not httpx2_mock.get_requests()
+
+    httpx2_mock.add_response(
+        method="POST",
+        url=f"https://menshen.example.org/auth/token/{endpoint}/",
+        json={"active": True},
+    )
+    await getattr(async_client, method)(request_klass(token="a" * min_length))
+    assert len(httpx2_mock.get_requests()) == 1

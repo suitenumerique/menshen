@@ -1,6 +1,7 @@
 """Menshen client: API clients."""
 
 import logging
+import re
 from dataclasses import asdict
 from http import HTTPStatus
 from json import JSONDecodeError
@@ -11,6 +12,7 @@ import httpx2
 
 from .exceptions import InvalidTokenError, ResponseParsingError
 from .schemas import (
+    TOKEN_PATTERN,
     BaseTokenRequest,
     Configuration,
     IntrospectionRequest,
@@ -42,6 +44,25 @@ class BaseTokenExchangeClient:
         logger.debug("Will request %s endpoint with: %s", url, request)
         # Unset optional fields should not be sent as empty form values
         return {key: value for key, value in asdict(request).items() if value is not None}
+
+    def _validate_token(self, request: BaseTokenRequest) -> None:
+        """
+        Validate the opaque token format before sending it to Menshen.
+
+        JWTs (identified by their token type hint or by their shape) are not validated
+        locally: the server is the only judge.
+
+        Raises:
+            InvalidTokenError: if the opaque token is malformed or too short.
+
+        """
+        if request.is_jwt:
+            return
+        if (
+            not re.fullmatch(TOKEN_PATTERN, request.token)
+            or len(request.token) < self.config.opaque_token_min_length
+        ):
+            raise InvalidTokenError("Invalid token format")
 
     @staticmethod
     def _parse_response(
@@ -124,6 +145,7 @@ class TokenExchangeClient(BaseTokenExchangeClient):
 
     def introspect(self, request: IntrospectionRequest) -> IntrospectionResponse:
         """Introspect exchanged token."""
+        self._validate_token(request)
         return cast(
             IntrospectionResponse,
             self._post(
@@ -136,6 +158,7 @@ class TokenExchangeClient(BaseTokenExchangeClient):
 
     def revoke(self, request: RevocationRequest) -> None:
         """Revoke exchanged token."""
+        self._validate_token(request)
         self._post(self.config.revocation_url, request)
 
 
@@ -187,6 +210,7 @@ class TokenExchangeAsyncClient(BaseTokenExchangeClient):
 
     async def introspect(self, request: IntrospectionRequest) -> IntrospectionResponse:
         """Introspect exchanged token."""
+        self._validate_token(request)
         return cast(
             IntrospectionResponse,
             await self._post(
@@ -199,4 +223,5 @@ class TokenExchangeAsyncClient(BaseTokenExchangeClient):
 
     async def revoke(self, request: RevocationRequest) -> None:
         """Revoke exchanged token."""
+        self._validate_token(request)
         await self._post(self.config.revocation_url, request)

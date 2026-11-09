@@ -19,6 +19,7 @@ from typing import cast
 import dj_database_url
 import sentry_sdk
 from configurations import Configuration, values
+from django.core.exceptions import ImproperlyConfigured
 from django.utils.translation import gettext_lazy as _
 from lasuite.configuration.values import SecretFileValue
 from sentry_sdk.integrations.django import DjangoIntegration
@@ -458,6 +459,22 @@ class Base(Configuration):
         environ_name="TOKEN_EXCHANGE_CLIENT_SECRET_USE_SPECIAL_CHARS",
         environ_prefix=None,
     )
+    # Generated opaque token length (in characters). The default (43 characters) is the
+    # length of a base64url-encoded 32 bytes random value (256 bits of entropy).
+    TOKEN_EXCHANGE_OPAQUE_TOKEN_LENGTH = values.PositiveIntegerValue(
+        default=43,
+        environ_name="TOKEN_EXCHANGE_OPAQUE_TOKEN_LENGTH",
+        environ_prefix=None,
+    )
+    # Minimum opaque token length (in characters) accepted by the introspection and
+    # revocation endpoints (JWTs are not concerned). It should not exceed
+    # TOKEN_EXCHANGE_OPAQUE_TOKEN_LENGTH. Note that raising it above the length of opaque
+    # tokens still in circulation will invalidate them.
+    TOKEN_EXCHANGE_OPAQUE_TOKEN_MIN_LENGTH = values.PositiveIntegerValue(
+        default=43,
+        environ_name="TOKEN_EXCHANGE_OPAQUE_TOKEN_MIN_LENGTH",
+        environ_prefix=None,
+    )
     TOKEN_EXCHANGE_TOKEN_HASH_KEY = SecretFileValue(
         default=None,
         environ_name="TOKEN_EXCHANGE_TOKEN_HASH_KEY",
@@ -520,6 +537,17 @@ class Base(Configuration):
         # so that structlog events are already wrapped for the
         # ProcessorFormatter when the first record is emitted.
         configure_structlog()
+
+        # Generated opaque tokens should be accepted by the introspection and revocation
+        # endpoints
+        opaque_token_length = cast(int, cls.TOKEN_EXCHANGE_OPAQUE_TOKEN_LENGTH)
+        opaque_token_min_length = cast(int, cls.TOKEN_EXCHANGE_OPAQUE_TOKEN_MIN_LENGTH)
+        if opaque_token_length < opaque_token_min_length:
+            raise ImproperlyConfigured(
+                f"TOKEN_EXCHANGE_OPAQUE_TOKEN_LENGTH ({opaque_token_length}) should be greater "
+                "than or equal to TOKEN_EXCHANGE_OPAQUE_TOKEN_MIN_LENGTH "
+                f"({opaque_token_min_length})"
+            )
 
         # The SENTRY_DSN setting should be available to activate sentry for an environment
         if cls.SENTRY_DSN is not None:

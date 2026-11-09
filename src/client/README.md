@@ -29,6 +29,7 @@ config = Configuration(
     client_secret="super-secret",
     server_root_url="https://menshen.example.org",
     requests_timeout=1.5,  # This is optional (default: 3 seconds, None means no timeout)
+    opaque_token_min_length=43,  # This is optional (default: 43 characters)
 )
 
 # Create the client instance
@@ -38,6 +39,9 @@ client = TokenExchangeClient(config=config)
 In this example, the client identifier and secret are those provided by your
 Menshen instance administrator that should have registered a service provider
 for your service. The `server_root_url` is the root URL of your Menshen server.
+The `opaque_token_min_length` should match your Menshen server
+`TOKEN_EXCHANGE_OPAQUE_TOKEN_MIN_LENGTH` setting: it is used to validate opaque
+tokens before sending them to the server.
 
 The client keeps a pool of HTTP connections to your Menshen server. It is
 recommended to create a single long-lived client instance for your
@@ -180,13 +184,14 @@ await client.aclose()
 ### Error handling
 
 Introspection and revocation requests strip leading and trailing whitespaces
-from the token, then validate opaque tokens against Menshen's format
-(`menshen_client.TOKEN_PATTERN`). A malformed opaque token raises an
-`InvalidTokenError` when instantiating the request (without any network call).
-JWTs (hinted with `TokenType.JWT` or shaped as `header.payload.signature`) are
-not validated locally. Any token rejected by the server also raises an
-`InvalidTokenError`. Other API errors raise an
-`httpx2.HTTPStatusError`, and request timeouts an `httpx2.TimeoutException`:
+from the token. Before sending them to the server, the `introspect()` and
+`revoke()` methods validate opaque tokens against Menshen's format (base64url
+characters, at least `opaque_token_min_length` long), and raise an
+`InvalidTokenError` for a malformed one (without any network call). JWTs
+(hinted with `TokenType.JWT` or shaped as `header.payload.signature`) are not
+validated locally. Any token rejected by the server also raises an
+`InvalidTokenError`. Other API errors raise an `httpx2.HTTPStatusError`, and
+request timeouts an `httpx2.TimeoutException`:
 
 ```python
 import httpx2

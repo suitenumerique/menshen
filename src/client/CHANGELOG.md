@@ -13,6 +13,8 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 - Validate opaque exchanged tokens before sending them to Menshen
 - Raise an `InvalidTokenError` when an exchanged token is not valid (opaque and
   JWT cases)
+- Add `opaque_token_min_length` configuration (default to 43 characters), in
+  sync with the server's `TOKEN_EXCHANGE_OPAQUE_TOKEN_MIN_LENGTH` setting
 
 ## [v0.3.0] - 2026-11-02
 

@@ -1,5 +1,8 @@
 """Menshen: tests for the token service module."""
 
+import re
+import secrets
+from unittest import mock
 from uuid import UUID
 
 import pytest
@@ -9,19 +12,33 @@ from joserfc.jwt import Token
 from token_exchange.services.token import TokenGenerator
 
 
-def test_token_generator_generate_opaque_token():
-    """Simple test for the opaque token generation."""
-    token = TokenGenerator.generate_opaque_token()
-    assert isinstance(token, str)
+def test_token_generator_generate_opaque_token(monkeypatch):
+    """Test the opaque token generation with the default length."""
+    token_urlsafe = mock.Mock(wraps=secrets.token_urlsafe)
+    monkeypatch.setattr("token_exchange.services.token.secrets.token_urlsafe", token_urlsafe)
 
-    # As stated in Python's documentation about the secrets.token_urlsafe function:
-    #
-    # > The text is Base64 encoded, so on average each byte results in approximately 1.3 characters.
-    #
-    # We use 32 bytes for this token.
-    size = len(token)
-    assert size >= 40
-    assert size <= 44
+    token = TokenGenerator.generate_opaque_token()
+
+    # 32 bytes encoded in base64url (without padding) give 43 characters
+    token_urlsafe.assert_called_once_with(32)
+    assert isinstance(token, str)
+    assert re.fullmatch(r"[A-Za-z0-9_-]{43}", token)
+
+
+@pytest.mark.parametrize(
+    ("length", "nbytes"),
+    [(1, 1), (2, 1), (3, 2), (4, 3), (43, 32), (44, 33), (45, 34), (46, 34), (64, 48), (100, 75)],
+)
+def test_token_generator_generate_opaque_token_length(monkeypatch, settings, length, nbytes):
+    """Test the opaque token generation with a configured length (in characters)."""
+    settings.TOKEN_EXCHANGE_OPAQUE_TOKEN_LENGTH = length
+    token_urlsafe = mock.Mock(wraps=secrets.token_urlsafe)
+    monkeypatch.setattr("token_exchange.services.token.secrets.token_urlsafe", token_urlsafe)
+
+    token = TokenGenerator.generate_opaque_token()
+
+    token_urlsafe.assert_called_once_with(nbytes)
+    assert re.fullmatch(rf"[A-Za-z0-9_-]{{{length}}}", token)
 
 
 def test_token_generator_load_key_set_configuration_not_set(settings):

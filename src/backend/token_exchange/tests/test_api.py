@@ -638,20 +638,20 @@ def test_exchange_view_with_requested_refresh_token_type(source_api_client):
                     "form",
                     "token",
                 ],
-                "msg": "String should match pattern '^\\S{43,}$'",
-                "ctx": {"pattern": "^\\S{43,}$"},
+                "msg": "String should match pattern '^\\S+$'",
+                "ctx": {"pattern": "^\\S+$"},
             },
         ),
         (
             {"token": "0123456789"},
             {
-                "type": "string_pattern_mismatch",
+                "type": "value_error",
                 "loc": [
                     "form",
-                    "token",
+                    "introspection_request",
                 ],
-                "msg": "String should match pattern '^\\S{43,}$'",
-                "ctx": {"pattern": "^\\S{43,}$"},
+                "msg": "Value error, Token should be at least 43 characters long",
+                "ctx": {"error": "Token should be at least 43 characters long"},
             },
         ),
     ],
@@ -858,6 +858,34 @@ def test_introspect_view_introspection_strips_token(target_api_client, target_se
 
 
 @pytest.mark.django_db
+def test_introspect_view_introspection_with_configured_token_length(
+    target_api_client, target_service, settings
+):
+    """Test that tokens issued before a token length change are still introspected."""
+    old_raw_token = TokenGenerator.generate_opaque_token()
+    assert len(old_raw_token) == 43
+    ExchangedTokenFactory(
+        token_type=TokenTypeChoices.ACCESS_TOKEN,
+        audiences=[target_service.audience_id],
+        raw_token=old_raw_token,
+    )
+
+    settings.TOKEN_EXCHANGE_OPAQUE_TOKEN_LENGTH = 64
+    new_raw_token = TokenGenerator.generate_opaque_token()
+    assert len(new_raw_token) == 64
+    ExchangedTokenFactory(
+        token_type=TokenTypeChoices.ACCESS_TOKEN,
+        audiences=[target_service.audience_id],
+        raw_token=new_raw_token,
+    )
+
+    for raw_token in (old_raw_token, new_raw_token):
+        response = target_api_client.post("/introspect/", data={"token": raw_token})
+        assert response.status_code == 200  # OK
+        assert response.json()["active"]
+
+
+@pytest.mark.django_db
 @pytest.mark.parametrize(
     ("payload", "error"),
     [
@@ -891,20 +919,20 @@ def test_introspect_view_introspection_strips_token(target_api_client, target_se
                     "form",
                     "token",
                 ],
-                "msg": "String should match pattern '^\\S{43,}$'",
-                "ctx": {"pattern": "^\\S{43,}$"},
+                "msg": "String should match pattern '^\\S+$'",
+                "ctx": {"pattern": "^\\S+$"},
             },
         ),
         (
             {"token": "0123456789"},
             {
-                "type": "string_pattern_mismatch",
+                "type": "value_error",
                 "loc": [
                     "form",
-                    "token",
+                    "token_revocation_request",
                 ],
-                "msg": "String should match pattern '^\\S{43,}$'",
-                "ctx": {"pattern": "^\\S{43,}$"},
+                "msg": "Value error, Token should be at least 43 characters long",
+                "ctx": {"error": "Token should be at least 43 characters long"},
             },
         ),
     ],

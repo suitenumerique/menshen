@@ -13,6 +13,10 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 - Add `SENTRY_TRACES_SAMPLE_RATE` and `SENTRY_PROFILES_SAMPLE_RATE` settings to
   configure Sentry performance tracing and profiling (disabled by default, only
   active when `SENTRY_DSN` is defined)
+- Add `TOKEN_EXCHANGE_OPAQUE_TOKEN_LENGTH` and
+  `TOKEN_EXCHANGE_OPAQUE_TOKEN_MIN_LENGTH` settings to configure the generated
+  opaque token length and the minimum opaque token length accepted by the
+  introspection and revocation endpoints (in characters, default to 43)
 
 ### Changed
 
