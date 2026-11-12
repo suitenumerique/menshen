@@ -80,6 +80,7 @@ def test_token_generator_generate_jwt(monkeypatch, settings):
         scope="service0 service1",
         expires_in=30,
         kid=settings.TOKEN_EXCHANGE_JWT_CURRENT_KID,
+        client_id="service:source",
     )
 
     validated: Token = TokenGenerator.verify_jwt(token)
@@ -90,12 +91,30 @@ def test_token_generator_generate_jwt(monkeypatch, settings):
     }
     assert validated.claims["act"] == {"sub": "actor"}
     assert validated.claims["aud"] == ["service0.example.org"]
+    assert validated.claims["client_id"] == "service:source"
     assert validated.claims["email"] == "john.doe@example.org"
     assert validated.claims["exp"] == now_as_timestamp + 30
     assert validated.claims["iat"] == now_as_timestamp
     assert validated.claims["scope"] == ["service0", "service1"]
     assert validated.claims["sub"] == "john.doe@example.org"
     assert str(UUID(validated.claims["jti"], version=4)) == validated.claims["jti"]
+
+
+def test_token_generator_generate_jwt_without_client_id(settings):
+    """Test JWT generation without a client_id: the claim should be omitted."""
+    token: str = TokenGenerator.generate_jwt(
+        sub="john.doe@example.org",
+        email="john.doe@example.org",
+        audiences=[
+            "service0.example.org",
+        ],
+        scope="service0 service1",
+        expires_in=30,
+        kid=settings.TOKEN_EXCHANGE_JWT_CURRENT_KID,
+    )
+
+    validated: Token = TokenGenerator.verify_jwt(token)
+    assert "client_id" not in validated.claims
 
 
 def test_token_generator_verify_jwt_invalid_token():

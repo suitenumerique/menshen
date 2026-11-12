@@ -88,6 +88,7 @@ class JWTExchangedTokenFactory(ExchangedTokenFactory):
                         throttle=None,
                     ),
                 ],
+                client_id=o.audiences[0],
             )
         )
     )
