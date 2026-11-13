@@ -26,6 +26,9 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 
 ### Fixed
 
+- Issue opaque access tokens when `TOKEN_EXCHANGE_JWT_CURRENT_KID` is
+  unset, instead of failing with HTTP 500 on the non-null `jwt_kid` column #138
+
 - Only allow the service that requested a token exchange (source service) to
   revoke the exchanged token, instead of its target services (RFC 7009)
 

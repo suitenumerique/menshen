@@ -311,7 +311,9 @@ class RequestService:
             # We only store an HMAC hash of the token, not the token itself
             token=hash_token(response.access_token),
             token_type=response.issued_token_type,
-            jwt_kid=cls.kid,
+            # Only JWTs are signed: opaque tokens have no key id, and the
+            # signing key may not be configured at all
+            jwt_kid=cls.kid if response.issued_token_type == TokenType.JWT else "",
             # We enforce having a sub in the introspection response, hence,
             # the sub field cannot be null or empty.
             subject_sub=user_info.sub,
