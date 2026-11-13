@@ -279,7 +279,7 @@ class RequestService:
                     raise TokenExchangeConfigurationError("JWT signing key is not configured.")
                 try:
                     return TokenGenerator.generate_jwt(
-                        # user_info.sub cannot be None (enforced during instrospection)
+                        # user_info.sub cannot be None (enforced during introspection)
                         sub=user_info.sub,  # ty: ignore
                         email=user_info.email,
                         audiences=audiences,
