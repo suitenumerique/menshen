@@ -1,0 +1,144 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - "*"
+
+permissions: {}
+
+jobs:
+  lint-python:
+    name: lint ${{ matrix.service }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: backend
+            working_directory: src/backend
+            extra_command: ty check
+          - service: playground-source
+            working_directory: src/playground/source
+            extra_command: ""
+          - service: playground-target
+            working_directory: src/playground/target
+            extra_command: ""
+    uses: suitenumerique/ci/.github/workflows/_python-lint.yml@ca6401ac83e981e5b0a94f06f68baaa6e6d0a436 # v0.0.1
+    with:
+      working_directory: ${{ matrix.working_directory }}
+      extra_command: ${{ matrix.extra_command }}
+
+  test-back:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/backend
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: menshen
+          POSTGRES_USER: dinum
+          POSTGRES_PASSWORD: pass
+        ports:
+          - 5432:5432
+        # needed because the postgres container does not provide a healthcheck
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      DB_HOST: localhost
+      DB_NAME: menshen
+      DB_PASSWORD: pass
+      DB_PORT: 5432
+      DB_USER: dinum
+      DJANGO_CONFIGURATION: Test
+      DJANGO_SECRET_KEY: ThisIsAnExampleKeyForTestPurposeOnly
+      DJANGO_SETTINGS_MODULE: menshen.settings
+      OIDC_OP_INTROSPECTION_ENDPOINT: "http://fake.local/realms/menshen/protocol/openid-connect/token/introspect"
+      OIDC_OP_JWKS_ENDPOINT: /endpoint-for-test-purpose-only
+      OIDC_OP_URL: "http://fake.local"
+      OIDC_RS_CLIENT_ID: menshen
+      OIDC_RS_CLIENT_SECRET: client_secret
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Create writable /data
+        run: |
+          sudo mkdir -p /data/media && \
+          sudo mkdir -p /data/static
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version-file: "./src/backend/.python-version"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.13.7"
+          enable-cache: true
+
+      - name: Install the dependencies
+        run: uv sync --locked --all-extras --dev
+
+      - name: Define required environment variables
+        run: ../../bin/local-env
+
+      - name: Run tests
+        run: uv run pytest -n 2
+
+  test-playground-target:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/playground/target
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version-file: "./src/playground/target/.python-version"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.13.7"
+          enable-cache: true
+
+      - name: Install the dependencies
+        run: uv sync --locked --all-extras --dev
+
+      - name: Run tests
+        run: uv run pytest
+
+  test-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Create the shared docker network
+        run: docker network create lasuite-network || true
+
+      - name: Run end-to-end tests using docker compose 
+        run: |
+          GITHUB_ENV= make bootstrap
+          make test-e2e
+
+      - name: Upload end-to-end test traces
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-test-results
+          path: src/e2e/test-results/
+          if-no-files-found: ignore

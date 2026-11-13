@@ -769,7 +769,7 @@ def test_introspect_view_invalid_audience(target_api_client):
 def test_introspect_view_introspection_with_wrong_token_type_hint(
     target_api_client, target_service, token_type_hint
 ):
-    """Test the TokenIntrospectView instrospection with a falsy token type hint."""
+    """Test the TokenIntrospectView introspection with a falsy token type hint."""
     raw_token = TokenGenerator.generate_opaque_token()
     ExchangedTokenFactory(
         token_type=TokenTypeChoices.ACCESS_TOKEN,
@@ -788,7 +788,7 @@ def test_introspect_view_introspection_with_wrong_token_type_hint(
 
 @pytest.mark.django_db
 def test_introspect_view_introspection_with_token_type_hint(target_api_client, target_service):
-    """Test the TokenIntrospectView instrospection."""
+    """Test the TokenIntrospectView introspection."""
     raw_token = TokenGenerator.generate_opaque_token()
     exchanged_token = ExchangedTokenFactory(
         token_type=TokenTypeChoices.ACCESS_TOKEN,
@@ -816,7 +816,7 @@ def test_introspect_view_introspection_with_token_type_hint(target_api_client, t
 
 @pytest.mark.django_db
 def test_introspect_view_introspection(target_api_client, target_service):
-    """Test the TokenIntrospectView instrospection."""
+    """Test the TokenIntrospectView introspection."""
     raw_token = TokenGenerator.generate_opaque_token()
     exchanged_token = ExchangedTokenFactory(
         token_type=TokenTypeChoices.ACCESS_TOKEN,
@@ -938,7 +938,7 @@ def test_introspect_view_introspection_with_configured_token_length(
     ],
 )
 def test_revocation_view_without_token(source_api_client, payload, error):
-    """Test the TokenRevocationView instrospection with no or empty token."""
+    """Test the TokenRevocationView introspection with no or empty token."""
     response = source_api_client.post("/revoke/", data=payload)
     assert response.status_code == 422  # UNPROCESSABLE_ENTITY
     assert error in response.json()["detail"]
@@ -946,7 +946,7 @@ def test_revocation_view_without_token(source_api_client, payload, error):
 
 @pytest.mark.django_db
 def test_revocation_view_with_unknown_token(source_api_client):
-    """Test the TokenRevocationView instrospection with no or empty token."""
+    """Test the TokenRevocationView introspection with no or empty token."""
     with capture_logs() as log_events:
         response = source_api_client.post(
             "/revoke/", data={"token": TokenGenerator.generate_opaque_token()}

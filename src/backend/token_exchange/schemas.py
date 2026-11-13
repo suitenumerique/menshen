@@ -102,7 +102,7 @@ class MenshenJWTGrantClaim(Schema):
 
 
 # Define a UUID serializer to maximize compatibility with various libraries that JSON encode
-# dictionnaries and are not able to deal with UUIDs.
+# dictionaries and are not able to deal with UUIDs.
 UUIDStr = Annotated[UUID, PlainSerializer(str, return_type=str)]
 
 
@@ -164,7 +164,7 @@ class IntrospectionResponse(Schema):
     aud: str | None = None
     token_type: IntrospectionResponseTokenType | None = None
 
-    # Optionnal
+    # Optional
     email: str | None = None
     username: str | None = None
     jti: UUID | str | None = None

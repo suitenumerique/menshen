@@ -14,15 +14,9 @@ permissions: {}
 
 jobs:
   helmfile-lint:
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/helmfile/helmfile:v1.8.2
-    steps:
-
-    - name: Checkout repository
-      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      with:
-        persist-credentials: false
-
-    - name: Helmfile lint
-      run: helmfile -e dev -f src/helm/helmfile.yaml.gotmpl lint
+    permissions:
+      contents: read
+    uses: suitenumerique/ci/.github/workflows/_helmfile-lint.yml@ca6401ac83e981e5b0a94f06f68baaa6e6d0a436 # v0.0.1
+    with:
+      environments: dev
+      helmfile_version: v1.8.2

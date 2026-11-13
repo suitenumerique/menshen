@@ -2,12 +2,14 @@
   "extends": ["github>suitenumerique/ci//renovate/default"],
   "dependencyDashboard": true,
   "labels": ["dependencies", "noChangeLog", "automated"],
-  "schedule": ["before 7am on monday"],
-  "prCreation": "not-pending",
-  "rebaseWhen": "conflicted",
-  "updateNotScheduled": false,
   "enabledManagers": ["github-actions", "pep621", "docker-compose", "dockerfile"],
+  "schedule": ["before 9am on thursday"],
   "packageRules": [
+    {
+      "description": "Override the preset's per-group schedules",
+      "matchPackageNames": ["*"],
+      "schedule": ["before 9am on thursday"]
+    },
     {
       "matchManagers": ["pep621"],
       "matchDepTypes": ["requires-python"],

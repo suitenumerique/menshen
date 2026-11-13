@@ -8,31 +8,11 @@ on:
     paths:
       - src/helm/menshen/**
 
-permissions: 
-  contents: write
+permissions:
+  contents: read
 
 jobs:
   release:
-    runs-on: ubuntu-latest
-    steps:
-
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: Cleanup
-        run: rm -rf ./src/helm/extra
-
-      - name: Install Helm
-        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-
-      - name: Publish Helm charts
-        uses: numerique-gouv/helm-gh-pages@2cf477ae49d7c70037ceb1685803f4f7bad9b981 # add-overwrite-option
-        with:
-          charts_dir: ./src/helm
-          linting: on
-          token: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      contents: write
+    uses: suitenumerique/ci/.github/workflows/_release-helm-chart.yml@ca6401ac83e981e5b0a94f06f68baaa6e6d0a436 # v0.0.1

@@ -18,7 +18,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.14",
 ]
-description = "An OAuth 2.0 Token Exchange autorization server build with Django."
+description = "An OAuth 2.0 Token Exchange authorization server build with Django."
 keywords = ["Django", "OAuth"]
 license = "MIT"
 requires-python = "~=3.14.0"

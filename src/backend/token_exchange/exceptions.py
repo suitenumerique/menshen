@@ -17,7 +17,7 @@ class APIError(Exception):
     """Base API-related exception."""
 
     status_code: int = 500
-    default_detail: str = "An error occured while processing your request."
+    default_detail: str = "An error occurred while processing your request."
     default_code: str = "unknown"
 
     def __init__(self, detail: str | None = None, code: str | None = None):
@@ -59,7 +59,7 @@ class TokenExchangeIntrospectionError(APIError):
 
 
 class TokenExchangeIssuingError(APIError):
-    """Exception raised when an error occured during token issuing."""
+    """Exception raised when an error occurred during token issuing."""
 
     status_code: int = 500
     default_detail: str = "Server cannot issue requested exchange token."

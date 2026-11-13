@@ -7,7 +7,7 @@ from menshen.logging import drop_user_agent
 
 
 class TxConfig(AppConfig):
-    """Token exchance application configuration."""
+    """Token exchange application configuration."""
 
     name = "token_exchange"
 

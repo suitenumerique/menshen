@@ -404,7 +404,7 @@ workspace with the UUID `510902ae-e907-4177-b93a-37ae7c6c9105`):
 ```
 
 > Note that we request a JWT token type in this case, but an opaque access
-> token would also fit. Depending on extra informations it should carry (such
+> token would also fit. Depending on extra information it should carry (such
 > as throttling policy, etc.), you should define expected token type
 > consequently.
 
