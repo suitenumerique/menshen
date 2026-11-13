@@ -205,7 +205,7 @@ class IntrospectionResponse:
     aud: str | None = None
     token_type: TokenType | None = None
 
-    # Optionnal
+    # Optional
     email: str | None = None
     username: str | None = None
     jti: str | None = None
