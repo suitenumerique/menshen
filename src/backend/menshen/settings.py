@@ -333,7 +333,7 @@ class Base(Configuration):
 
     # OIDC Resource Server settings
     OIDC_RS_BACKEND_CLASS = values.Value(
-        "lasuite.oidc_resource_server.backend.ResourceServerBackend",
+        "token_exchange.backends.ResourceServerBackend",
         environ_name="OIDC_RS_BACKEND_CLASS",
         environ_prefix=None,
     )
@@ -357,6 +357,11 @@ class Base(Configuration):
     OIDC_OP_USER_ENDPOINT = values.Value(
         None, environ_name="OIDC_OP_USER_ENDPOINT", environ_prefix=None
     )
+    # Required by the JWT introspection response backend
+    # (token_exchange.backends.JWTResourceServerBackend) to verify signed responses
+    OIDC_OP_JWKS_ENDPOINT = values.Value(
+        None, environ_name="OIDC_OP_JWKS_ENDPOINT", environ_prefix=None
+    )
 
     # Resource server backend class is used for token introspection
     OIDC_RS_CLIENT_ID = values.Value(None, environ_name="OIDC_RS_CLIENT_ID", environ_prefix=None)
@@ -377,6 +382,14 @@ class Base(Configuration):
     )
     OIDC_RS_SCOPES = values.ListValue(
         ["openid"], environ_name="OIDC_RS_SCOPES", environ_prefix=None
+    )
+    # Required by the JWT introspection response backend
+    # (token_exchange.backends.JWTResourceServerBackend) to decrypt encrypted responses
+    OIDC_RS_PRIVATE_KEY_STR = values.Value(
+        None, environ_name="OIDC_RS_PRIVATE_KEY_STR", environ_prefix=None
+    )
+    OIDC_RS_ENCRYPTION_KEY_TYPE = values.Value(
+        "RSA", environ_name="OIDC_RS_ENCRYPTION_KEY_TYPE", environ_prefix=None
     )
 
     # Token Exchange (RFC 8693) settings

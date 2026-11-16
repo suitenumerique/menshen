@@ -17,6 +17,9 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
   `TOKEN_EXCHANGE_OPAQUE_TOKEN_MIN_LENGTH` settings to configure the generated
   opaque token length and the minimum opaque token length accepted by the
   introspection and revocation endpoints (in characters, default to 43)
+- Add `OIDC_OP_JWKS_ENDPOINT`, `OIDC_RS_PRIVATE_KEY_STR` and
+  `OIDC_RS_ENCRYPTION_KEY_TYPE` settings to support the
+  `JWTResourceServerBackend`
 
 ### Changed
 
@@ -32,6 +35,7 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 ### Changed
 
 - Switch backend logging to structured logging with `structlog`
+- Use our own resource server backend class that adds debug logging info
 
 ## [v0.6.0] - 2026-11-03
 
