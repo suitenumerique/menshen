@@ -70,6 +70,7 @@ class TokenGenerator:
         kid: str,
         may_act: TokenExchangeJWTMayActClaim | None = None,
         grants: list[MenshenJWTGrantClaim] | None = None,
+        client_id: str | None = None,
     ) -> str:
         """
         Generate a signed JWT according to RFC 8693.
@@ -83,6 +84,8 @@ class TokenGenerator:
             may_act: Optional may_act claim for delegation
             kid: Key ID for signing
             grants: Optional list of grant dicts with throttle info
+            client_id: Optional client_id claim identifying the service
+                that requested the token exchange
 
         Returns:
             str: A signed JWT
@@ -113,6 +116,7 @@ class TokenGenerator:
             # Extract subject from actor_token if possible, or use a placeholder
             act=TokenExchangeJWTActClaim(sub="actor"),  # Simplified for now
             may_act=may_act,
+            client_id=client_id,
         )
 
         # Prepare header with kid
