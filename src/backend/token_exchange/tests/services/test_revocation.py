@@ -19,10 +19,9 @@ def test_revocation_service_revoke_with_an_unknown_token(source_service):
     with capture_logs() as log_events:
         RevocationService.revoke("foo", source_service)
     assert log_events == [
-        {"event": "token_not_found", "log_level": "info"},
         {
             "event": "token_revocation_failed",
-            "log_level": "error",
+            "log_level": "warning",
             "reason": "token_not_found",
         },
     ]
@@ -42,8 +41,9 @@ def test_revocation_service_revoke_with_an_expired_token(source_service):
     assert not exchanged_token.is_revoked()
     assert {
         "event": "token_revocation_failed",
-        "log_level": "error",
-        "reason": "invalid_token",
+        "log_level": "warning",
+        "reason": "expired",
+        "exchanged_token_id": str(exchanged_token.pk),
     } in log_events
 
 
@@ -62,8 +62,9 @@ def test_revocation_service_revoke_with_a_revoked_token(source_service):
     assert exchanged_token.revoked_at == revoked_at
     assert {
         "event": "token_revocation_failed",
-        "log_level": "error",
-        "reason": "invalid_token",
+        "log_level": "warning",
+        "reason": "revoked",
+        "exchanged_token_id": str(exchanged_token.pk),
     } in log_events
 
 
@@ -85,7 +86,9 @@ def test_revocation_service_revoke_by_target_service(source_service, target_serv
         "event": "token_revocation_failed",
         "log_level": "error",
         "reason": "not_source_service",
+        "exchanged_token_id": str(exchanged_token.pk),
         "service": "service:target",
+        "token_source_service": "service:source",
     } in log_events
 
 
@@ -108,7 +111,9 @@ def test_revocation_service_revoke_by_another_service(source_service, target_ser
         "event": "token_revocation_failed",
         "log_level": "error",
         "reason": "not_source_service",
+        "exchanged_token_id": str(exchanged_token.pk),
         "service": "service:other",
+        "token_source_service": "service:source",
     } in log_events
 
 
@@ -132,6 +137,7 @@ def test_revocation_service_revoke(source_service, target_service):
         {
             "event": "token_revoked",
             "log_level": "info",
+            "exchanged_token_id": str(exchanged_token.pk),
             "token_jti": exchanged_token.subject_token_jti,
             "sub": exchanged_token.subject_sub,
             "email": exchanged_token.subject_email,

@@ -26,16 +26,14 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 - Strip leading and trailing whitespaces from the token of introspection and
   revocation requests, and require at least 43 characters (the length of an
   opaque token) instead of 32
+- Switch backend logging to structured logging with `structlog`
+- Use our own resource server backend class that adds debug logging info
+- Log API endpoints failures with their reason
 
 ### Fixed
 
 - Only allow the service that requested a token exchange (source service) to
   revoke the exchanged token, instead of its target services (RFC 7009)
-
-### Changed
-
-- Switch backend logging to structured logging with `structlog`
-- Use our own resource server backend class that adds debug logging info
 
 ## [v0.6.0] - 2026-11-03
 

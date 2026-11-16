@@ -7,6 +7,8 @@ from ninja.security import HttpBasicAuth
 
 from .models import ServiceProviderCredentials
 
+logger = structlog.get_logger(__name__)
+
 
 class ServiceProviderBasicAuthentication(HttpBasicAuth):
     """
@@ -22,12 +24,27 @@ class ServiceProviderBasicAuthentication(HttpBasicAuth):
                 client_id=username,
             )
         except ServiceProviderCredentials.DoesNotExist as exc:
+            logger.warning(
+                "service_provider_authentication_failed",
+                reason="unknown_client",
+                client_id=username,
+            )
             raise AuthenticationError(message="Service provider does not exist.") from exc
 
         if not credentials.is_active:
+            logger.warning(
+                "service_provider_authentication_failed",
+                reason="inactive_client",
+                client_id=username,
+            )
             raise AuthenticationError(message="Service provider inactive.")
 
         if not credentials.check_client_secret(password):
+            logger.warning(
+                "service_provider_authentication_failed",
+                reason="invalid_secret",
+                client_id=username,
+            )
             raise AuthenticationError(message="Invalid service provider credentials.")
 
         service_provider = credentials.service_provider

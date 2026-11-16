@@ -104,6 +104,11 @@ class RequestService:
                 "Failed to introspect subject token."
             ) from exc
         except RequestException as exc:
+            logger.error(
+                "subject_token_introspection_failed",
+                reason="resource_server_unreachable",
+                exc_info=exc,
+            )
             raise TokenExchangeResourceServerIntrospectionError(
                 "Failed to introspect subject token."
             ) from exc
@@ -276,6 +281,7 @@ class RequestService:
                 return TokenGenerator.generate_opaque_token()
             case TokenType.JWT:
                 if not cls.kid:
+                    logger.error("jwt_signing_key_not_configured", token_type=token_type)
                     raise TokenExchangeConfigurationError("JWT signing key is not configured.")
                 try:
                     return TokenGenerator.generate_jwt(
@@ -290,8 +296,10 @@ class RequestService:
                         grants=grants,
                     )
                 except ValueError as exc:
+                    logger.error("jwt_issuing_failed", kid=cls.kid, exc_info=exc)
                     raise TokenExchangeIssuingError("An error occurred while issuing JWT.") from exc
             case _:
+                logger.error("unsupported_requested_token_type", token_type=token_type)
                 raise TokenExchangeConfigurationError(
                     "Configured request token type is not supported."
                 )
@@ -336,6 +344,14 @@ class RequestService:
         cls, source_service: ServiceProvider, request: TokenExchangeRequest, persist: bool = False
     ) -> tuple[MenshenTokenExchangeResponse, ExchangedToken | None]:
         """Generate a token exchange response."""
+        logger.debug(
+            "token_exchange_requested",
+            audiences=request.audiences,
+            scopes=request.scopes,
+            action=request.action,
+            requested_token_type=request.requested_token_type,
+            has_actor_token=bool(request.actor_token),
+        )
         requested_audiences: list[str] = (
             request.audiences if request.audience else [source_service.audience_id]
         )
@@ -404,6 +420,7 @@ class RequestService:
         # Log the exchange
         logger.info(
             "token_exchanged",
+            exchanged_token_id=str(exchanged_token.pk),
             sub=exchanged_token.subject_sub,
             email=exchanged_token.subject_email,
             source_audience=source_service.audience_id,

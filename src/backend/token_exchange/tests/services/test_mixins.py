@@ -21,7 +21,7 @@ def test_exchanged_token_mixin_when_token_not_found():
         pytest.raises(TokenExchangeError, match=r"Token not found\."),
     ):
         ExchangedTokenMixin.get_exchanged_token("foo")
-    assert log_events == [{"event": "token_not_found", "log_level": "info"}]
+    assert log_events == []
 
 
 def test_exchanged_token_mixin_get_exchanged_token(target_service):
@@ -50,17 +50,24 @@ def test_exchanged_token_mixin_get_exchanged_token_with_wrong_hash_key(target_se
 
 
 @pytest.mark.parametrize(
-    ("expires_at", "revoked_at"),
+    ("expires_at", "revoked_at", "reason"),
     [
-        (datetime(2026, 1, 1, 0, 0, tzinfo=UTC), None),
-        (datetime.now(tz=UTC) + timedelta(days=30), (datetime(2026, 1, 1, 0, 0, tzinfo=UTC))),
+        (datetime(2026, 1, 1, 0, 0, tzinfo=UTC), None, "expired"),
+        (
+            datetime.now(tz=UTC) + timedelta(days=30),
+            datetime(2026, 1, 1, 0, 0, tzinfo=UTC),
+            "revoked",
+        ),
         (
             datetime(2026, 1, 1, 0, 0, tzinfo=UTC),
             datetime(2026, 1, 1, 0, 0, tzinfo=UTC),
+            "revoked",
         ),
     ],
 )
-def test_exchanged_token_mixin_token_expired_or_revoked(target_service, expires_at, revoked_at):
+def test_exchanged_token_mixin_token_expired_or_revoked(
+    target_service, expires_at, revoked_at, reason
+):
     """Test the ExchangedTokenMixin with an expired or revoked token."""
     exchanged_token = ExchangedTokenFactory.build(
         token_type=TokenTypeChoices.ACCESS_TOKEN,
@@ -74,6 +81,8 @@ def test_exchanged_token_mixin_token_expired_or_revoked(target_service, expires_
         {
             "event": "exchanged_token_invalid",
             "log_level": "warning",
+            "reason": reason,
+            "exchanged_token_id": str(exchanged_token.pk),
             "token_jti": exchanged_token.subject_token_jti,
             "type": exchanged_token.token_type,
             "kid": "N/A",
@@ -92,7 +101,8 @@ def test_exchanged_token_mixin_token_with_bad_audiences(target_service):
     assert log_events == [
         {
             "event": "token_audience_mismatch",
-            "log_level": "error",
+            "log_level": "warning",
+            "exchanged_token_id": str(exchanged_token.pk),
             "audience": target_service.audience_id,
             "audiences": ["service:foo"],
         }
@@ -121,6 +131,8 @@ def test_exchanged_token_mixin_token_without_source_service(target_service):
         {
             "event": "exchanged_token_invalid",
             "log_level": "warning",
+            "reason": "source_service_deleted",
+            "exchanged_token_id": str(exchanged_token.pk),
             "token_jti": exchanged_token.subject_token_jti,
             "type": exchanged_token.token_type,
             "kid": "N/A",

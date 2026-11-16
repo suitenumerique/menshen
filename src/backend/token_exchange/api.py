@@ -1,8 +1,12 @@
 """Menshen: views for the token_exchange application."""
 
+from http import HTTPStatus
+
+import structlog
 from django.conf import settings
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponse
 from ninja import Form, NinjaAPI
+from ninja.errors import Throttled, ValidationError
 from ninja.throttling import AuthRateThrottle
 
 from .authentication import ServiceProviderBasicAuthentication
@@ -29,16 +33,58 @@ api = NinjaAPI(
     else None,
 )
 
+logger = structlog.get_logger(__name__)
+
 
 # Menshen API exception handler
 #
 # Inspired by DRF's APIException
 @api.exception_handler(APIError)
-def api_exception(request, exc):
+def api_exception(request: HttpRequest, exc: APIError) -> HttpResponse:
     """Raise API exception error handler."""
+    if exc.status_code >= HTTPStatus.INTERNAL_SERVER_ERROR:
+        logger.error(
+            "api_error",
+            code=exc.code,
+            status_code=exc.status_code,
+            detail=exc.detail,
+            path=request.path,
+            exc_info=exc,
+        )
+    else:
+        logger.warning(
+            "api_error",
+            code=exc.code,
+            status_code=exc.status_code,
+            detail=exc.detail,
+            path=request.path,
+        )
     return api.create_response(
         request, {"detail": exc.detail, "code": exc.code}, status=exc.status_code
     )
+
+
+@api.exception_handler(ValidationError)
+def validation_error(request: HttpRequest, exc: ValidationError) -> HttpResponse:
+    """Log request validation errors and return django-ninja's default response."""
+    # Only log the error location, type and message: the input value and the
+    # context may contain submitted tokens.
+    logger.warning(
+        "request_validation_failed",
+        path=request.path,
+        errors=[
+            {"loc": list(error.get("loc", [])), "type": error.get("type"), "msg": error.get("msg")}
+            for error in exc.errors
+        ],
+    )
+    return api.create_response(request, {"detail": exc.errors}, status=422)
+
+
+@api.exception_handler(Throttled)
+def throttled(request: HttpRequest, exc: Throttled) -> HttpResponse:
+    """Log throttled requests and return django-ninja's default response."""
+    logger.warning("request_throttled", path=request.path, wait=exc.wait)
+    return api.create_response(request, {"detail": str(exc)}, status=exc.status_code)
 
 
 @api.post(

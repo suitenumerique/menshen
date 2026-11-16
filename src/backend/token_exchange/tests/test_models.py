@@ -8,7 +8,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from structlog.testing import capture_logs
 
-from token_exchange.enums import AllowedRequestedTokenType
+from token_exchange.enums import AllowedRequestedTokenType, InvalidTokenReason
 from token_exchange.factories import (
     ActionScopeFactory,
     ActionScopeGrantFactory,
@@ -293,6 +293,20 @@ def test_exchangedtoken_is_valid():
     # A token whose source service does not exist anymore is not valid
     token.source_service = None
     assert not token.is_valid()
+
+
+def test_exchangedtoken_get_invalid_reason():
+    """Test the ExchangedToken get_invalid_reason method."""
+    token = ExchangedTokenFactory.create(
+        revoked_at=None, expires_at=timezone.now() + timedelta(days=1)
+    )
+    assert token.get_invalid_reason() is None
+    token.expires_at = timezone.now() - timedelta(days=1)
+    assert token.get_invalid_reason() == InvalidTokenReason.EXPIRED
+    token.revoked_at = timezone.now()
+    assert token.get_invalid_reason() == InvalidTokenReason.REVOKED
+    token.source_service = None
+    assert token.get_invalid_reason() == InvalidTokenReason.SOURCE_SERVICE_DELETED
 
 
 def test_exchangedtoken_revoke():

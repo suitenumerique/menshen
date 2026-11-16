@@ -14,10 +14,9 @@ def test_instrospection_service_revoke_with_an_unknown_token(target_service):
     with capture_logs() as log_events:
         IntrospectionService.introspect("foo", target_service)
     assert log_events == [
-        {"event": "token_not_found", "log_level": "info"},
         {
             "event": "token_introspection_failed",
-            "log_level": "error",
+            "log_level": "warning",
             "reason": "token_not_found",
         },
     ]
@@ -35,7 +34,7 @@ def test_introspection_service_introspect_with_valid_jwt(target_service, setting
         kid=settings.TOKEN_EXCHANGE_JWT_CURRENT_KID,
         grants=[],
     )
-    exchanged_token = JWTExchangedTokenFactory(raw_token=raw_jwt)
+    exchanged_token = JWTExchangedTokenFactory.create(raw_token=raw_jwt)
 
     with capture_logs() as log_events:
         response = IntrospectionService.introspect(raw_jwt, target_service)
@@ -53,11 +52,12 @@ def test_introspection_service_introspect_with_valid_jwt(target_service, setting
     assert response.iat <= now + 2
     assert response.aud == "service:target"
     assert response.jti == exchanged_token.subject_token_jti
-    assert response.client_id == exchanged_token.source_service.audience_id  # ty: ignore
+    assert response.client_id == exchanged_token.source_service.audience_id
     assert log_events == [
         {
             "event": "token_introspected",
             "log_level": "info",
+            "exchanged_token_id": str(exchanged_token.pk),
             "token_jti": exchanged_token.subject_token_jti,
             "type": exchanged_token.token_type,
             "kid": exchanged_token.jwt_kid or "N/A",

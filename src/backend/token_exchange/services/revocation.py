@@ -29,11 +29,15 @@ class RevocationService(ExchangedTokenMixin):
         try:
             exchanged_token = cls.get_exchanged_token(token)
         except TokenExchangeError:
-            logger.error("token_revocation_failed", reason="token_not_found")
+            logger.warning("token_revocation_failed", reason="token_not_found")
             return
 
-        if not exchanged_token.is_valid():
-            logger.error("token_revocation_failed", reason="invalid_token")
+        if invalid_reason := exchanged_token.get_invalid_reason():
+            logger.warning(
+                "token_revocation_failed",
+                reason=invalid_reason,
+                exchanged_token_id=str(exchanged_token.pk),
+            )
             return
 
         # RFC 7009 (section 2.1): only the client the token was issued to can
@@ -43,7 +47,9 @@ class RevocationService(ExchangedTokenMixin):
             logger.error(
                 "token_revocation_failed",
                 reason="not_source_service",
+                exchanged_token_id=str(exchanged_token.pk),
                 service=source_service.audience_id,
+                token_source_service=exchanged_token.source_service.audience_id,  # ty: ignore
             )
             return
 
@@ -51,6 +57,7 @@ class RevocationService(ExchangedTokenMixin):
 
         logger.info(
             "token_revoked",
+            exchanged_token_id=str(exchanged_token.pk),
             token_jti=exchanged_token.subject_token_jti,
             sub=exchanged_token.subject_sub,
             email=exchanged_token.subject_email,

@@ -15,7 +15,7 @@ from django.db.models import JSONField
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from .enums import TokenExchangeTokenTypeHint, TokenType
+from .enums import InvalidTokenReason, TokenExchangeTokenTypeHint, TokenType
 from .schemas import IntrospectionResponse
 
 logger = structlog.get_logger(__name__)
@@ -560,7 +560,17 @@ class ExchangedToken(BaseModel):
         A token is valid if its source service still exists (i.e. has not been
         deleted), if it is not expired and if it has not been revoked.
         """
-        return self.source_service is not None and not self.is_expired() and not self.is_revoked()
+        return self.get_invalid_reason() is None
+
+    def get_invalid_reason(self) -> InvalidTokenReason | None:
+        """Return why this token is not valid, or None if it is valid."""
+        if self.source_service is None:
+            return InvalidTokenReason.SOURCE_SERVICE_DELETED
+        if self.is_revoked():
+            return InvalidTokenReason.REVOKED
+        if self.is_expired():
+            return InvalidTokenReason.EXPIRED
+        return None
 
     def revoke(self) -> None:
         """Revoke this token."""

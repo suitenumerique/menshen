@@ -25,7 +25,6 @@ class ExchangedTokenMixin:
                 token=hash_token(token)
             )
         except ExchangedToken.DoesNotExist as exc:
-            logger.info("token_not_found")
             raise TokenExchangeError("Token not found.") from exc
 
         return exchanged_token
@@ -34,9 +33,11 @@ class ExchangedTokenMixin:
     def is_token_valid(token: ExchangedToken, audience: str) -> bool:
         """Check exchanged token validity."""
         # Token has already expired or has been revoked
-        if not token.is_valid():
+        if invalid_reason := token.get_invalid_reason():
             logger.warning(
                 "exchanged_token_invalid",
+                reason=invalid_reason,
+                exchanged_token_id=str(token.pk),
                 token_jti=token.subject_token_jti,
                 type=token.token_type,
                 kid=token.jwt_kid or "N/A",
@@ -45,8 +46,9 @@ class ExchangedTokenMixin:
 
         # Check token audiences against requesting service
         if audience not in token.audiences:
-            logger.error(
+            logger.warning(
                 "token_audience_mismatch",
+                exchanged_token_id=str(token.pk),
                 audience=audience,
                 audiences=token.audiences,
             )

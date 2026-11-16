@@ -4,6 +4,7 @@ import pytest
 import structlog
 from django.http import HttpRequest
 from ninja.errors import AuthenticationError
+from structlog.testing import capture_logs
 
 from token_exchange.authentication import ServiceProviderBasicAuthentication
 from token_exchange.factories import ServiceProviderCredentialsFactory
@@ -40,3 +41,31 @@ def test_authentication_does_not_bind_service_provider_id_on_failure(db):
         )
 
     assert "service_provider_id" not in structlog.contextvars.get_contextvars()
+
+
+@pytest.mark.parametrize(
+    ("client_id", "client_secret", "is_active", "reason"),
+    [
+        ("unknown", "secret", True, "unknown_client"),
+        (None, "secret", False, "inactive_client"),
+        (None, "invalid", True, "invalid_secret"),
+    ],
+)
+def test_authentication_logs_failure(db, client_id, client_secret, is_active, reason):
+    """Test that authentication failures are logged with their reason (but not the secret)."""
+    credentials = ServiceProviderCredentialsFactory.create(
+        client_secret="secret", is_active=is_active
+    )
+    client_id = client_id or credentials.client_id
+
+    with capture_logs() as log_events, pytest.raises(AuthenticationError):
+        ServiceProviderBasicAuthentication().authenticate(HttpRequest(), client_id, client_secret)
+
+    assert log_events == [
+        {
+            "event": "service_provider_authentication_failed",
+            "log_level": "warning",
+            "reason": reason,
+            "client_id": client_id,
+        }
+    ]

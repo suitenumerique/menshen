@@ -56,7 +56,7 @@ def test_request_service_validate_target_only_unknown_audiences(source_service):
         ),
     ):
         RequestService.exchange(source_service, request)
-    assert log_events == [
+    assert [e for e in log_events if e["event"] != "token_exchange_requested"] == [
         {
             "event": "unknown_audiences_requested",
             "log_level": "error",
@@ -81,7 +81,7 @@ def test_request_service_validate_target_with_unknown_audience(source_service):
         ),
     ):
         RequestService.exchange(source_service, request)
-    assert log_events == [
+    assert [e for e in log_events if e["event"] != "token_exchange_requested"] == [
         {
             "event": "unknown_audiences_requested",
             "log_level": "error",
@@ -106,10 +106,19 @@ def test_request_service_introspect_subject_token_request_failure(
         f"{settings.OIDC_RS_BACKEND_CLASS}.get_user_info_with_introspection",
         Mock(side_effect=HTTPError("Connection fails")),
     )
-    with pytest.raises(
-        TokenExchangeResourceServerIntrospectionError, match="Failed to introspect subject token"
+    with (
+        capture_logs() as log_events,
+        pytest.raises(
+            TokenExchangeResourceServerIntrospectionError,
+            match="Failed to introspect subject token",
+        ),
     ):
         RequestService.exchange(source_service, request)
+    failures = [e for e in log_events if e["event"] == "subject_token_introspection_failed"]
+    assert len(failures) == 1
+    assert failures[0]["log_level"] == "error"
+    assert failures[0]["reason"] == "resource_server_unreachable"
+    assert isinstance(failures[0]["exc_info"], HTTPError)
 
     # ConnectionError
     monkeypatch.setattr(
@@ -144,7 +153,7 @@ def test_request_service_introspect_subject_token_inactive_user(
     ):
         RequestService.exchange(source_service, request)
 
-    assert log_events == [
+    assert [e for e in log_events if e["event"] != "token_exchange_requested"] == [
         {
             "event": "subject_token_introspection_failed",
             "log_level": "info",
@@ -179,7 +188,7 @@ def test_request_service_introspect_subject_token_suspicious_operation(
     ):
         RequestService.exchange(source_service, request)
 
-    assert log_events == [
+    assert [e for e in log_events if e["event"] != "token_exchange_requested"] == [
         {
             "event": "subject_token_introspection_failed",
             "log_level": "warning",
@@ -215,7 +224,7 @@ def test_request_service_introspect_subject_token_suspicious_introspection_respo
     with capture_logs() as log_events, pytest.raises(SuspiciousOperation):
         RequestService.exchange(source_service, request)
 
-    assert log_events == [
+    assert [e for e in log_events if e["event"] != "token_exchange_requested"] == [
         {
             "event": "subject_token_audience_mismatch",
             "log_level": "error",
@@ -253,7 +262,9 @@ def test_request_service_introspect_subject_token_missing_identity(
     ):
         RequestService.exchange(source_service, request)
 
-    assert log_events == [{"event": "introspection_missing_sub", "log_level": "warning"}]
+    assert [e for e in log_events if e["event"] != "token_exchange_requested"] == [
+        {"event": "introspection_missing_sub", "log_level": "warning"}
+    ]
 
 
 def test_request_service_validate_pure_scopes_from_request(source_service):
@@ -382,7 +393,7 @@ def test_request_service_validate_scope_action_from_request_when_action_has_no_p
         RequestService.exchange(source_service, request)
 
     # Scopes from request action are not granted
-    assert log_events == [
+    assert [e for e in log_events if e["event"] != "token_exchange_requested"] == [
         {
             "event": "unsatisfied_requested_accesses",
             "log_level": "warning",
@@ -430,7 +441,7 @@ def test_request_service_validate_scope_action_from_request_when_action_cannot_b
         RequestService.exchange(source_service, request)
 
     # Scopes from request action are not granted
-    assert log_events == [
+    assert [e for e in log_events if e["event"] != "token_exchange_requested"] == [
         {
             "event": "missing_required_source_scopes",
             "log_level": "error",
@@ -500,8 +511,18 @@ def test_request_service_generate_exchange_token_jwt_configuration(source_servic
         requested_token_type=AllowedSubjectTokenType.JWT,
     )
     monkeypatch.setattr(RequestService, "kid", None)
-    with pytest.raises(TokenExchangeConfigurationError, match="JWT signing key is not configured."):
+    with (
+        capture_logs() as log_events,
+        pytest.raises(TokenExchangeConfigurationError, match="JWT signing key is not configured."),
+    ):
         RequestService.exchange(source_service, request)
+    assert [e for e in log_events if e["event"] == "jwt_signing_key_not_configured"] == [
+        {
+            "event": "jwt_signing_key_not_configured",
+            "log_level": "error",
+            "token_type": AllowedSubjectTokenType.JWT,
+        }
+    ]
 
 
 def test_request_service_generate_exchange_token_unsupported_type(source_service):
@@ -514,10 +535,21 @@ def test_request_service_generate_exchange_token_unsupported_type(source_service
         scope="target:write",
         requested_token_type=TokenType.REFRESH_TOKEN,
     )
-    with pytest.raises(
-        TokenExchangeConfigurationError, match="Configured request token type is not supported."
+    with (
+        capture_logs() as log_events,
+        pytest.raises(
+            TokenExchangeConfigurationError,
+            match="Configured request token type is not supported.",
+        ),
     ):
         RequestService.exchange(source_service, request)
+    assert [e for e in log_events if e["event"] == "unsupported_requested_token_type"] == [
+        {
+            "event": "unsupported_requested_token_type",
+            "log_level": "error",
+            "token_type": TokenType.REFRESH_TOKEN,
+        }
+    ]
 
 
 def test_request_service_generate_exchange_token_jwt_invalid_token(source_service, monkeypatch):
@@ -531,8 +563,16 @@ def test_request_service_generate_exchange_token_jwt_invalid_token(source_servic
         requested_token_type=AllowedSubjectTokenType.JWT,
     )
     monkeypatch.setattr(TokenGenerator, "generate_jwt", Mock(side_effect=ValueError()))
-    with pytest.raises(TokenExchangeIssuingError, match="An error occurred while issuing JWT."):
+    with (
+        capture_logs() as log_events,
+        pytest.raises(TokenExchangeIssuingError, match="An error occurred while issuing JWT."),
+    ):
         RequestService.exchange(source_service, request)
+    failures = [e for e in log_events if e["event"] == "jwt_issuing_failed"]
+    assert len(failures) == 1
+    assert failures[0]["log_level"] == "error"
+    assert failures[0]["kid"] == RequestService.kid
+    assert isinstance(failures[0]["exc_info"], ValueError)
 
 
 @pytest.mark.parametrize(
@@ -550,7 +590,21 @@ def test_request_service_generate_exchange_response(source_service, token_type):
     )
     # No persisted token exists
     assert ExchangedToken.objects.count() == 0
-    response, _ = RequestService.exchange(source_service, request)
+    with capture_logs() as log_events:
+        response, _ = RequestService.exchange(source_service, request)
+    assert [e for e in log_events if e["event"] == "token_exchange_requested"] == [
+        {
+            "event": "token_exchange_requested",
+            "log_level": "debug",
+            "audiences": ["service:target"],
+            "scopes": ["target:write"],
+            "action": None,
+            "requested_token_type": token_type,
+            "has_actor_token": False,
+        }
+    ]
+    # Only persisted exchanges are logged
+    assert not [e for e in log_events if e["event"] == "token_exchanged"]
     # Exchanged token should not have been persisted
     assert ExchangedToken.objects.count() == 0
     assert isinstance(response.access_token, str)
@@ -606,9 +660,15 @@ def test_request_service_generate_exchange_response_with_persist(
 
     # No persisted token exists
     assert ExchangedToken.objects.count() == 0
-    response, exchanged_token = RequestService.exchange(source_service, request, persist=True)
+    with capture_logs() as log_events:
+        response, exchanged_token = RequestService.exchange(source_service, request, persist=True)
     assert ExchangedToken.objects.count() == 1
     assert exchanged_token
+    exchanged_events = [e for e in log_events if e["event"] == "token_exchanged"]
+    assert len(exchanged_events) == 1
+    assert exchanged_events[0]["exchanged_token_id"] == str(exchanged_token.pk)
+    # Raw tokens are never logged
+    assert response.access_token not in str(log_events)
     assert exchanged_token.token != response.access_token
     assert exchanged_token.token == hash_token(response.access_token)
     assert exchanged_token.source_service.audience_id == source_service.audience_id  # ty: ignore

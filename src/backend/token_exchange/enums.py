@@ -16,6 +16,14 @@ class TokenType(StrEnum):
     SAML2 = "urn:ietf:params:oauth:token-type:saml2"
 
 
+class InvalidTokenReason(StrEnum):
+    """Reason why an exchanged token is not valid."""
+
+    SOURCE_SERVICE_DELETED = "source_service_deleted"
+    REVOKED = "revoked"
+    EXPIRED = "expired"
+
+
 class TokenExchangeResponseTokenType(StrEnum):
     """Token exchange response token_types allowed values."""
 

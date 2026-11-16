@@ -2,11 +2,14 @@
 
 import base64
 import importlib
+import json
 from datetime import UTC, datetime, timedelta
 from unittest import mock
 
 import pytest
 from django.core.exceptions import SuspiciousOperation
+from django.test import RequestFactory
+from ninja.errors import Throttled
 from ninja.testing import TestClient
 from requests import HTTPError
 from rest_framework.exceptions import AuthenticationFailed
@@ -15,6 +18,7 @@ from structlog.testing import capture_logs
 from token_exchange import api as api_module
 from token_exchange.api import api
 from token_exchange.enums import TokenType
+from token_exchange.exceptions import TokenExchangeIssuingError
 from token_exchange.factories import (
     ExchangedTokenFactory,
     ServiceProviderCredentialsFactory,
@@ -358,6 +362,16 @@ def test_exchange_view_with_only_unknown_audience(source_api_client):
         "detail": "Only unknown audience(s) requested.",
         "code": "invalid_target",
     }
+    assert [e for e in log_events if e["event"] == "api_error"] == [
+        {
+            "event": "api_error",
+            "log_level": "warning",
+            "code": "invalid_target",
+            "status_code": 400,
+            "detail": "Only unknown audience(s) requested.",
+            "path": "/exchange/",
+        }
+    ]
     assert [e for e in log_events if e["event"] == "unknown_audiences_requested"] == [
         {
             "event": "unknown_audiences_requested",
@@ -672,8 +686,8 @@ def test_introspect_view_with_unknown_token(target_api_client):
         )
     assert response.status_code == 200  # OK
     assert response.json() == {"active": False}
-    assert [e for e in log_events if e["event"] == "token_not_found"] == [
-        {"event": "token_not_found", "log_level": "info"}
+    assert [e for e in log_events if e["event"] == "token_introspection_failed"] == [
+        {"event": "token_introspection_failed", "log_level": "warning", "reason": "token_not_found"}
     ]
 
 
@@ -683,19 +697,28 @@ def test_introspect_view_with_unknown_token(target_api_client):
     (
         "expires_at",
         "revoked_at",
+        "reason",
     ),
     [
-        (datetime.now(tz=UTC) - timedelta(hours=1), None),
-        (datetime.now(tz=UTC) - timedelta(hours=1), datetime.now(tz=UTC) - timedelta(minutes=1)),
-        (datetime.now(tz=UTC) + timedelta(hours=1), datetime.now(tz=UTC) - timedelta(minutes=1)),
+        (datetime.now(tz=UTC) - timedelta(hours=1), None, "expired"),
+        (
+            datetime.now(tz=UTC) - timedelta(hours=1),
+            datetime.now(tz=UTC) - timedelta(minutes=1),
+            "revoked",
+        ),
+        (
+            datetime.now(tz=UTC) + timedelta(hours=1),
+            datetime.now(tz=UTC) - timedelta(minutes=1),
+            "revoked",
+        ),
     ],
 )
 def test_introspect_view_invalid_token(  # noqa: PLR0913,PLR0917
-    target_api_client, target_service, token_type, expires_at, revoked_at
+    target_api_client, target_service, token_type, expires_at, revoked_at, reason
 ):
     """Test the TokenIntrospectView with an invalid exchange token (expired or revoked)."""
     raw_token = TokenGenerator.generate_opaque_token()
-    exchanged_token = ExchangedTokenFactory(
+    exchanged_token = ExchangedTokenFactory.create(
         expires_at=expires_at,
         revoked_at=revoked_at,
         token_type=token_type,
@@ -713,6 +736,8 @@ def test_introspect_view_invalid_token(  # noqa: PLR0913,PLR0917
         {
             "event": "exchanged_token_invalid",
             "log_level": "warning",
+            "reason": reason,
+            "exchanged_token_id": str(exchanged_token.pk),
             "token_jti": exchanged_token.subject_token_jti,
             "type": token_type,
             "kid": "N/A",
@@ -745,7 +770,7 @@ def test_introspect_view_ignores_jwt_signature(target_api_client, target_service
 def test_introspect_view_invalid_audience(target_api_client):
     """Test the TokenIntrospectView with an invalid audience from requesting service."""
     raw_token = TokenGenerator.generate_opaque_token()
-    ExchangedTokenFactory(
+    exchanged_token = ExchangedTokenFactory.create(
         token_type=TokenTypeChoices.JWT,
         audiences=["service:foo"],
         raw_token=raw_token,
@@ -757,7 +782,8 @@ def test_introspect_view_invalid_audience(target_api_client):
     assert [e for e in log_events if e["event"] == "token_audience_mismatch"] == [
         {
             "event": "token_audience_mismatch",
-            "log_level": "error",
+            "log_level": "warning",
+            "exchanged_token_id": str(exchanged_token.pk),
             "audience": "service:target",
             "audiences": ["service:foo"],
         }
@@ -790,7 +816,7 @@ def test_introspect_view_introspection_with_wrong_token_type_hint(
 def test_introspect_view_introspection_with_token_type_hint(target_api_client, target_service):
     """Test the TokenIntrospectView instrospection."""
     raw_token = TokenGenerator.generate_opaque_token()
-    exchanged_token = ExchangedTokenFactory(
+    exchanged_token = ExchangedTokenFactory.create(
         token_type=TokenTypeChoices.ACCESS_TOKEN,
         audiences=[target_service.audience_id],
         raw_token=raw_token,
@@ -807,6 +833,7 @@ def test_introspect_view_introspection_with_token_type_hint(target_api_client, t
         {
             "event": "token_introspected",
             "log_level": "info",
+            "exchanged_token_id": str(exchanged_token.pk),
             "token_jti": exchanged_token.subject_token_jti,
             "type": "urn:ietf:params:oauth:token-type:access_token",
             "kid": "N/A",
@@ -818,7 +845,7 @@ def test_introspect_view_introspection_with_token_type_hint(target_api_client, t
 def test_introspect_view_introspection(target_api_client, target_service):
     """Test the TokenIntrospectView instrospection."""
     raw_token = TokenGenerator.generate_opaque_token()
-    exchanged_token = ExchangedTokenFactory(
+    exchanged_token = ExchangedTokenFactory.create(
         token_type=TokenTypeChoices.ACCESS_TOKEN,
         audiences=[target_service.audience_id],
         raw_token=raw_token,
@@ -833,6 +860,7 @@ def test_introspect_view_introspection(target_api_client, target_service):
         {
             "event": "token_introspected",
             "log_level": "info",
+            "exchanged_token_id": str(exchanged_token.pk),
             "token_jti": exchanged_token.subject_token_jti,
             "type": "urn:ietf:params:oauth:token-type:access_token",
             "kid": "N/A",
@@ -840,7 +868,7 @@ def test_introspect_view_introspection(target_api_client, target_service):
     ]
     introspected_token = response.json()
     assert introspected_token["active"]
-    assert introspected_token["client_id"] == exchanged_token.source_service.audience_id  # ty: ignore
+    assert introspected_token["client_id"] == exchanged_token.source_service.audience_id
 
 
 @pytest.mark.django_db
@@ -956,7 +984,7 @@ def test_revocation_view_with_unknown_token(source_api_client):
     assert [e for e in log_events if e["event"] == "token_revocation_failed"] == [
         {
             "event": "token_revocation_failed",
-            "log_level": "error",
+            "log_level": "warning",
             "reason": "token_not_found",
         }
     ]
@@ -981,7 +1009,9 @@ def test_revocation_view_by_target_service(target_api_client, source_service, ta
         "event": "token_revocation_failed",
         "log_level": "error",
         "reason": "not_source_service",
+        "exchanged_token_id": str(exchanged_token.pk),
         "service": "service:target",
+        "token_source_service": "service:source",
     } in log_events
 
     exchanged_token.refresh_from_db()
@@ -1011,6 +1041,7 @@ def test_revocation_view(source_api_client, source_service, target_service):
         {
             "event": "token_revoked",
             "log_level": "info",
+            "exchanged_token_id": str(exchanged_token.pk),
             "token_jti": exchanged_token.subject_token_jti,
             "sub": exchanged_token.subject_sub,
             "email": exchanged_token.subject_email,
@@ -1023,3 +1054,61 @@ def test_revocation_view(source_api_client, source_service, target_service):
     exchanged_token.refresh_from_db()
     assert exchanged_token.is_revoked()
     assert exchanged_token.revoked_at > before
+
+
+def test_api_error_handler_logs_server_errors():
+    """Test the APIError handler logs server errors with the error level and the exception."""
+    request = RequestFactory().post("/exchange/")
+    exc = TokenExchangeIssuingError()
+    with capture_logs() as log_events:
+        response = api.on_exception(request, exc)
+    assert response.status_code == 500
+    assert log_events == [
+        {
+            "event": "api_error",
+            "log_level": "error",
+            "code": "issuing_error",
+            "status_code": 500,
+            "detail": "Server cannot issue requested exchange token.",
+            "path": "/exchange/",
+            "exc_info": exc,
+        }
+    ]
+
+
+@pytest.mark.django_db
+def test_revocation_view_logs_validation_errors_without_input(source_api_client):
+    """Test request validation errors are logged without the submitted values."""
+    short_token = "0123456789"
+    with capture_logs() as log_events:
+        response = source_api_client.post("/revoke/", data={"token": short_token})
+    assert response.status_code == 422  # UNPROCESSABLE_ENTITY
+    # The response is unchanged (django-ninja's default)
+    assert response.json()["detail"][0]["loc"] == ["form", "token_revocation_request"]
+    assert [e for e in log_events if e["event"] == "request_validation_failed"] == [
+        {
+            "event": "request_validation_failed",
+            "log_level": "warning",
+            "path": "/revoke/",
+            "errors": [
+                {
+                    "loc": ["form", "token_revocation_request"],
+                    "type": "value_error",
+                    "msg": "Value error, Token should be at least 43 characters long",
+                }
+            ],
+        }
+    ]
+    assert short_token not in str(log_events)
+
+
+def test_throttled_handler_logs_throttled_requests():
+    """Test throttled requests are logged and get django-ninja's default response."""
+    request = RequestFactory().post("/exchange/")
+    with capture_logs() as log_events:
+        response = api.on_exception(request, Throttled(wait=3))
+    assert response.status_code == 429
+    assert json.loads(response.content) == {"detail": "Too many requests."}
+    assert log_events == [
+        {"event": "request_throttled", "log_level": "warning", "path": "/exchange/", "wait": 3}
+    ]

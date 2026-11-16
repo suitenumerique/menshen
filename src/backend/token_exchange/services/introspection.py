@@ -27,15 +27,20 @@ class IntrospectionService(ExchangedTokenMixin):
         try:
             exchanged_token = cls.get_exchanged_token(token)
         except TokenExchangeError:
-            logger.error("token_introspection_failed", reason="token_not_found")
+            logger.warning("token_introspection_failed", reason="token_not_found")
             return IntrospectionResponse(active=False)
 
         if not cls.is_token_valid(exchanged_token, target_service.audience_id):
-            logger.error("token_introspection_failed", reason="invalid_token")
+            logger.warning(
+                "token_introspection_failed",
+                reason="invalid_token",
+                exchanged_token_id=str(exchanged_token.pk),
+            )
             return IntrospectionResponse(active=False)
 
         logger.info(
             "token_introspected",
+            exchanged_token_id=str(exchanged_token.pk),
             token_jti=exchanged_token.subject_token_jti,
             type=exchanged_token.token_type,
             kid=exchanged_token.jwt_kid or "N/A",
