@@ -8,6 +8,7 @@ UNSET_USER=0
 COMPOSE_FILE="${REPO_DIR}/compose.yml"
 
 # ANSI colors and styles (only when writing to a terminal)
+# shellcheck disable=SC2034 # used by the scripts sourcing this file
 if [ -t 1 ] && command -v tput >/dev/null 2>&1 \
         && [ "$(tput colors 2>/dev/null || echo 0)" -ge 8 ]; then
     RED=$(tput setaf 1)
@@ -18,7 +19,7 @@ if [ -t 1 ] && command -v tput >/dev/null 2>&1 \
     ITALIC=$(tput sitm)
     RESET=$(tput sgr0)
 else
-    RED= GREEN= YELLOW= BLUE= BOLD= ITALIC= RESET=
+    RED='' GREEN='' YELLOW='' BLUE='' BOLD='' ITALIC='' RESET=''
 fi
 
 
@@ -75,16 +76,15 @@ function _docker_compose() {
 function _dc_run() {
     _set_user
 
-    user_opt="--user=${USER_ID}"
-    if [ -z "$USER_ID" ]; then
-        user_opt=""
+    local opts=()
+    if [ -n "${USER_ID}" ]; then
+        opts+=("--user=${USER_ID}")
     fi
-    no_deps_opt="--no-deps"
-    if [ -z "${NO_DEPS}" ] || [ "${NO_DEPS}" -eq 0 ]; then
-        no_deps_opt=""
+    if [ -n "${NO_DEPS}" ] && [ "${NO_DEPS}" -ne 0 ]; then
+        opts+=("--no-deps")
     fi
 
-    _docker_compose run --rm ${user_opt} ${no_deps_opt} "$@"
+    _docker_compose run --rm "${opts[@]}" "$@"
 }
 
 # _dc_exec: wrap docker compose exec command
@@ -98,12 +98,12 @@ function _dc_exec() {
 
     echo "🐳(compose) exec command: '\$@'"
 
-    user_opt="--user=${USER_ID}"
-    if [ -z "${USER_ID}" ]; then
-        user_opt=""
+    local opts=()
+    if [ -n "${USER_ID}" ]; then
+        opts+=("--user=${USER_ID}")
     fi
 
-    _docker_compose exec ${user_opt} "$@"
+    _docker_compose exec "${opts[@]}" "$@"
 }
 
 # _uv: wrap uv command with docker compose
