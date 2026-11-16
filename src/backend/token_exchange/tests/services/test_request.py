@@ -578,7 +578,7 @@ def test_request_service_generate_exchange_token_jwt_invalid_token(source_servic
 @pytest.mark.parametrize(
     "token_type", [AllowedRequestedTokenType.ACCESS_TOKEN, AllowedRequestedTokenType.JWT]
 )
-def test_request_service_generate_exchange_response(source_service, token_type):
+def test_request_service_generate_exchange_response(settings, source_service, token_type):
     """Test the request service generate exchange response."""
     request = TokenExchangeRequest(
         subject_token="foo",
@@ -611,7 +611,7 @@ def test_request_service_generate_exchange_response(source_service, token_type):
     assert len(response.access_token) > 32
     assert response.issued_token_type == token_type
     assert response.token_type == TokenExchangeResponseTokenType.BEARER
-    assert response.expires_in == 300  # rules' default is 5 minutes
+    assert response.expires_in == settings.TOKEN_EXCHANGE_DEFAULT_EXPIRES_IN
     assert response.scope == "target:write"
     assert response.refresh_token is None
     assert len(response.grants) == 1

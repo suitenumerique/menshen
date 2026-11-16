@@ -34,6 +34,8 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 
 - Only allow the service that requested a token exchange (source service) to
   revoke the exchanged token, instead of its target services (RFC 7009)
+- Limit token exchange rule duration to `TOKEN_EXCHANGE_MAX_EXPIRES_IN` and set
+  default to `TOKEN_EXCHANGE_DEFAULT_EXPIRES_IN`
 
 ## [v0.6.0] - 2026-11-03
 

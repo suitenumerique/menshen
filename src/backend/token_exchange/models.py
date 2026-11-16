@@ -27,6 +27,23 @@ def validate_action_scope_name(value: str) -> None:
         raise ValidationError(_("Action name must start with 'action:'"))
 
 
+def get_default_exchanged_token_duration() -> datetime.timedelta:
+    """Return the default exchanged token duration from settings."""
+    return datetime.timedelta(seconds=settings.TOKEN_EXCHANGE_DEFAULT_EXPIRES_IN)
+
+
+def validate_exchanged_token_duration(value: datetime.timedelta) -> None:
+    """Ensure the exchanged token duration is positive and below the maximum allowed."""
+    max_duration = datetime.timedelta(seconds=settings.TOKEN_EXCHANGE_MAX_EXPIRES_IN)
+    if value <= datetime.timedelta(0):
+        raise ValidationError(_("Exchanged token duration must be positive."))
+    if value > max_duration:
+        raise ValidationError(
+            _("Exchanged token duration must not exceed %(max)s."),
+            params={"max": max_duration},
+        )
+
+
 class TokenTypeChoices(models.TextChoices):
     """Token type choices for RFC 8693."""
 
@@ -188,7 +205,8 @@ class TokenExchangeRule(BaseModel):
     )
     exchanged_token_duration = models.DurationField(
         blank=True,
-        default=datetime.timedelta(minutes=5),
+        default=get_default_exchanged_token_duration,
+        validators=[validate_exchanged_token_duration],
         help_text=_("Duration of the generated token"),
     )
     is_active = models.BooleanField(

@@ -24,6 +24,7 @@ from token_exchange.models import (
     ServiceProvider,
     TokenTypeChoices,
     validate_action_scope_name,
+    validate_exchanged_token_duration,
 )
 from token_exchange.schemas import IntrospectionResponse
 
@@ -123,6 +124,37 @@ def test_tokenexchangerule_str():
     """Test the TokenEchangeRule str method."""
     rule = TokenExchangeRuleFactory.build()
     assert str(rule) == f"{rule.source_service} → {rule.target_service}"
+
+
+def test_tokenexchangerule_default_exchanged_token_duration(settings):
+    """Test the default exchanged token duration is taken from settings."""
+    settings.TOKEN_EXCHANGE_DEFAULT_EXPIRES_IN = 42
+    rule = TokenExchangeRuleFactory.build()
+    assert rule.exchanged_token_duration == timedelta(seconds=42)
+
+
+@pytest.mark.parametrize("seconds", [1, 60, 100])
+def test_validate_exchanged_token_duration(settings, seconds):
+    """Test exchanged token duration validation with valid durations."""
+    settings.TOKEN_EXCHANGE_MAX_EXPIRES_IN = 100
+    validate_exchanged_token_duration(timedelta(seconds=seconds))
+
+
+@pytest.mark.parametrize("seconds", [-1, 0, 101, 3600])
+def test_validate_exchanged_token_duration_with_invalid_durations(settings, seconds):
+    """Test exchanged token duration validation with invalid durations."""
+    settings.TOKEN_EXCHANGE_MAX_EXPIRES_IN = 100
+    with pytest.raises(ValidationError):
+        validate_exchanged_token_duration(timedelta(seconds=seconds))
+
+
+def test_tokenexchangerule_full_clean_exceeding_max_duration(settings):
+    """Test the TokenExchangeRule model refuses a duration exceeding the max allowed."""
+    settings.TOKEN_EXCHANGE_MAX_EXPIRES_IN = 100
+    rule = TokenExchangeRuleFactory.build(exchanged_token_duration=timedelta(seconds=101))
+    with pytest.raises(ValidationError) as exc_info:
+        rule.full_clean(exclude=["source_service", "target_service"])
+    assert "exchanged_token_duration" in exc_info.value.message_dict
 
 
 def test_scopegrant_str():
