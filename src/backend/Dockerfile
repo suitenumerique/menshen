@@ -4,7 +4,7 @@
 FROM python:3.14.10-alpine AS base
 
 # Upgrade pip to its latest release to speed up dependencies installation
-# We must do taht to avoid having an outdated pip version with security issues
+# We must do that to avoid having an outdated pip version with security issues
 RUN python -m pip install --upgrade pip
 
 # Upgrade system packages to install security updates
