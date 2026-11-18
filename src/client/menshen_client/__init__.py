@@ -2,7 +2,14 @@
 
 from .clients import TokenExchangeAsyncClient, TokenExchangeClient
 from .enums import TokenExchangeResponseTokenType, TokenType
-from .exceptions import InvalidTokenError, ResponseParsingError
+from .exceptions import (
+    APIError,
+    InvalidTokenError,
+    MenshenClientError,
+    ResponseParsingError,
+    ServerTimeoutError,
+    ServerUnavailableError,
+)
 from .schemas import (
     OPAQUE_TOKEN_MIN_LENGTH,
     TOKEN_PATTERN,
@@ -15,7 +22,11 @@ from .schemas import (
 )
 
 __all__ = (
+    "APIError",
     "InvalidTokenError",
+    "MenshenClientError",
+    "ServerTimeoutError",
+    "ServerUnavailableError",
     "ResponseParsingError",
     "OPAQUE_TOKEN_MIN_LENGTH",
     "TOKEN_PATTERN",

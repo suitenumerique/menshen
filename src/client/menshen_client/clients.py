@@ -10,7 +10,14 @@ from typing import Self, cast
 
 import httpx2
 
-from .exceptions import InvalidTokenError, ResponseParsingError
+from .exceptions import (
+    APIError,
+    InvalidTokenError,
+    MenshenClientError,
+    ResponseParsingError,
+    ServerTimeoutError,
+    ServerUnavailableError,
+)
 from .schemas import (
     TOKEN_PATTERN,
     BaseTokenRequest,
@@ -65,6 +72,21 @@ class BaseTokenExchangeClient:
             raise InvalidTokenError("Invalid token format")
 
     @staticmethod
+    def _wrap_request_error(
+        url: str, err: httpx2.HTTPError | httpx2.InvalidURL
+    ) -> MenshenClientError:
+        """Convert an HTTP client request error into a Menshen client error."""
+        logger.warning("Menshen request to %s failed: %r", url, err)
+        # TimeoutException is a TransportError subclass: it must be matched first
+        match err:
+            case httpx2.TimeoutException():
+                return ServerTimeoutError(f"Menshen request timed out: {err}")
+            case httpx2.TransportError():
+                return ServerUnavailableError(f"Menshen is unavailable: {err}")
+            case _:
+                return MenshenClientError(f"Menshen request failed: {err}")
+
+    @staticmethod
     def _parse_response(
         api_response: httpx2.Response,
         request: TokenExchangeRequest | IntrospectionRequest | RevocationRequest,
@@ -82,7 +104,18 @@ class BaseTokenExchangeClient:
             ):
                 logger.debug("Token rejected by the server: %s", api_response.text)
                 raise InvalidTokenError("Token rejected by the server") from err
-            raise
+            logger.warning(
+                "Menshen API error on %s: %s %s",
+                api_response.url,
+                api_response.status_code,
+                api_response.text,
+            )
+            raise APIError(
+                f"Menshen API error: {api_response.status_code}",
+                status_code=api_response.status_code,
+                url=str(api_response.url),
+                body=api_response.text,
+            ) from err
 
         if response_klass is None:
             return None
@@ -128,7 +161,10 @@ class TokenExchangeClient(BaseTokenExchangeClient):
         error_message: str | None = None,
     ) -> TokenExchangeResponse | IntrospectionResponse | None:
         """Perform POST request for an API endpoint."""
-        api_response = self.session.post(url, data=self._form_data(url, request))
+        try:
+            api_response = self.session.post(url, data=self._form_data(url, request))
+        except (httpx2.HTTPError, httpx2.InvalidURL) as err:
+            raise self._wrap_request_error(url, err) from err
         return self._parse_response(api_response, request, response_klass, error_message)
 
     def exchange(self, request: TokenExchangeRequest) -> TokenExchangeResponse:
@@ -193,7 +229,10 @@ class TokenExchangeAsyncClient(BaseTokenExchangeClient):
         error_message: str | None = None,
     ) -> TokenExchangeResponse | IntrospectionResponse | None:
         """Perform POST request for an API endpoint."""
-        api_response = await self.session.post(url, data=self._form_data(url, request))
+        try:
+            api_response = await self.session.post(url, data=self._form_data(url, request))
+        except (httpx2.HTTPError, httpx2.InvalidURL) as err:
+            raise self._wrap_request_error(url, err) from err
         return self._parse_response(api_response, request, response_klass, error_message)
 
     async def exchange(self, request: TokenExchangeRequest) -> TokenExchangeResponse:

@@ -15,6 +15,13 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
   JWT cases)
 - Add `opaque_token_min_length` configuration (default to 43 characters), in
   sync with the server's `TOKEN_EXCHANGE_OPAQUE_TOKEN_MIN_LENGTH` setting
+- Add a `MenshenClientError` base exception for all client errors
+
+### Changed
+
+- Wrap `httpx2` errors in client exceptions: `APIError` for error status codes,
+  `ServerUnavailableError` for transport failures and `ServerTimeoutError`
+  for timeouts (breaking: `httpx2` exceptions are no longer raised)
 
 ## [v0.3.0] - 2026-11-02
 

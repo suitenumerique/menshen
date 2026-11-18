@@ -190,19 +190,30 @@ characters, at least `opaque_token_min_length` long), and raise an
 `InvalidTokenError` for a malformed one (without any network call). JWTs
 (hinted with `TokenType.JWT` or shaped as `header.payload.signature`) are not
 validated locally. Any token rejected by the server also raises an
-`InvalidTokenError`. Other API errors raise an `httpx2.HTTPStatusError`, and
-request timeouts an `httpx2.TimeoutException`:
+`InvalidTokenError`.
+
+All errors raised by the client inherit from `MenshenClientError`, so you never
+have to deal with the underlying HTTP client library exceptions:
+
+```
+MenshenClientError
+├── InvalidTokenError         # malformed token, or rejected by the server
+├── ResponseParsingError      # unexpected server response
+├── APIError                  # error status code (status_code, url, body)
+└── ServerUnavailableError    # network or transport failure
+    └── ServerTimeoutError    # request timeout
+```
+
+The original HTTP client exception is kept as the error `__cause__`:
 
 ```python
-import httpx2
-
-from menshen_client import InvalidTokenError
+from menshen_client import InvalidTokenError, MenshenClientError
 
 try:
     introspection_response = client.introspect(IntrospectionRequest(token=token))
 except InvalidTokenError:
     ...  # invalid token: respond with a 401
-except (httpx2.HTTPStatusError, httpx2.TransportError):
+except MenshenClientError:
     ...  # Menshen is unavailable or misconfigured: respond with a 503
 ```
 

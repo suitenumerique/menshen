@@ -8,7 +8,14 @@ import pytest
 
 from menshen_client.clients import TokenExchangeAsyncClient
 from menshen_client.enums import TokenExchangeResponseTokenType, TokenType
-from menshen_client.exceptions import InvalidTokenError, ResponseParsingError
+from menshen_client.exceptions import (
+    APIError,
+    InvalidTokenError,
+    MenshenClientError,
+    ResponseParsingError,
+    ServerTimeoutError,
+    ServerUnavailableError,
+)
 from menshen_client.schemas import (
     Configuration,
     IntrospectionRequest,
@@ -102,8 +109,10 @@ async def test_async_client_exchange_raises_for_status(
         url="https://menshen.example.org/auth/token/exchange/",
         status_code=status,
     )
-    with pytest.raises(httpx2.HTTPStatusError):
+    with pytest.raises(APIError) as exc_info:
         await async_client.exchange(token_exchange_request)
+    assert exc_info.value.status_code == status
+    assert isinstance(exc_info.value.__cause__, httpx2.HTTPStatusError)
 
 
 async def test_async_client_exchange_raises_for_timeout(
@@ -115,8 +124,9 @@ async def test_async_client_exchange_raises_for_timeout(
         method="POST",
         url="https://menshen.example.org/auth/token/exchange/",
     )
-    with pytest.raises(httpx2.TimeoutException):
+    with pytest.raises(ServerTimeoutError) as exc_info:
         await async_client.exchange(token_exchange_request)
+    assert isinstance(exc_info.value.__cause__, httpx2.TimeoutException)
 
 
 async def test_async_client_exchange_token(
@@ -225,8 +235,10 @@ async def test_async_client_introspect_raises_for_status(async_client, httpx2_mo
         url="https://menshen.example.org/auth/token/introspect/",
         status_code=status,
     )
-    with pytest.raises(httpx2.HTTPStatusError):
+    with pytest.raises(APIError) as exc_info:
         await async_client.introspect(IntrospectionRequest(token=TOKEN))
+    assert exc_info.value.status_code == status
+    assert isinstance(exc_info.value.__cause__, httpx2.HTTPStatusError)
 
 
 async def test_async_client_introspect_raises_for_timeout(async_client, httpx2_mock):
@@ -236,8 +248,9 @@ async def test_async_client_introspect_raises_for_timeout(async_client, httpx2_m
         method="POST",
         url="https://menshen.example.org/auth/token/introspect/",
     )
-    with pytest.raises(httpx2.TimeoutException):
+    with pytest.raises(ServerTimeoutError) as exc_info:
         await async_client.introspect(IntrospectionRequest(token=TOKEN))
+    assert isinstance(exc_info.value.__cause__, httpx2.TimeoutException)
 
 
 async def test_async_client_introspect_token(async_client, httpx2_mock):
@@ -328,8 +341,10 @@ async def test_async_client_revoke_raises_for_status(async_client, httpx2_mock, 
         url="https://menshen.example.org/auth/token/revoke/",
         status_code=status,
     )
-    with pytest.raises(httpx2.HTTPStatusError):
+    with pytest.raises(APIError) as exc_info:
         await async_client.revoke(RevocationRequest(token=TOKEN))
+    assert exc_info.value.status_code == status
+    assert isinstance(exc_info.value.__cause__, httpx2.HTTPStatusError)
 
 
 async def test_async_client_revoke_raises_for_timeout(async_client, httpx2_mock):
@@ -339,8 +354,9 @@ async def test_async_client_revoke_raises_for_timeout(async_client, httpx2_mock)
         method="POST",
         url="https://menshen.example.org/auth/token/revoke/",
     )
-    with pytest.raises(httpx2.TimeoutException):
+    with pytest.raises(ServerTimeoutError) as exc_info:
         await async_client.revoke(RevocationRequest(token=TOKEN))
+    assert isinstance(exc_info.value.__cause__, httpx2.TimeoutException)
 
 
 @pytest.mark.parametrize("body", [None, "", "{}", '{"foo": "bar"}'])
@@ -470,3 +486,55 @@ async def test_async_client_token_validation_with_configured_min_length(  # noqa
     )
     await getattr(async_client, method)(request_klass(token="a" * min_length))
     assert len(httpx2_mock.get_requests()) == 1
+
+
+@pytest.mark.parametrize(
+    ("method", "request_obj", "endpoint"),
+    [
+        ("introspect", IntrospectionRequest(token=TOKEN), "introspect"),
+        ("revoke", RevocationRequest(token=TOKEN), "revoke"),
+    ],
+)
+async def test_async_client_raises_unavailable_on_transport_error(
+    async_client, httpx2_mock, method, request_obj, endpoint
+):
+    """Transport errors are surfaced as ServerUnavailableError."""
+    httpx2_mock.add_exception(
+        httpx2.ConnectError("Connection refused"),
+        method="POST",
+        url=f"https://menshen.example.org/auth/token/{endpoint}/",
+    )
+    with pytest.raises(ServerUnavailableError) as exc_info:
+        await getattr(async_client, method)(request_obj)
+    assert not isinstance(exc_info.value, ServerTimeoutError)
+    assert isinstance(exc_info.value, MenshenClientError)
+    assert isinstance(exc_info.value.__cause__, httpx2.ConnectError)
+
+
+async def test_async_client_exchange_raises_unavailable_on_transport_error(
+    async_client, httpx2_mock, token_exchange_request
+):
+    """Transport errors on exchange are surfaced as ServerUnavailableError."""
+    httpx2_mock.add_exception(
+        httpx2.ConnectError("Connection refused"),
+        method="POST",
+        url="https://menshen.example.org/auth/token/exchange/",
+    )
+    with pytest.raises(ServerUnavailableError):
+        await async_client.exchange(token_exchange_request)
+
+
+async def test_async_client_api_error_details(async_client, httpx2_mock):
+    """APIError exposes the failed response details."""
+    httpx2_mock.add_response(
+        method="POST",
+        url="https://menshen.example.org/auth/token/introspect/",
+        status_code=503,
+        text="Service unavailable",
+    )
+    with pytest.raises(MenshenClientError) as exc_info:
+        await async_client.introspect(IntrospectionRequest(token=TOKEN))
+    assert isinstance(exc_info.value, APIError)
+    assert exc_info.value.status_code == 503
+    assert exc_info.value.url == "https://menshen.example.org/auth/token/introspect/"
+    assert exc_info.value.body == "Service unavailable"

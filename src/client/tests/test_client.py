@@ -8,7 +8,14 @@ import pytest
 
 from menshen_client.clients import TokenExchangeClient
 from menshen_client.enums import TokenExchangeResponseTokenType, TokenType
-from menshen_client.exceptions import InvalidTokenError, ResponseParsingError
+from menshen_client.exceptions import (
+    APIError,
+    InvalidTokenError,
+    MenshenClientError,
+    ResponseParsingError,
+    ServerTimeoutError,
+    ServerUnavailableError,
+)
 from menshen_client.schemas import (
     Configuration,
     IntrospectionRequest,
@@ -96,8 +103,10 @@ def test_client_exchange_raises_for_status(client, httpx2_mock, status, token_ex
         url="https://menshen.example.org/auth/token/exchange/",
         status_code=status,
     )
-    with pytest.raises(httpx2.HTTPStatusError):
+    with pytest.raises(APIError) as exc_info:
         client.exchange(token_exchange_request)
+    assert exc_info.value.status_code == status
+    assert isinstance(exc_info.value.__cause__, httpx2.HTTPStatusError)
 
 
 def test_client_exchange_raises_for_timeout(client, httpx2_mock, token_exchange_request):
@@ -107,8 +116,9 @@ def test_client_exchange_raises_for_timeout(client, httpx2_mock, token_exchange_
         method="POST",
         url="https://menshen.example.org/auth/token/exchange/",
     )
-    with pytest.raises(httpx2.TimeoutException):
+    with pytest.raises(ServerTimeoutError) as exc_info:
         client.exchange(token_exchange_request)
+    assert isinstance(exc_info.value.__cause__, httpx2.TimeoutException)
 
 
 def test_client_exchange_token(
@@ -217,8 +227,10 @@ def test_client_introspect_raises_for_status(client, httpx2_mock, status):
         url="https://menshen.example.org/auth/token/introspect/",
         status_code=status,
     )
-    with pytest.raises(httpx2.HTTPStatusError):
+    with pytest.raises(APIError) as exc_info:
         client.introspect(IntrospectionRequest(token=TOKEN))
+    assert exc_info.value.status_code == status
+    assert isinstance(exc_info.value.__cause__, httpx2.HTTPStatusError)
 
 
 def test_client_introspect_raises_for_timeout(client, httpx2_mock):
@@ -228,8 +240,9 @@ def test_client_introspect_raises_for_timeout(client, httpx2_mock):
         method="POST",
         url="https://menshen.example.org/auth/token/introspect/",
     )
-    with pytest.raises(httpx2.TimeoutException):
+    with pytest.raises(ServerTimeoutError) as exc_info:
         client.introspect(IntrospectionRequest(token=TOKEN))
+    assert isinstance(exc_info.value.__cause__, httpx2.TimeoutException)
 
 
 def test_client_introspect_token(client, httpx2_mock):
@@ -316,8 +329,10 @@ def test_client_revoke_raises_for_status(client, httpx2_mock, status):
         url="https://menshen.example.org/auth/token/revoke/",
         status_code=status,
     )
-    with pytest.raises(httpx2.HTTPStatusError):
+    with pytest.raises(APIError) as exc_info:
         client.revoke(RevocationRequest(token=TOKEN))
+    assert exc_info.value.status_code == status
+    assert isinstance(exc_info.value.__cause__, httpx2.HTTPStatusError)
 
 
 def test_client_revoke_raises_for_timeout(client, httpx2_mock):
@@ -327,8 +342,9 @@ def test_client_revoke_raises_for_timeout(client, httpx2_mock):
         method="POST",
         url="https://menshen.example.org/auth/token/revoke/",
     )
-    with pytest.raises(httpx2.TimeoutException):
+    with pytest.raises(ServerTimeoutError) as exc_info:
         client.revoke(RevocationRequest(token=TOKEN))
+    assert isinstance(exc_info.value.__cause__, httpx2.TimeoutException)
 
 
 @pytest.mark.parametrize("body", [None, "", "{}", '{"foo": "bar"}'])
@@ -456,3 +472,68 @@ def test_client_token_validation_with_configured_min_length(  # noqa: PLR0913,PL
     )
     getattr(client, method)(request_klass(token="a" * min_length))
     assert len(httpx2_mock.get_requests()) == 1
+
+
+@pytest.mark.parametrize(
+    ("method", "request_obj", "endpoint"),
+    [
+        ("introspect", IntrospectionRequest(token=TOKEN), "introspect"),
+        ("revoke", RevocationRequest(token=TOKEN), "revoke"),
+    ],
+)
+def test_client_raises_unavailable_on_transport_error(
+    client, httpx2_mock, method, request_obj, endpoint
+):
+    """Transport errors are surfaced as ServerUnavailableError."""
+    httpx2_mock.add_exception(
+        httpx2.ConnectError("Connection refused"),
+        method="POST",
+        url=f"https://menshen.example.org/auth/token/{endpoint}/",
+    )
+    with pytest.raises(ServerUnavailableError) as exc_info:
+        getattr(client, method)(request_obj)
+    assert not isinstance(exc_info.value, ServerTimeoutError)
+    assert isinstance(exc_info.value, MenshenClientError)
+    assert isinstance(exc_info.value.__cause__, httpx2.ConnectError)
+
+
+def test_client_exchange_raises_unavailable_on_transport_error(
+    client, httpx2_mock, token_exchange_request
+):
+    """Transport errors on exchange are surfaced as ServerUnavailableError."""
+    httpx2_mock.add_exception(
+        httpx2.ConnectError("Connection refused"),
+        method="POST",
+        url="https://menshen.example.org/auth/token/exchange/",
+    )
+    with pytest.raises(ServerUnavailableError):
+        client.exchange(token_exchange_request)
+
+
+def test_client_api_error_details(client, httpx2_mock):
+    """APIError exposes the failed response details."""
+    httpx2_mock.add_response(
+        method="POST",
+        url="https://menshen.example.org/auth/token/introspect/",
+        status_code=503,
+        text="Service unavailable",
+    )
+    with pytest.raises(MenshenClientError) as exc_info:
+        client.introspect(IntrospectionRequest(token=TOKEN))
+    assert isinstance(exc_info.value, APIError)
+    assert exc_info.value.status_code == 503
+    assert exc_info.value.url == "https://menshen.example.org/auth/token/introspect/"
+    assert exc_info.value.body == "Service unavailable"
+
+
+def test_client_raises_client_error_on_other_request_error(client, httpx2_mock):
+    """Other HTTP client request errors are surfaced as MenshenClientError."""
+    httpx2_mock.add_exception(
+        httpx2.DecodingError("Bad encoding"),
+        method="POST",
+        url="https://menshen.example.org/auth/token/introspect/",
+    )
+    with pytest.raises(MenshenClientError) as exc_info:
+        client.introspect(IntrospectionRequest(token=TOKEN))
+    assert not isinstance(exc_info.value, ServerUnavailableError)
+    assert isinstance(exc_info.value.__cause__, httpx2.DecodingError)
