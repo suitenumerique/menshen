@@ -1,7 +1,7 @@
 # Menshen API client
 
 `menshen_client` is an API client distributed as a Python's library to
-integrate Menshen OAuth2 Token Exchange server in your autorization flow. It
+integrate Menshen OAuth2 Token Exchange server in your authorization flow. It
 has been designed to add few extra-dependencies to your project.
 
 ## Installation
@@ -106,10 +106,10 @@ resources = requests.get(
 > check the `TokenExchangeResponse` dataclass in the project's repository (and
 > the [RFC 8693](https://www.rfc-editor.org/info/rfc8693/#name-response)).
 
-### Exchanged token instrospection
+### Exchanged token introspection
 
 If you are the target resource server, you may want to introspect exchanged
-tokens _via_ your autorization server instance using:
+tokens _via_ your authorization server instance using:
 
 ```python
 from menshen_client import (
@@ -118,7 +118,7 @@ from menshen_client import (
     TokenType,
 )
 
-# Create the token instrospection request
+# Create the token introspection request
 introspection_request = IntrospectionRequest(
     token="MZGYrOI1nQNTwCriw0iJaGk-iF7Fdk2pdJB8LMYuCF0",
     token_type_hint=TokenType.ACCESS_TOKEN,
@@ -133,14 +133,14 @@ assert introspection_response.sub == "1234567890"
 assert introspection_response.email == "jane.doe@example.org"
 ```
 
-> For a full list of available fields in the token instrospection response,
+> For a full list of available fields in the token introspection response,
 > please check the `IntrospectionResponse` dataclass in the project's
 > repository (and the [RFC
 > 7662](https://www.rfc-editor.org/info/rfc7662/#section-2.2)).
 
 ### Exchanged token revocation
 
-If for any reason, you want to revoke an exchaged token, you can query your
+If for any reason, you want to revoke an exchanged token, you can query your
 Menshen instance dedicated endpoint:
 
 ```python

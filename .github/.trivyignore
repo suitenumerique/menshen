@@ -1,0 +1,3 @@
+# python:3.14-alpine base image: setuptools vendored by pip (pkg_resources),
+# not used at runtime. Review regularly and remove once upstream ships a fix.
+CVE-2025-47273 exp:2026-12-31

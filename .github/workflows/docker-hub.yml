@@ -21,9 +21,9 @@ concurrency:
 
 jobs:
   build-and-push-backend:
-    uses: $/.github/workflows/_docker-publish.yml
     permissions:
       contents: read
+    uses: suitenumerique/ci/.github/workflows/_docker-publish.yml@ca6401ac83e981e5b0a94f06f68baaa6e6d0a436 # v0.0.1
     secrets:
       DOCKER_HUB_USER: ${{ secrets.DOCKER_HUB_USER }}
       DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
@@ -33,15 +33,20 @@ jobs:
       file: src/backend/Dockerfile
       target: backend-production
       should_push: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'preview') }}
-      docker_user: 1001:127
+      docker_user: "1001:127"
+      is_multi_platform: ${{ startsWith(github.ref, 'refs/tags/v') }}
+      trivy_scan: true
+      trivy_ignore_files: ./.github/.trivyignore
 
   notify-argocd:
+    permissions:
+      contents: read
     needs:
       - build-and-push-backend
     runs-on: ubuntu-latest
     if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'preview')
     steps:
-      - uses: numerique-gouv/action-argocd-webhook-notification@cac2ee67896eb13e84e804f60c4271370424eaa8 # main
+      - uses: suitenumerique/ci/actions/argocd-webhook-notification@ca6401ac83e981e5b0a94f06f68baaa6e6d0a436 # v0.0.1
         id: notify
         with:
           deployment_repo_path: "${{ secrets.DEPLOYMENT_REPO_URL }}"

@@ -9,8 +9,8 @@ from token_exchange.services.introspection import IntrospectionService
 from token_exchange.services.token import TokenGenerator
 
 
-def test_instrospection_service_revoke_with_an_unknown_token(target_service):
-    """Test the instrospection service response generation with a token that does not exist."""
+def test_introspection_service_revoke_with_an_unknown_token(target_service):
+    """Test the introspection service response generation with a token that does not exist."""
     with capture_logs() as log_events:
         IntrospectionService.introspect("foo", target_service)
     assert log_events == [
