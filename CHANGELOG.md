@@ -23,6 +23,14 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 - Add a `client_id` claim to exchanged JWTs identifying the service provider
   that requested the token exchange (as its audience id), so that target
   services know which service requested the token
+- Add `IdentityProvider` and `IdentityProviderCredentials` models (with
+  credentials secrets encrypted at rest) and link service providers to their
+  identity provider
+- Add `rules`, `subject_iss` and `target_sub` fields to the `ExchangedToken`
+  model
+- Add `TOKEN_EXCHANGE_IDP_CREDENTIALS_ENCRYPTION_KEYS` setting to configure
+  identity provider credentials encryption keys (falls back to a key derived
+  from `SECRET_KEY`)
 
 ### Changed
 

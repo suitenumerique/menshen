@@ -5,6 +5,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from django.core.exceptions import ValidationError
+from django.db.models import ProtectedError
 from django.utils import timezone
 from structlog.testing import capture_logs
 
@@ -13,6 +14,8 @@ from token_exchange.factories import (
     ActionScopeFactory,
     ActionScopeGrantFactory,
     ExchangedTokenFactory,
+    IdentityProviderCredentialsFactory,
+    IdentityProviderFactory,
     ScopeGrantFactory,
     ServiceProviderCredentialsFactory,
     ServiceProviderFactory,
@@ -21,6 +24,8 @@ from token_exchange.factories import (
 )
 from token_exchange.models import (
     ExchangedToken,
+    IdentityProvider,
+    IdentityProviderCredentials,
     ServiceProvider,
     TokenTypeChoices,
     validate_action_scope_name,
@@ -435,3 +440,118 @@ def test_exchangedtoken_actor_token_can_be_null():
     assert token.actor_token is None
     token.refresh_from_db()
     assert token.actor_token is None
+
+
+def test_identity_provider_str():
+    """Test the IdentityProvider string representation."""
+    identity_provider = IdentityProviderFactory.create(name="ProConnect")
+    assert str(identity_provider) == "ProConnect"
+
+
+@pytest.mark.parametrize("field", ["name", "issuer"])
+def test_identity_provider_unique_fields(field):
+    """Test IdentityProvider name and issuer are unique."""
+    identity_provider = IdentityProviderFactory.create()
+    with pytest.raises(ValidationError, match="already exists"):
+        IdentityProviderFactory.create(**{field: getattr(identity_provider, field)})
+
+
+def test_identity_provider_issuer_must_be_an_url():
+    """Test IdentityProvider issuer should be a valid URL."""
+    with pytest.raises(ValidationError, match="Enter a valid URL"):
+        IdentityProviderFactory.create(issuer="not-an-url")
+
+
+def test_identity_provider_credentials_str():
+    """Test the IdentityProviderCredentials string representation."""
+    credentials = IdentityProviderCredentialsFactory.create(
+        identity_provider__name="ProConnect", is_active=False
+    )
+    assert str(credentials) == "ProConnect [is_active:False]"
+
+
+def test_identity_provider_credentials_single_active():
+    """Test only one set of credentials can be active per identity provider."""
+    credentials = IdentityProviderCredentialsFactory.create()
+    identity_provider = credentials.identity_provider
+
+    # Inactive credentials can be added
+    IdentityProviderCredentialsFactory.create(identity_provider=identity_provider, is_active=False)
+
+    with pytest.raises(ValidationError, match="Only one set of credentials can be active"):
+        IdentityProviderCredentialsFactory.create(identity_provider=identity_provider)
+
+    # Another identity provider may have active credentials
+    IdentityProviderCredentialsFactory.create()
+
+    # Rotation: inactivate current credentials before activating new ones
+    credentials.is_active = False
+    credentials.save()
+    IdentityProviderCredentialsFactory.create(identity_provider=identity_provider)
+    assert (
+        IdentityProviderCredentials.objects.filter(
+            identity_provider=identity_provider, is_active=True
+        ).count()
+        == 1
+    )
+
+
+def test_identity_provider_credentials_deleted_with_identity_provider():
+    """Test credentials are deleted along with their identity provider."""
+    credentials = IdentityProviderCredentialsFactory.create()
+    credentials.identity_provider.delete()
+    assert not IdentityProviderCredentials.objects.filter(pk=credentials.pk).exists()
+
+
+def test_service_provider_identity_provider():
+    """Test a ServiceProvider may be linked to an identity provider."""
+    assert ServiceProviderFactory.create().identity_provider is None
+
+    identity_provider = IdentityProviderFactory.create()
+    service_provider = ServiceProviderFactory.create(identity_provider=identity_provider)
+    assert service_provider.identity_provider == identity_provider
+    assert list(identity_provider.service_providers.all()) == [service_provider]
+
+
+def test_service_provider_identity_provider_protected():
+    """Test an IdentityProvider used by a service provider cannot be deleted."""
+    identity_provider = IdentityProviderFactory.create()
+    ServiceProviderFactory.create(identity_provider=identity_provider)
+
+    with pytest.raises(ProtectedError):
+        identity_provider.delete()
+    assert IdentityProvider.objects.filter(pk=identity_provider.pk).exists()
+
+
+def test_exchangedtoken_identity_fields_defaults():
+    """Test ExchangedToken subject_iss and target_sub are optional."""
+    token = ExchangedTokenFactory.create()
+    assert token.subject_iss == ""
+    assert token.target_sub == ""
+    assert not token.rules.exists()
+
+
+def test_exchangedtoken_rules():
+    """Test an ExchangedToken may be linked to the rules it was issued under."""
+    token = ExchangedTokenFactory.create(
+        subject_iss="https://idp.example.com", target_sub="target-sub"
+    )
+    rules = [
+        TokenExchangeRuleFactory.create(
+            source_service=token.source_service,
+            target_service__audience_id=f"service:target-{index}",
+        )
+        for index in range(2)
+    ]
+    token.rules.set(rules)
+
+    token.refresh_from_db()
+    assert token.subject_iss == "https://idp.example.com"
+    assert token.target_sub == "target-sub"
+    assert set(token.rules.all()) == set(rules)
+    assert list(rules[0].exchanged_tokens.all()) == [token]
+
+    # Deleting a rule removes the link only
+    rules[0].delete()
+    assert list(token.rules.all()) == [rules[1]]
+    assert ExchangedToken.objects.filter(pk=token.pk).exists()

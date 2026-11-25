@@ -1,5 +1,6 @@
 """Menshen: admin configuration for the token_exchange application."""
 
+from django import forms
 from django.conf import settings
 from django.contrib import admin, messages
 from django.utils.safestring import mark_safe
@@ -9,6 +10,8 @@ from .models import (
     ActionScope,
     ActionScopeGrant,
     ExchangedToken,
+    IdentityProvider,
+    IdentityProviderCredentials,
     ScopeGrant,
     ServiceProvider,
     ServiceProviderCredentials,
@@ -20,6 +23,90 @@ from .utils import generate_client_secret, hash_token
 STR_MAX_DISPLAY_LENGTH: int = 50
 
 
+class IdentityProviderCredentialsForm(forms.ModelForm):
+    """
+    Identity provider credentials form.
+
+    Secrets are write-only: they are never rendered back, and are left unchanged when
+    submitted empty while editing existing credentials.
+    """
+
+    secret_fields: tuple[str, ...] = ("client_secret", "private_key")
+
+    client_secret = forms.CharField(
+        label=_("Client secret"),
+        required=False,
+        widget=forms.PasswordInput(render_value=False),
+    )
+    private_key = forms.CharField(
+        label=_("Private key"),
+        required=False,
+        widget=forms.PasswordInput(render_value=False),
+        help_text=_("Private key used to decrypt JWT introspection responses (PEM)"),
+    )
+
+    class Meta:  # noqa: D106
+        model = IdentityProviderCredentials
+        fields = ("identity_provider", "client_id", "client_secret", "private_key", "is_active")
+
+    def clean_client_secret(self) -> str:
+        """Require a client secret when creating credentials."""
+        value = self.cleaned_data.get("client_secret", "")
+        if not value and self._is_creation:
+            raise forms.ValidationError(_("This field is required."))
+        return value
+
+    @property
+    def _is_creation(self) -> bool:
+        """Whether the form creates new credentials (pk has a default, hence is always set)."""
+        return self.instance._state.adding  # noqa: SLF001
+
+    def clean(self) -> dict:
+        """Keep stored secrets when they are submitted empty."""
+        cleaned_data = super().clean()
+        if not self._is_creation:
+            for field in self.secret_fields:
+                if not cleaned_data.get(field):
+                    cleaned_data[field] = getattr(self.instance, field)
+        return cleaned_data
+
+
+class IdentityProviderCredentialsInline(admin.TabularInline):
+    """Inline admin for IdentityProviderCredentials."""
+
+    model = IdentityProviderCredentials
+    form = IdentityProviderCredentialsForm
+    extra = 0
+    fields = ["client_id", "client_secret", "private_key", "is_active"]
+
+
+@admin.register(IdentityProvider)
+class IdentityProviderAdmin(admin.ModelAdmin):
+    """Admin interface for identity providers."""
+
+    list_display = ("name", "issuer", "created_at", "updated_at")
+    search_fields = ("name", "issuer")
+    readonly_fields = ("created_at", "updated_at")
+    inlines = [IdentityProviderCredentialsInline]
+
+
+@admin.register(IdentityProviderCredentials)
+class IdentityProviderCredentialsAdmin(admin.ModelAdmin):
+    """Admin interface for identity providers credentials."""
+
+    form = IdentityProviderCredentialsForm
+    list_display = ("client_id", "identity_provider", "is_active", "created_at")
+    list_filter = ("is_active", "identity_provider")
+    search_fields = ("client_id", "identity_provider__name", "identity_provider__issuer")
+    readonly_fields = ("created_at", "updated_at")
+    actions = ("make_inactive",)
+
+    @admin.action(description=_("Inactivate selected identity provider credentials"))
+    def make_inactive(self, request, queryset):
+        """Inactivate selected credentials."""
+        queryset.update(is_active=False)
+
+
 @admin.register(ServiceProvider)
 class ServiceProviderAdmin(admin.ModelAdmin):
     """Admin interface for service providers."""
@@ -27,9 +114,11 @@ class ServiceProviderAdmin(admin.ModelAdmin):
     list_display = (
         "name",
         "audience_id",
+        "identity_provider",
         "created_at",
         "updated_at",
     )
+    list_filter = ("identity_provider",)
     search_fields = ("name", "audience_id")
     readonly_fields = ("created_at", "updated_at")
 
@@ -96,6 +185,7 @@ class ExchangedTokenAdmin(admin.ModelAdmin):
     search_fields = [
         "subject_sub",
         "subject_email",
+        "target_sub",
         "subject_token_jti",
         "audiences",
         "source_service__name",
@@ -110,6 +200,9 @@ class ExchangedTokenAdmin(admin.ModelAdmin):
         "subject_token_jti",
         "subject_token_scope",
         "source_service",
+        "subject_iss",
+        "target_sub",
+        "rules",
         "created_at",
         "status",
     ]
@@ -133,7 +226,10 @@ class ExchangedTokenAdmin(admin.ModelAdmin):
                 "fields": [
                     "subject_sub",
                     "subject_email",
+                    "subject_iss",
+                    "target_sub",
                     "source_service",
+                    "rules",
                     "audiences",
                     "scope",
                     "subject_token_scope",

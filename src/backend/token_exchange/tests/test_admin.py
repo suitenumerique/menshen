@@ -5,8 +5,17 @@ from uuid import uuid4
 
 import pytest
 
-from token_exchange.factories import ExchangedTokenFactory, ServiceProviderFactory
-from token_exchange.models import ServiceProviderCredentials, TokenExchangeRule
+from token_exchange.factories import (
+    ExchangedTokenFactory,
+    IdentityProviderCredentialsFactory,
+    IdentityProviderFactory,
+    ServiceProviderFactory,
+)
+from token_exchange.models import (
+    IdentityProviderCredentials,
+    ServiceProviderCredentials,
+    TokenExchangeRule,
+)
 
 
 @pytest.mark.parametrize("use_special_chars", [True, False])
@@ -118,3 +127,149 @@ def test_token_exchange_rule_admin_invalid_duration(admin_client, settings, dura
     assert not TokenExchangeRule.objects.filter(
         source_service=source_service, target_service=target_service
     ).exists()
+
+
+def _identity_provider_credentials_admin_form_data(identity_provider, **kwargs):
+    """Build the IdentityProviderCredentials admin form data."""
+    return {
+        "identity_provider": identity_provider.id,
+        "client_id": "menshen",
+        "client_secret": "",
+        "private_key": "",
+        "is_active": "on",
+    } | kwargs
+
+
+@pytest.mark.django_db
+def test_identity_provider_admin_with_credentials_inline(admin_client):
+    """Test creating an identity provider with its credentials using Django admin."""
+    response = admin_client.post(
+        "/admin/token_exchange/identityprovider/add/",
+        {
+            "name": "ProConnect",
+            "issuer": "https://idp.example.com",
+            "credentials-TOTAL_FORMS": "1",
+            "credentials-INITIAL_FORMS": "0",
+            "credentials-MIN_NUM_FORMS": "0",
+            "credentials-MAX_NUM_FORMS": "1000",
+            "credentials-0-client_id": "menshen",
+            "credentials-0-client_secret": "s3cr3t",
+            "credentials-0-private_key": "",
+            "credentials-0-is_active": "on",
+        },
+    )
+    assert response.status_code == 302
+
+    credentials = IdentityProviderCredentials.objects.get(identity_provider__name="ProConnect")
+    assert credentials.identity_provider.issuer == "https://idp.example.com"
+    assert credentials.client_id == "menshen"
+    assert credentials.client_secret == "s3cr3t"
+
+
+@pytest.mark.django_db
+def test_identity_provider_credentials_admin_add(admin_client):
+    """Test identity provider credentials creation requires a client secret."""
+    identity_provider = IdentityProviderFactory.create()
+    url = "/admin/token_exchange/identityprovidercredentials/add/"
+
+    response = admin_client.post(
+        url, _identity_provider_credentials_admin_form_data(identity_provider)
+    )
+    assert response.status_code == 200
+    assert "client_secret" in response.context["adminform"].form.errors
+    assert not IdentityProviderCredentials.objects.exists()
+
+    response = admin_client.post(
+        url,
+        _identity_provider_credentials_admin_form_data(
+            identity_provider, client_secret="s3cr3t", private_key="pem"
+        ),
+    )
+    assert response.status_code == 302
+    credentials = IdentityProviderCredentials.objects.get(identity_provider=identity_provider)
+    assert credentials.client_secret == "s3cr3t"
+    assert credentials.private_key == "pem"
+
+
+@pytest.mark.django_db
+def test_identity_provider_credentials_admin_secrets_not_rendered(admin_client):
+    """Test identity provider credentials secrets are never displayed in the admin."""
+    credentials = IdentityProviderCredentialsFactory.create(
+        client_secret="client-s3cr3t", private_key="private-s3cr3t"
+    )
+
+    for url in (
+        f"/admin/token_exchange/identityprovidercredentials/{credentials.pk}/change/",
+        f"/admin/token_exchange/identityprovider/{credentials.identity_provider.pk}/change/",
+    ):
+        response = admin_client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "client-s3cr3t" not in content
+        assert "private-s3cr3t" not in content
+
+
+@pytest.mark.django_db
+def test_identity_provider_credentials_admin_change(admin_client):
+    """Test empty secrets are left unchanged when editing credentials."""
+    credentials = IdentityProviderCredentialsFactory.create(
+        client_secret="client-s3cr3t", private_key="private-s3cr3t"
+    )
+    url = f"/admin/token_exchange/identityprovidercredentials/{credentials.pk}/change/"
+
+    response = admin_client.post(
+        url,
+        _identity_provider_credentials_admin_form_data(
+            credentials.identity_provider, client_id="new-client-id"
+        ),
+    )
+    assert response.status_code == 302
+    credentials.refresh_from_db()
+    assert credentials.client_id == "new-client-id"
+    assert credentials.client_secret == "client-s3cr3t"
+    assert credentials.private_key == "private-s3cr3t"
+
+    response = admin_client.post(
+        url,
+        _identity_provider_credentials_admin_form_data(
+            credentials.identity_provider, client_secret="new-s3cr3t"
+        ),
+    )
+    assert response.status_code == 302
+    credentials.refresh_from_db()
+    assert credentials.client_secret == "new-s3cr3t"
+    assert credentials.private_key == "private-s3cr3t"
+
+
+@pytest.mark.django_db
+def test_identity_provider_credentials_admin_make_inactive(admin_client):
+    """Test the identity provider credentials inactivation admin action."""
+    credentials = IdentityProviderCredentialsFactory.create()
+
+    response = admin_client.post(
+        "/admin/token_exchange/identityprovidercredentials/",
+        {"action": "make_inactive", "_selected_action": [credentials.pk]},
+    )
+    assert response.status_code == 302
+    credentials.refresh_from_db()
+    assert not credentials.is_active
+
+
+@pytest.mark.django_db
+def test_exchanged_token_admin_identity_fields(admin_client):
+    """Test exchanged token identity fields are displayed and searchable in the admin."""
+    exchanged_token = ExchangedTokenFactory.create(
+        subject_iss="https://idp.example.com", target_sub="target-sub-42"
+    )
+
+    response = admin_client.get(
+        f"/admin/token_exchange/exchangedtoken/{exchanged_token.pk}/change/"
+    )
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "https://idp.example.com" in content
+    assert "target-sub-42" in content
+
+    response = admin_client.get("/admin/token_exchange/exchangedtoken/", {"q": "target-sub-42"})
+    assert response.status_code == 200
+    assert list(response.context["cl"].queryset) == [exchanged_token]
