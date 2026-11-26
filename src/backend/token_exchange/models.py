@@ -16,6 +16,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from .enums import InvalidTokenReason, TokenExchangeTokenTypeHint, TokenType
+from .fields import EncryptedTextField
 from .schemas import IntrospectionResponse
 
 logger = structlog.get_logger(__name__)
@@ -96,11 +97,96 @@ class BaseModel(models.Model):
         super().save(*args, **kwargs)
 
 
+class IdentityProvider(BaseModel):
+    """
+    Represents an identity provider (OpenID Connect provider) service providers rely on.
+
+    Service providers relying on different identity providers may know the same user
+    with different subject identifiers (sub).
+    """
+
+    name = models.CharField(_("name"), max_length=255, unique=True)
+    issuer = models.URLField(
+        _("issuer"),
+        max_length=255,
+        unique=True,
+        help_text=_("The identity provider issuer identifier (iss)"),
+    )
+
+    class Meta:  # noqa: D106  # ty: ignore[invalid-attribute-override]
+        db_table = "menshen_identity_provider"
+        verbose_name = _("identity provider")
+        verbose_name_plural = _("identity providers")
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class IdentityProviderCredentials(BaseModel):
+    """
+    Credentials used by Menshen to authenticate against an identity provider.
+
+    As those secrets are sent to the identity provider, they are encrypted (not hashed)
+    in the database. Only one set of credentials can be active per identity provider.
+    """
+
+    identity_provider = models.ForeignKey(
+        IdentityProvider,
+        on_delete=models.CASCADE,
+        related_name="credentials",
+        verbose_name=_("Identity Provider"),
+    )
+    client_id = models.CharField(
+        max_length=255,
+        verbose_name=_("Client ID"),
+    )
+    client_secret = EncryptedTextField(
+        verbose_name=_("Client secret"),
+    )
+    private_key = EncryptedTextField(
+        blank=True,
+        default="",
+        verbose_name=_("Private key"),
+        help_text=_("Private key used to decrypt JWT introspection responses (PEM)"),
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name=_("Is Active"),
+    )
+
+    class Meta:  # noqa: D106  # ty: ignore[invalid-attribute-override]
+        db_table = "menshen_identity_provider_credentials"
+        verbose_name = _("identity provider credentials")
+        verbose_name_plural = _("identity providers credentials")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["identity_provider"],
+                condition=models.Q(is_active=True),
+                name="unique_active_identity_provider_credentials",
+                violation_error_message=_(
+                    "Only one set of credentials can be active per identity provider."
+                ),
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.identity_provider} [is_active:{self.is_active}]"
+
+
 class ServiceProvider(BaseModel):
     """Represents a service provider that will consume our information."""
 
     name = models.CharField(_("name"), max_length=256, unique=True)
     audience_id = models.CharField(_("audience id"), max_length=256, unique=True, db_index=True)
+    identity_provider = models.ForeignKey(
+        IdentityProvider,
+        on_delete=models.PROTECT,
+        related_name="service_providers",
+        null=True,
+        blank=True,
+        verbose_name=_("Identity Provider"),
+        help_text=_("The identity provider used to authenticate this service users"),
+    )
 
     class Meta:  # noqa: D106  # ty: ignore[invalid-attribute-override]
         db_table = "menshen_service_provider"
@@ -426,6 +512,21 @@ class ExchangedToken(BaseModel):
         verbose_name=_("Subject Email"),
         help_text=_("The subject email from the introspection"),
     )
+    subject_iss = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        verbose_name=_("Subject Issuer"),
+        help_text=_("The issuer (iss) of the subject token"),
+    )
+    target_sub = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        db_index=True,
+        verbose_name=_("Target Sub"),
+        help_text=_("The subject identifier (sub) for the target services identity provider"),
+    )
     audiences = ArrayField(
         models.CharField(max_length=255),
         default=list,
@@ -494,6 +595,14 @@ class ExchangedToken(BaseModel):
         blank=True,
         verbose_name=_("Source Service"),
         help_text=_("The service provider that requested the token exchange"),
+    )
+    rules = models.ManyToManyField(
+        TokenExchangeRule,
+        blank=True,
+        related_name="exchanged_tokens",
+        db_table="menshen_tx_exchanged_token_rules",
+        verbose_name=_("Rules"),
+        help_text=_("The token exchange rules this token was issued under"),
     )
 
     class Meta:  # noqa: D106  # ty: ignore[invalid-attribute-override]

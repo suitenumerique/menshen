@@ -493,6 +493,14 @@ class Base(Configuration):
         environ_name="TOKEN_EXCHANGE_TOKEN_HASH_KEY",
         environ_prefix=None,
     )
+    # Comma separated Fernet keys used to encrypt identity provider credentials stored
+    # in the database: the first key encrypts, all keys decrypt (key rotation). Falls
+    # back to a key derived from SECRET_KEY when not defined.
+    TOKEN_EXCHANGE_IDP_CREDENTIALS_ENCRYPTION_KEYS = SecretFileValue(
+        default=None,
+        environ_name="TOKEN_EXCHANGE_IDP_CREDENTIALS_ENCRYPTION_KEYS",
+        environ_prefix=None,
+    )
 
     # Token Exchange API documentation
     # https://django-ninja.dev/guide/openapi/#hiding-or-disabling-the-docs

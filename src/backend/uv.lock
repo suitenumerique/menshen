@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = "==3.14.*"
 
 [[package]]
@@ -615,6 +615,7 @@ version = "0.7.0"
 source = { editable = "." }
 dependencies = [
     { name = "argon2-cffi" },
+    { name = "cryptography" },
     { name = "dj-database-url" },
     { name = "django" },
     { name = "django-configurations" },
@@ -649,6 +650,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "argon2-cffi", specifier = "==25.1.0" },
+    { name = "cryptography", specifier = "==50.0.2" },
     { name = "dj-database-url", specifier = "==3.1.2" },
     { name = "django", specifier = "==6.1.2" },
     { name = "django-configurations", specifier = "==2.5.1" },

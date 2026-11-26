@@ -98,6 +98,29 @@ class JWTExchangedTokenFactory(ExchangedTokenFactory):
     audiences = ["service:target"]
 
 
+class IdentityProviderFactory(factory.django.DjangoModelFactory):
+    """Create an IdentityProvider service providers rely on."""
+
+    class Meta:  # noqa: D106  # ty: ignore[invalid-attribute-override]
+        model = models.IdentityProvider
+
+    name = factory.Sequence(lambda n: f"Identity provider {n}")
+    issuer = factory.Sequence(lambda n: f"https://idp{n}.example.com")
+
+
+class IdentityProviderCredentialsFactory(factory.django.DjangoModelFactory):
+    """Allow Menshen to authenticate against an identity provider."""
+
+    class Meta:  # noqa: D106  # ty: ignore[invalid-attribute-override]
+        model = models.IdentityProviderCredentials
+
+    identity_provider = factory.SubFactory(IdentityProviderFactory)
+    client_id = factory.LazyFunction(fake.uuid4)
+    client_secret = factory.LazyFunction(fake.uuid4)
+    private_key = ""
+    is_active = True
+
+
 class ServiceProviderFactory(factory.django.DjangoModelFactory):
     """Create a ServiceProvider that will query token exchange endpoint."""
 
@@ -106,6 +129,7 @@ class ServiceProviderFactory(factory.django.DjangoModelFactory):
 
     name = factory.LazyFunction(fake.uuid4)
     audience_id = factory.LazyFunction(fake.domain_word)
+    identity_provider = None
 
 
 class ServiceProviderCredentialsFactory(factory.django.DjangoModelFactory):
