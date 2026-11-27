@@ -1,4 +1,4 @@
-"""Menshen: test fixtures for the menshen application."""
+"""Menshen: test fixtures shared by every backend application."""
 
 import pytest
 import structlog

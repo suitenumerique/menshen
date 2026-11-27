@@ -712,7 +712,7 @@ def test_request_service_generate_exchange_response_with_persist(
     )
 
 
-def test_request_service_save_with_actor_token(settings, source_service):
+def test_request_service_save_with_actor_token(source_service):
     """Test the request service save method stores an HMAC hash of the actor token."""
     raw_actor_token = "actor-token-value"
     request = TokenExchangeRequest(
@@ -732,7 +732,7 @@ def test_request_service_save_with_actor_token(settings, source_service):
 
 
 @pytest.mark.parametrize("empty_actor_token", ["", None])
-def test_request_service_save_without_actor_token(settings, source_service, empty_actor_token):
+def test_request_service_save_without_actor_token(source_service, empty_actor_token):
     """Test the request service save method stores None when no actor token is presented."""
     request = TokenExchangeRequest.model_construct(
         subject_token="foo",

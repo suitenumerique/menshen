@@ -10,15 +10,8 @@ from token_exchange.authentication import ServiceProviderBasicAuthentication
 from token_exchange.factories import ServiceProviderCredentialsFactory
 
 
-@pytest.fixture(autouse=True)
-def clear_structlog_context():
-    """Clear structlog context vars around each test."""
-    structlog.contextvars.clear_contextvars()
-    yield
-    structlog.contextvars.clear_contextvars()
-
-
-def test_authentication_binds_service_provider_id(db):
+@pytest.mark.django_db
+def test_authentication_binds_service_provider_id():
     """Test that authentication binds the service provider id for logging."""
     credentials = ServiceProviderCredentialsFactory.create(client_secret="secret")
 
@@ -31,7 +24,8 @@ def test_authentication_binds_service_provider_id(db):
     )
 
 
-def test_authentication_does_not_bind_service_provider_id_on_failure(db):
+@pytest.mark.django_db
+def test_authentication_does_not_bind_service_provider_id_on_failure():
     """Test that a failed authentication does not bind a service provider id."""
     credentials = ServiceProviderCredentialsFactory.create(client_secret="secret")
 
@@ -43,6 +37,7 @@ def test_authentication_does_not_bind_service_provider_id_on_failure(db):
     assert "service_provider_id" not in structlog.contextvars.get_contextvars()
 
 
+@pytest.mark.django_db
 @pytest.mark.parametrize(
     ("client_id", "client_secret", "is_active", "reason"),
     [
@@ -51,7 +46,7 @@ def test_authentication_does_not_bind_service_provider_id_on_failure(db):
         (None, "invalid", True, "invalid_secret"),
     ],
 )
-def test_authentication_logs_failure(db, client_id, client_secret, is_active, reason):
+def test_authentication_logs_failure(client_id, client_secret, is_active, reason):
     """Test that authentication failures are logged with their reason (but not the secret)."""
     credentials = ServiceProviderCredentialsFactory.create(
         client_secret="secret", is_active=is_active

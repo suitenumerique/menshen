@@ -18,13 +18,7 @@ CLAIMS = {
     "email": "jane.doe@example.org",
 }
 
-
-@pytest.fixture(autouse=True)
-def oidc_rs_settings(settings):
-    """Configure the resource server credentials required to instantiate backends."""
-    settings.OIDC_RS_CLIENT_ID = "menshen"
-    settings.OIDC_RS_CLIENT_SECRET = "secret"  # noqa: S105
-    settings.OIDC_OP_JWKS_ENDPOINT = "https://oidc.example.org/jwks"
+pytestmark = pytest.mark.usefixtures("oidc_rs_settings")
 
 
 def test_default_backend_class(settings):
