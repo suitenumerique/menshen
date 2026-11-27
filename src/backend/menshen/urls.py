@@ -21,12 +21,18 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
-from django.urls import include, path
+from django.urls import URLPattern, URLResolver, include, path
 
-urlpatterns = [
+urlpatterns: list[URLPattern | URLResolver] = [
     path("admin/", admin.site.urls),
     path("auth/", include("token_exchange.urls")),
 ]
+
+# Serve the Prometheus metrics only when they are enabled for this environment,
+# behind a bearer token (metrics.middleware.PrometheusAuthMiddleware), see
+# docs/metrics.md.
+if settings.PROMETHEUS_METRICS_ENABLED:
+    urlpatterns += [path("", include("metrics.urls"))]
 
 if settings.DEBUG:
     from debug_toolbar.toolbar import debug_toolbar_urls

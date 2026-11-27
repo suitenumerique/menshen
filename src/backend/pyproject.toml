@@ -30,8 +30,10 @@ dependencies = [
     "django-configurations==2.5.1",
     "django-lasuite[oidc-resource-server]==1.0.0",
     "django-ninja==1.7.1",
+    "django-prometheus==2.6.0.dev26",
     "django-redis==7.0.0",
     "dockerflow==2026.3.4",
+    "prometheus-client==0.26.0",
     "psycopg[binary,pool]==3.3.6",
     "sentry-sdk[django]==2.73.0",
     "structlog==26.1.0",
@@ -151,6 +153,8 @@ addopts = [
     "term-missing",
     "--cov",
     "token_exchange",
+    "--cov",
+    "metrics",
     # Allow test files to have the same name in different directories.
     "--import-mode=importlib",
 ]

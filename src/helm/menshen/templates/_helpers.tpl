@@ -98,6 +98,82 @@ menshen backend django env vars - combines common backend.envVars with backend.d
 {{- $workerScope := index . 1 -}}
 {{- include "menshen.env.transformDict" $workerScope.envVars -}}
 {{- include "menshen.env.transformDict" (($workerScope.django | default dict).envVars | default dict) -}}
+{{- include "menshen.backend.metrics.env" $topLevelScope -}}
+{{- end }}
+
+{{/*
+Environment enabling the prometheus metrics of the backend. A pod is only ever
+scraped over plain http, TLS ending at the ingress, so the path is also taken
+out of the redirect to https. Each variable is skipped when the deployment sets
+it by hand, in either env map. The bearer token (PROMETHEUS_API_KEY) is not set
+here: it is a secret, given through `backend.envVars`.
+
+Requires top level scope
+*/}}
+{{- define "menshen.backend.metrics.env" -}}
+{{- if .Values.backend.metrics.enabled -}}
+{{- $named := merge (dict) ((.Values.backend.django | default dict).envVars | default dict) (.Values.backend.envVars | default dict) -}}
+{{- range $variable := list "PROMETHEUS_METRICS_ENABLED" "PROMETHEUS_METRICS_SSL_REDIRECT_EXEMPT" -}}
+{{- if not (hasKey $named $variable) }}
+- name: {{ $variable | quote }}
+  value: "True"
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+The Secret a monitor reads the bearer token of a scrape from: the one named in
+`backend.metrics.apiKeySecret`, or else the one PROMETHEUS_API_KEY is taken
+from in the env of the backend. A token that comes from nowhere the Prometheus
+Operator can read is refused at render time, rather than left to fail at scrape
+time with a 401.
+
+Requires top level scope
+*/}}
+{{- define "menshen.metrics.apiKeySecret" -}}
+{{- $ref := .Values.backend.metrics.apiKeySecret | default dict -}}
+{{- if not $ref.name -}}
+{{- $envVars := merge (dict) ((.Values.backend.django | default dict).envVars | default dict) (.Values.backend.envVars | default dict) -}}
+{{- $fromEnv := index $envVars "PROMETHEUS_API_KEY" -}}
+{{- $ref = (kindIs "map" $fromEnv) | ternary $fromEnv dict -}}
+{{- $ref = $ref.secretKeyRef | default dict -}}
+{{- end -}}
+{{- if not (and $ref.name $ref.key) -}}
+{{- fail "a monitor scrapes the backend with the bearer token of PROMETHEUS_API_KEY, which has to come from a Secret. Give it as a secretKeyRef in backend.envVars, or name the Secret in backend.metrics.apiKeySecret" -}}
+{{- end -}}
+name: {{ $ref.name | quote }}
+key: {{ $ref.key | quote }}
+{{- end }}
+
+{{/*
+The scrape endpoint of a ServiceMonitor or a PodMonitor.
+
+Requires a dict with the top level scope (root) and the monitor values (monitor)
+*/}}
+{{- define "menshen.metrics.endpoint" -}}
+- port: http
+  path: "/metrics"
+  scheme: http
+  {{- with .monitor.interval }}
+  interval: {{ . }}
+  {{- end }}
+  {{- with .monitor.scrapeTimeout }}
+  scrapeTimeout: {{ . }}
+  {{- end }}
+  honorLabels: {{ .monitor.honorLabels }}
+  authorization:
+    type: Bearer
+    credentials:
+      {{- include "menshen.metrics.apiKeySecret" .root | nindent 6 }}
+  {{- with .monitor.relabelings }}
+  relabelings:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .monitor.metricRelabelings }}
+  metricRelabelings:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 {{- end }}
 
 {{/*
