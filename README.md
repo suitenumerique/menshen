@@ -5,6 +5,7 @@
 - Documentation:
   - Integration with LaSuite services [docs/lasuite](./docs/la-suite.md)
   - Using the Python client [src/client/README](./src/client/README.md)
+  - Prometheus metrics [docs/metrics](./docs/metrics.md)
 
 ## Local Development (for contributors)
 
