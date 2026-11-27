@@ -46,6 +46,7 @@ def test_api_docs_urls_disabled_by_default():
         (True, False, "/docs", None),
     ],
 )
+@pytest.mark.usefixtures("restore_api_module")
 def test_api_docs_urls_settings(
     settings, docs_enabled, openapi_enabled, expected_docs_url, expected_openapi_url
 ):
@@ -68,6 +69,7 @@ def test_api_docs_urls_settings(
         (None, None),
     ],
 )
+@pytest.mark.usefixtures("restore_api_module")
 def test_api_docs_urls_custom(settings, docs_url, openapi_url):
     """Test the API documentation urls depending on the urls settings."""
     settings.TOKEN_EXCHANGE_API_DOCS_ENABLED = docs_url is not None
@@ -81,6 +83,7 @@ def test_api_docs_urls_custom(settings, docs_url, openapi_url):
     assert api_instance.openapi_url == openapi_url
 
 
+@pytest.mark.usefixtures("restore_api_module")
 def test_api_docs_urls_should_differ(settings):
     """Test that the docs urls should be different from the openapi url."""
     settings.TOKEN_EXCHANGE_API_DOCS_ENABLED = True

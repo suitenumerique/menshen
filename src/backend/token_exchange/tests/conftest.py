@@ -1,11 +1,13 @@
 """Menshen: test fixtures for the token_exchange application."""
 
 import base64
+import importlib
 from uuid import uuid4
 
 import pytest
 from ninja.testing import TestClient
 
+from token_exchange import api as api_module
 from token_exchange.api import api
 from token_exchange.factories import (
     ActionScopeFactory,
@@ -117,3 +119,26 @@ def clear_lru_cache():
 
     # Execute the test...
     # Note that, as we don't have a teardown, there is no need to yield here.
+
+
+@pytest.fixture
+def restore_api_module(settings):
+    """
+    Rebuild the api module once a test reloaded it with other settings.
+
+    Otherwise, a test importing the urls for the first time in the same process
+    would get the api built by that test.
+    """
+    names = (
+        "TOKEN_EXCHANGE_API_DOCS_ENABLED",
+        "TOKEN_EXCHANGE_API_OPENAPI_ENABLED",
+        "TOKEN_EXCHANGE_API_DOCS_URL",
+        "TOKEN_EXCHANGE_API_OPENAPI_URL",
+    )
+    original_settings = {name: getattr(settings, name) for name in names}
+    yield
+    # The `settings` fixture is only restored after this teardown: put the
+    # original values back before rebuilding the module.
+    for name, value in original_settings.items():
+        setattr(settings, name, value)
+    importlib.reload(api_module)
