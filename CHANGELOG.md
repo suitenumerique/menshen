@@ -8,6 +8,13 @@ Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- Add opt-in Prometheus metrics (django-prometheus) served on `/metrics` behind
+  a bearer token (`PROMETHEUS_METRICS_ENABLED`, `PROMETHEUS_API_KEY`,
+  `PROMETHEUS_METRICS_SSL_REDIRECT_EXEMPT`, `PROMETHEUS_DB_METRICS_ENABLED` and
+  `PROMETHEUS_MULTIPROC_DIR` settings)
+
 ## [v0.7.0] - 2026-11-26
 
 ### Added
