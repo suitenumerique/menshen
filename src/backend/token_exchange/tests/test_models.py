@@ -6,6 +6,7 @@ from unittest.mock import MagicMock
 import pytest
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from prometheus_client import REGISTRY
 from structlog.testing import capture_logs
 
 from token_exchange.enums import AllowedRequestedTokenType, InvalidTokenReason
@@ -435,3 +436,24 @@ def test_exchangedtoken_actor_token_can_be_null():
     assert token.actor_token is None
     token.refresh_from_db()
     assert token.actor_token is None
+
+
+def _exchanged_token_operations(operation: str) -> float:
+    """Return the number of operations of a kind counted on exchanged tokens."""
+    value = REGISTRY.get_sample_value(
+        f"django_model_{operation}_total", {"model": "exchanged_token"}
+    )
+    assert value is not None
+    return value
+
+
+@pytest.mark.django_db
+def test_exchangedtoken_operations_metrics():
+    """Creating and revoking an exchanged token is counted in the metrics."""
+    inserts = _exchanged_token_operations("inserts")
+    token = ExchangedTokenFactory.create(revoked_at=None)
+    assert _exchanged_token_operations("inserts") == inserts + 1
+
+    updates = _exchanged_token_operations("updates")
+    token.revoke()
+    assert _exchanged_token_operations("updates") == updates + 1

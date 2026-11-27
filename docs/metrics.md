@@ -49,6 +49,12 @@ scrape_configs:
   duration (`django_db_execute_total`, `django_db_query_duration_seconds`,
   ...). With `DB_PSYCOPG_POOL_ENABLED`, `django_db_new_connections_total` counts
   the connections taken from the pool, not the connections opened to Postgres.
+- Exchanged tokens, labelled `model="exchanged_token"`:
+  `django_model_inserts_total` counts the issued tokens and
+  `django_model_updates_total` their revocations (and edits in the admin).
+  `django_model_deletes_total` only counts tokens deleted one by one (in the
+  admin): the tokens dropped beyond the quota of active tokens are deleted in
+  bulk and not counted.
 
 No label ever carries a path, a user or a token. A request that matches no
 route is counted under `<unnamed view>`.

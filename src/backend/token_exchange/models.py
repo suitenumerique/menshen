@@ -14,6 +14,7 @@ from django.db import models
 from django.db.models import JSONField
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from django_prometheus.models import ExportModelOperationsMixin
 
 from .enums import InvalidTokenReason, TokenExchangeTokenTypeHint, TokenType
 from .schemas import IntrospectionResponse
@@ -382,7 +383,7 @@ class TokenExchangeActionPermission(BaseModel):
         return f"{self.action.name} in rule {self.rule.id}"
 
 
-class ExchangedToken(BaseModel):
+class ExchangedToken(ExportModelOperationsMixin("exchanged_token"), BaseModel):
     """
     Model representing an exchanged token according to RFC 8693.
 
